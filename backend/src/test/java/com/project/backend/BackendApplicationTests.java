@@ -13,6 +13,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.project.backend.security.JwtTokenProvider;
 import com.project.backend.conversation.ChatMessageRepository;
 import com.project.backend.conversation.ConversationRepository;
+import com.project.backend.conversation.ProductCategory;
 import com.project.backend.user.AppUser;
 import com.project.backend.user.AppUserRepository;
 
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -459,6 +461,60 @@ class BackendApplicationTests {
                 .andExpect(jsonPath("$.title").value("😀".repeat(50)))
                 .andExpect(jsonPath("$.messages[0].content").value(message))
                 .andExpect(jsonPath("$.messages[1].content").value(reply));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ProductCategory.class)
+    void categoryIsPersistedReturnedAndReusedForFollowUpQuestions(ProductCategory category) throws Exception {
+        long id = sendChat("{\"message\":\"작동하지 않아요\",\"category\":\"" + category.name() + "\"}", accessToken);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(category);
+        assertThat(requestBody.get()).contains(category.getLabel());
+
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].category").value(category.name()));
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category").value(category.name()))
+                .andExpect(jsonPath("$.messages[0].content").value("작동하지 않아요"));
+
+        sendChat("{\"message\":\"추가로 확인할 내용이 있나요\",\"conversationId\":" + id + "}", accessToken);
+        assertThat(requestBody.get()).contains(category.getLabel());
+        assertThat(messageRepository.count()).isEqualTo(4);
+    }
+
+    @Test
+    void changingExistingCategoryDoesNotCallLlmOrAlterHistory() throws Exception {
+        long id = sendChat("{\"message\":\"질문\",\"category\":\"WASHER\"}", accessToken);
+        requestBody.set(null);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"category\":\"DRYER\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("기존 상담의 카테고리는 변경할 수 없습니다."));
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(2);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(ProductCategory.WASHER);
+    }
+
+    @Test
+    void unknownCategoryIsRejectedBeforeCallingLlm() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"category\":\"UNKNOWN\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(requestBody.get()).isNull();
+        assertThat(conversationRepository.count()).isZero();
+    }
+
+    @Test
+    void legacyConversationWithoutCategoryRemainsReadableAndCanContinue() throws Exception {
+        long id = sendChat("{\"message\":\"이전 일반 질문\"}", accessToken);
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.category").isEmpty());
+        sendChat("{\"message\":\"추가 질문\",\"category\":null,\"conversationId\":" + id + "}", accessToken);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(4);
     }
 
     private long sendChat(String body, String token) throws Exception {

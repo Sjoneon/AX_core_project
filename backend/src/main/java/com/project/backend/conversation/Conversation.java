@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,6 +31,10 @@ public class Conversation {
     @Column(nullable = false, length = 100)
     private String title;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private ProductCategory category;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -38,8 +44,9 @@ public class Conversation {
     protected Conversation() {
     }
 
-    public Conversation(AppUser user, String message) {
+    public Conversation(AppUser user, String message, ProductCategory category) {
         this.user = user;
+        this.category = category;
         String normalized = message.strip().replaceAll("\\s+", " ");
         this.title = normalized.substring(0, normalized.offsetByCodePoints(
                 0, Math.min(50, normalized.codePointCount(0, normalized.length()))));
@@ -57,6 +64,10 @@ public class Conversation {
 
     public String getTitle() {
         return title;
+    }
+
+    public ProductCategory getCategory() {
+        return category;
     }
 
     public Instant getCreatedAt() {

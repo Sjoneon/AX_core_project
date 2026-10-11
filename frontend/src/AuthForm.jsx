@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Brand from './components/Brand.jsx'
 
 function AuthForm({ onLogin, notice }) {
   const [isSignup, setIsSignup] = useState(false)
@@ -60,10 +61,10 @@ function AuthForm({ onLogin, notice }) {
   return (
     <main className="auth-page">
       <section className="auth-card" aria-label={isSignup ? '회원가입' : '로그인'}>
-        <span className="brand-mark" aria-hidden="true">AI</span>
-        <h1>{isSignup ? '회원가입' : 'AI 챗봇 로그인'}</h1>
+        <Brand />
+        <h1>{isSignup ? '회원가입' : 'HomeCare AI 로그인'}</h1>
         <p className="auth-description">
-          {isSignup ? '계정을 만들고 AI와 이야기를 나눠보세요.' : '로그인하고 궁금한 것을 물어보세요.'}
+          {isSignup ? '계정을 만들고 우리 집 가전 상담을 시작해 보세요.' : '로그인하고 가전에 대한 궁금한 점을 물어보세요.'}
         </p>
         {error && <p className="error" role="alert">{error}</p>}
         {notice && !error && !success && <p className="error" role="status">{notice}</p>}

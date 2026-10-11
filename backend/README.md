@@ -55,6 +55,7 @@ spring.datasource.password=spring1234
 로컬 개발용 `ddl-auto=update` 설정으로 기동 시 필요한 테이블을 생성합니다.
 `app_users`는 계정, `chat_conversations`는 사용자별 대화 제목과 생성·갱신 시간,
 `chat_messages`는 대화에 속한 질문·답변과 작성 시간을 저장합니다.
+`chat_conversations.category`는 제품 카테고리를 저장합니다. 기존 기록은 `null`로 유지합니다.
 테이블에는 `id`, 고유한 `email`, BCrypt 해시인 `password`, `role`을 저장합니다.
 사용자 계정과 대화 내역은 서버를 재시작해도 유지됩니다.
 
@@ -113,6 +114,12 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 동기 방식으로 전체 답변을 한 번에 반환합니다.
 `conversationId`를 생략하거나 `null`로 보내면 새 대화를 만듭니다.
 기존 대화에 질문을 추가하려면 `{"message":"추가 질문","conversationId":1}`처럼 전달합니다.
+새 상담에는 `{"message":"탈수할 때 소리가 커요","category":"WASHER"}`처럼 제품 카테고리를 지정할 수 있습니다.
+지원 값은 `AIR_CONDITIONER`, `REFRIGERATOR`, `WASHER`, `DRYER`, `DISHWASHER`입니다.
+카테고리는 대화에 저장되며 목록·상세 응답의 `category` 필드로 반환합니다.
+후속 요청에서 카테고리를 생략하면 저장된 값을 사용하며, 다른 카테고리로 변경하려 하면 400을 반환합니다.
+선택한 제품 카테고리를 LLM 질문에 함께 전달하되 DB의 질문 본문은 고객이 입력한 원문으로 저장합니다.
+이전 클라이언트와 기존 기록을 위해 카테고리는 선택 항목이며, 미지정 상담은 일반 질문으로 처리합니다.
 첫 질문의 앞 50자를 대화 제목으로 사용합니다. 성공한 질문·답변은 하나의 트랜잭션으로 저장하며,
 AI 호출이 실패하거나 답변이 비어 있으면 대화 내역을 변경하지 않습니다.
 

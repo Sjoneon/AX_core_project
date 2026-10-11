@@ -7,6 +7,7 @@ import com.project.backend.chat.dto.ChatRequest;
 import com.project.backend.chat.dto.ChatResponse;
 import com.project.backend.chat.exception.ChatUnavailableException;
 import com.project.backend.conversation.ConversationService;
+import com.project.backend.conversation.ProductCategory;
 
 @Service
 public class ChatService {
@@ -22,12 +23,13 @@ public class ChatService {
     }
 
     public ChatResponse chat(ChatRequest request, String email) {
-        conversationService.checkAccess(request.conversationId(), email);
+        ProductCategory category = conversationService.resolveCategory(request.conversationId(), email, request.category());
 
         String reply;
         try {
             reply = chatClient.prompt()
-                    .user(request.message())
+                    .user(category == null ? request.message()
+                            : "상담 제품 카테고리: " + category.getLabel() + "\n고객 문의: " + request.message())
                     .call()
                     .content();
         } catch (RuntimeException exception) {
@@ -39,7 +41,7 @@ public class ChatService {
         }
 
         Long conversationId = conversationService.saveExchange(
-                request.conversationId(), email, request.message(), reply);
+                request.conversationId(), email, request.message(), reply, category);
         return new ChatResponse(reply, conversationId);
     }
 }
