@@ -40,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -515,6 +516,69 @@ class BackendApplicationTests {
         sendChat("{\"message\":\"추가 질문\",\"category\":null,\"conversationId\":" + id + "}", accessToken);
         assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isNull();
         assertThat(messageRepository.count()).isEqualTo(4);
+    }
+
+    @Test
+    void deleteRemovesOnlySelectedConversationAndItsMessages() throws Exception {
+        long removed = sendChat("{\"message\":\"삭제할 상담\",\"category\":\"WASHER\"}", accessToken);
+        long retained = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
+        requestBody.set(null);
+
+        mockMvc.perform(delete("/api/conversations/{id}", removed).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(conversationRepository.existsById(removed)).isFalse();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(removed)).isEmpty();
+        assertThat(conversationRepository.existsById(retained)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(retained)).hasSize(2);
+        assertThat(appUserRepository.existsByEmail("chat-test@example.com")).isTrue();
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(retained));
+        mockMvc.perform(get("/api/conversations/{id}", removed).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void otherUserCannotDeleteConversation() throws Exception {
+        long id = sendChat("{\"message\":\"비공개 상담\"}", accessToken);
+        appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
+        String otherToken = jwtTokenProvider.createToken("other@example.com");
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
+        assertThat(conversationRepository.existsById(id)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+    }
+
+    @Test
+    void missingOrAlreadyDeletedConversationReturnsNotFound() throws Exception {
+        mockMvc.perform(delete("/api/conversations/999999").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        long id = sendChat("{\"message\":\"삭제할 상담\"}", accessToken);
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        requestBody.set(null);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"후속 질문\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isZero();
+    }
+
+    @Test
+    void anonymousAndInvalidTokenCannotDeleteHistory() throws Exception {
+        long id = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
+        mockMvc.perform(delete("/api/conversations/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer invalid"))
+                .andExpect(status().isUnauthorized());
+        assertThat(conversationRepository.existsById(id)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
     }
 
     private long sendChat(String body, String token) throws Exception {

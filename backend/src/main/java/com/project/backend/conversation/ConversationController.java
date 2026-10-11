@@ -3,10 +3,13 @@ package com.project.backend.conversation;
 import java.security.Principal;
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.project.backend.conversation.dto.ConversationDetail;
 import com.project.backend.conversation.dto.ConversationSummary;
@@ -29,5 +32,11 @@ public class ConversationController {
     @GetMapping("/{id}")
     public ConversationDetail detail(@PathVariable Long id, Principal principal) {
         return conversationService.detail(id, principal.getName());
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id, Principal principal) {
+        conversationService.delete(id, principal.getName());
     }
 }

@@ -10,7 +10,7 @@ function dateGroup(date) {
   return now.toDateString() === target.toDateString() ? '어제' : '이전 상담'
 }
 
-export default function Sidebar({ conversations, activeId, onSelect, onNew, onClose, onRetry, isBusy, isLoading, error }) {
+export default function Sidebar({ conversations, activeId, onSelect, onNew, onDelete, onClose, onRetry, isBusy, isLoading, error }) {
   const [search, setSearch] = useState('')
   const visible = conversations.filter((item) =>
     `${productName(item.category)} ${item.title}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
@@ -40,11 +40,14 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onCl
             <section className="history-group" key={group}>
               <h3>{group}</h3>
               {items.map((item) => (
-                <button className={`history-item ${activeId === item.id ? 'is-active' : ''}`} type="button" key={item.id} onClick={() => onSelect(item.id)} disabled={isBusy} aria-current={activeId === item.id ? 'true' : undefined}>
-                  <span className="history-product"><Icon name={item.category} size={17} />{productName(item.category)}<time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}</time></span>
-                  <strong>{item.title}</strong>
-                  <span className="history-date">{new Date(item.updatedAt).toLocaleDateString('ko-KR')} · 이어서 질문하기</span>
-                </button>
+                <div className="history-row" key={item.id}>
+                  <button className={`history-item ${activeId === item.id ? 'is-active' : ''}`} type="button" onClick={() => onSelect(item.id)} disabled={isBusy} aria-current={activeId === item.id ? 'true' : undefined}>
+                    <span className="history-product"><Icon name={item.category} size={17} />{productName(item.category)}<time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}</time></span>
+                    <strong>{item.title}</strong>
+                    <span className="history-date">{new Date(item.updatedAt).toLocaleDateString('ko-KR')} · 이어서 질문하기</span>
+                  </button>
+                  <button className="delete-chat" type="button" onClick={() => onDelete(item)} disabled={isBusy} aria-label={`${productName(item.category)} 상담 삭제: ${item.title}`} title="상담 삭제"><Icon name="trash" size={16} /></button>
+                </div>
               ))}
             </section>
           )

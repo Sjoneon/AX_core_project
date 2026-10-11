@@ -15,11 +15,15 @@ export default function Chat({ session, onLogout }) {
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
   const conversationRef = useRef(null)
   const inputRef = useRef(null)
   const historyDialogRef = useRef(null)
+  const deleteDialogRef = useRef(null)
   const sendingRef = useRef(false)
-  const isBusy = isSending || isLoading
+  const isBusy = isSending || isLoading || isDeleting
   const started = messages.length > 0
   const selectedProduct = PRODUCTS.find((product) => product.id === category) || PRODUCTS[0]
 
@@ -75,14 +79,19 @@ export default function Chat({ session, onLogout }) {
 
   useEffect(() => {
     const conversation = conversationRef.current
-    if (!isBusy && !mobileOpen) inputRef.current.focus({ preventScroll: true })
+    if (!isBusy && !mobileOpen && !deleteTarget) inputRef.current.focus({ preventScroll: true })
     conversation.scrollTop = messages.length ? conversation.scrollHeight : 0
-  }, [messages, isBusy, mobileOpen])
+  }, [messages, isBusy, mobileOpen, deleteTarget])
 
   useEffect(() => {
     if (mobileOpen) historyDialogRef.current.showModal()
     else historyDialogRef.current.close()
   }, [mobileOpen])
+
+  useEffect(() => {
+    if (deleteTarget) deleteDialogRef.current.showModal()
+    else deleteDialogRef.current.close()
+  }, [deleteTarget])
 
   async function openConversation(id) {
     if (isBusy) return
@@ -154,6 +163,10 @@ export default function Chat({ session, onLogout }) {
 
   function startConversation() {
     if (isBusy) return
+    resetConversation()
+  }
+
+  function resetConversation() {
     setConversationId(null)
     setCategory('')
     setMessages([])
@@ -162,9 +175,45 @@ export default function Chat({ session, onLogout }) {
     setMobileOpen(false)
   }
 
+  function beginDelete(item) {
+    if (isBusy) return
+    setDeleteError('')
+    setDeleteTarget(item)
+  }
+
+  function cancelDelete() {
+    if (isDeleting) return
+    setDeleteTarget(null)
+    setDeleteError('')
+  }
+
+  async function deleteConversation(event) {
+    event.preventDefault()
+    if (isDeleting || !deleteTarget) return
+    const id = deleteTarget.id
+    setIsDeleting(true)
+    setDeleteError('')
+    try {
+      await request(`/api/conversations/${id}`, { method: 'DELETE', signal: AbortSignal.timeout(10_000) })
+      setConversations((previous) => previous.filter((item) => item.id !== id))
+      if (conversationId === id) resetConversation()
+      setDeleteTarget(null)
+    } catch (exception) {
+      setDeleteError(
+        exception.name === 'TimeoutError'
+          ? '삭제 요청 시간이 초과되었습니다. 다시 시도해 주세요.'
+          : exception instanceof TypeError
+            ? '서버에 연결하지 못했습니다. 다시 시도해 주세요.'
+            : exception.message,
+      )
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const sidebarProps = {
     conversations, activeId: conversationId, onSelect: openConversation, onNew: startConversation,
-    onRetry: retryHistory, isBusy, isLoading, error: historyError,
+    onRetry: retryHistory, onDelete: beginDelete, isBusy, isLoading, error: historyError,
   }
 
   return (
@@ -172,7 +221,7 @@ export default function Chat({ session, onLogout }) {
       <a className="skip-link" href="#main">상담 화면으로 이동</a>
       <header className="header">
         <button className="icon-button mobile-menu" type="button" onClick={() => setMobileOpen(true)} aria-label="상담 내역 열기"><Icon name="menu" /></button>
-        <Brand />
+        <button className="brand-home" type="button" onClick={startConversation} disabled={isBusy} aria-label="HomeCare AI 초기 화면으로 이동"><Brand /></button>
         <span className="header-description">가전의 불편함, 함께 해결해요.</span>
         <div className="header-account">
           <span className="signed-in-email" title={session.email}>{session.email}</span>
@@ -233,6 +282,18 @@ export default function Chat({ session, onLogout }) {
       </div>
       <dialog className="history-dialog" ref={historyDialogRef} aria-label="상담 내역" onCancel={() => setMobileOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setMobileOpen(false) }}>
         <Sidebar {...sidebarProps} onClose={() => setMobileOpen(false)} />
+      </dialog>
+      <dialog className="delete-dialog" ref={deleteDialogRef} aria-labelledby="delete-title" aria-describedby="delete-description" onCancel={(event) => { event.preventDefault(); cancelDelete() }}>
+        <form onSubmit={deleteConversation}>
+          <h2 id="delete-title">상담 내역을 삭제할까요?</h2>
+          <p className="delete-target">{deleteTarget?.title}</p>
+          <p id="delete-description">이 상담의 질문과 답변이 모두 삭제됩니다. 삭제 후에는 복구할 수 없습니다.</p>
+          {deleteError && <p className="error" role="alert">{deleteError}</p>}
+          <div className="delete-actions">
+            <button className="logout-button" type="button" onClick={cancelDelete} disabled={isDeleting} autoFocus>취소</button>
+            <button className="send-button" type="submit" disabled={isDeleting}>{isDeleting ? '삭제 중…' : '삭제'}</button>
+          </div>
+        </form>
       </dialog>
     </div>
   )

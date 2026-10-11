@@ -71,6 +71,13 @@ public class ConversationService {
         return conversation.getId();
     }
 
+    @Transactional
+    public void delete(Long id, String email) {
+        Conversation conversation = findOwned(id, email);
+        messageRepository.deleteAllByConversationId(id);
+        conversationRepository.delete(conversation);
+    }
+
     private Conversation findOwned(Long id, String email) {
         return conversationRepository.findByIdAndUserEmail(id, email).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다."));
