@@ -68,15 +68,21 @@ public class ManualRetriever {
         return new Result(null, documents);
     }
 
-    // Publish the index only after all embeddings succeed; a failed first attempt can be retried.
+    // Publish the index only after all embeddings succeed; a failed first attempt
+    // can be retried.
     private synchronized SimpleVectorStore index() {
         if (index == null) {
             var documents = catalog.documents();
-            var embeddings = embeddingModel.embed(documents.stream().map(Document::getText).toList());
-            if (embeddings.size() != documents.size()) throw new IllegalStateException("매뉴얼 임베딩 개수 불일치");
+            var embeddings = embeddingModel.embed(documents.stream()
+                    .map((Document document) -> document.getText())
+                    .toList());
+            if (embeddings.size() != documents.size())
+                throw new IllegalStateException("매뉴얼 임베딩 개수 불일치");
             var byId = new LinkedHashMap<String, float[]>();
-            for (int i = 0; i < documents.size(); i++) byId.put(documents.get(i).getId(), embeddings.get(i));
-            // SimpleVectorStore adds documents individually; reuse the single batch response.
+            for (int i = 0; i < documents.size(); i++)
+                byId.put(documents.get(i).getId(), embeddings.get(i));
+            // SimpleVectorStore adds documents individually; reuse the single batch
+            // response.
             var batchedModel = new EmbeddingModel() {
                 @Override
                 public float[] embed(Document document) {
