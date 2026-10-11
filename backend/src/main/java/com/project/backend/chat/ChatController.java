@@ -1,5 +1,7 @@
 package com.project.backend.chat;
 
+import java.security.Principal;
+
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +23,7 @@ public class ChatController {
     }
 
     @PostMapping
-    public ChatResponse chat(@Valid @RequestBody ChatRequest request) {
-        return chatService.chat(request);
+    public ChatResponse chat(@Valid @RequestBody ChatRequest request, Principal principal) {
+        return chatService.chat(request, principal.getName());
     }
 }

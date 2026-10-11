@@ -1,5 +1,5 @@
 .app {
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 32px 24px 20px;
 }
@@ -40,6 +40,7 @@ h1 { font-size: 23px; letter-spacing: -0.6px; }
   flex-direction: column;
   height: min(720px, calc(100svh - 160px));
   min-height: 400px;
+  min-width: 0;
   overflow: hidden;
   border: 1px solid #dce5df;
   border-radius: 18px;
@@ -140,6 +141,24 @@ textarea:focus { outline: 2px solid #77b9a6; outline-offset: 1px; }
 .auth-switch { display: block; margin: 20px auto 0; border: 0; background: none; color: #176750; font-size: 13px; }
 .password-hint { color: #6b7f76; font-size: 12px; line-height: 1.6; margin: -10px 0 20px; }
 .success { padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #eaf5ef; color: #176750; font-size: 13px; line-height: 1.6; }
+
+.chat-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; }
+.history-panel { padding: 18px 12px; border: 1px solid #dce5df; border-radius: 18px; background: #fbfcfb; min-width: 0; max-height: min(720px, calc(100svh - 160px)); overflow-y: auto; }
+.history-panel h2 { font-size: 14px; margin: 0 8px 16px; }
+.history-notice { padding: 0 8px; color: #708178; font-size: 12px; line-height: 1.8; }
+.history-list { list-style: none; padding: 0; margin: 0; }
+.history-item { display: block; width: 100%; padding: 12px; margin-bottom: 6px; border: 1px solid transparent; border-radius: 10px; text-align: left; color: #20352f; background: transparent; }
+.history-item:hover:not(:disabled) { background: #eaf1ec; }
+.history-item[aria-current="true"] { border-color: #a7cbbb; background: #eaf5ef; }
+.history-title { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 1.6; }
+.history-item time { display: block; margin-top: 6px; font-size: 11px; color: #708178; }
+.history-error { padding: 0 8px 16px; color: #a73c2a; font-size: 12px; line-height: 1.6; }
+.history-error button { margin-top: 8px; }
+
+@media (max-width: 800px) {
+  .chat-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .history-panel { max-height: 180px; }
+}
 
 @media (max-width: 600px) {
   .app { padding: 18px 12px 14px; }
