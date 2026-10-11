@@ -1,7 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
+import AuthForm from './AuthForm.jsx'
 import './App.css'
 
 function App() {
+  const [session, setSession] = useState(null)
+  const [notice, setNotice] = useState('')
+
+  function logout(message = '') {
+    setSession(null)
+    setNotice(message)
+  }
+
+  return session
+    ? <Chat session={session} onLogout={logout} />
+    : <AuthForm onLogin={setSession} notice={notice} />
+}
+
+function Chat({ session, onLogout }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -31,11 +46,19 @@ function App() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
         body: JSON.stringify({ message }),
         signal: AbortSignal.timeout(35_000),
       })
       const data = await response.json().catch(() => null)
+
+      if (response.status === 401) {
+        onLogout('로그인이 만료되었습니다. 다시 로그인해 주세요.')
+        return
+      }
 
       if (!response.ok) {
         throw new Error(data?.message || '답변을 가져오지 못했습니다. 서버 실행 상태를 확인해 주세요.')
@@ -86,17 +109,22 @@ function App() {
           <span className="brand-mark" aria-hidden="true">AI</span>
           <div>
             <h1>AI 챗봇</h1>
-            <p>궁금한 것을 물어보세요.</p>
+            <p className="signed-in-email">{session.email}</p>
           </div>
         </div>
-        <button
-          className="clear-button"
-          type="button"
-          onClick={clearMessages}
-          disabled={isSending || messages.length === 0}
-        >
-          화면 비우기
-        </button>
+        <div className="header-actions">
+          <button
+            className="clear-button"
+            type="button"
+            onClick={clearMessages}
+            disabled={isSending || messages.length === 0}
+          >
+            화면 비우기
+          </button>
+          <button className="clear-button" type="button" onClick={() => onLogout()} disabled={isSending}>
+            로그아웃
+          </button>
+        </div>
       </header>
 
       <section className="chat-panel" aria-label="AI 채팅">

@@ -113,9 +113,41 @@ textarea:focus { outline: 2px solid #77b9a6; outline-offset: 1px; }
 .error { margin-bottom: 14px; padding: 12px; border-radius: 8px; background: #fff2ef; color: #a73c2a; font-size: 13px; line-height: 1.6; }
 .footnote { margin-top: 16px; color: #7b8c82; font-size: 12px; text-align: center; line-height: 1.6; }
 
+.header-actions { display: flex; gap: 8px; }
+.brand { min-width: 0; }
+.brand > div { min-width: 0; }
+.brand-mark { flex-shrink: 0; }
+.signed-in-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-page { max-width: 460px; margin: 0 auto; padding: 80px 20px 24px; }
+.auth-card { padding: 32px; border: 1px solid #dce5df; border-radius: 18px; background: white; }
+.auth-card .brand-mark { margin-bottom: 24px; }
+.auth-description { color: #6b7f76; font-size: 14px; line-height: 1.6; margin: 10px 0 24px; }
+.auth-form { display: flex; flex-direction: column; }
+.auth-form label { margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+.auth-form input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  border: 1px solid #cfdcd4;
+  border-radius: 10px;
+  background: #fbfcfb;
+  color: #20352f;
+  font: inherit;
+  font-size: 15px;
+}
+.auth-form input:focus { outline: 2px solid #77b9a6; outline-offset: 1px; }
+.auth-submit { width: 100%; margin-top: 4px; }
+.auth-switch { display: block; margin: 20px auto 0; border: 0; background: none; color: #176750; font-size: 13px; }
+.password-hint { color: #6b7f76; font-size: 12px; line-height: 1.6; margin: -10px 0 20px; }
+.success { padding: 12px; margin-bottom: 20px; border-radius: 8px; background: #eaf5ef; color: #176750; font-size: 13px; line-height: 1.6; }
+
 @media (max-width: 600px) {
   .app { padding: 18px 12px 14px; }
   .page-header { margin-bottom: 18px; }
+  .header-actions { gap: 5px; }
+  .header-actions .clear-button { padding: 9px; font-size: 11px; }
+  .auth-page { padding-top: 40px; }
+  .auth-card { padding: 26px 22px; }
   .brand { gap: 10px; }
   .brand-mark { width: 40px; height: 40px; border-radius: 11px; }
   h1 { font-size: 20px; }
