@@ -1,16 +1,56 @@
-# React + Vite
+# AI 챗봇 프론트엔드
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+기존 React + Vite 프로젝트에 채팅 화면을 구현했습니다.
+메시지를 입력하면 Spring Boot 백엔드의 `POST /api/chat`으로 보내고 답변을 표시합니다.
 
-Currently, two official plugins are available:
+## 로컬 실행
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+프로젝트 루트에서 터미널 두 개를 사용합니다.
 
-## React Compiler
+첫 번째 터미널 — 백엔드 실행:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+cd backend
+./gradlew bootRun
+```
 
-## Expanding the ESLint configuration
+두 번째 터미널 — 프론트엔드 실행:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+이미 의존성이 설치되어 있다면 `npm ci`는 생략할 수 있습니다.
+브라우저에서 **http://127.0.0.1:5173**을 엽니다.
+
+`vite.config.js`에서 `/api` 요청을 `http://127.0.0.1:8080`으로 프록시합니다.
+브라우저는 프론트엔드와 같은 주소로 요청하므로 백엔드의 CORS 설정을 추가할 필요가 없습니다.
+백엔드 포트를 변경했다면 프록시 주소도 변경하고 프론트엔드를 다시 실행하세요.
+기존 Docker 서버와 IPv6 주소가 섞이지 않도록 명시적으로 `127.0.0.1`을 사용합니다.
+
+API 키는 기존 `backend/.env`에서 백엔드만 읽습니다. 프론트엔드에는 키를 넣지 않습니다.
+
+## 사용
+
+- 메시지를 입력하고 **보내기** 또는 **Enter**로 전송합니다.
+- **Shift + Enter**는 줄바꿈이며, 한글 조합 중의 Enter는 전송하지 않습니다.
+- 최대 4,000자까지 입력할 수 있고 응답을 기다리는 동안 중복 전송을 막습니다.
+- 요청 실패 시 오류를 표시하고 입력을 복원하여 다시 전송할 수 있습니다.
+- **화면 비우기**는 화면에 표시된 질문과 답변을 지웁니다.
+
+대화는 React 상태에만 보관하며 새로고침하면 사라집니다.
+백엔드가 이전 대화를 기억하지 않으므로 각 질문은 독립적으로 처리됩니다.
+AI 답변은 일반 텍스트로 표시합니다.
+
+## 빌드
+
+```bash
+npm run build
+```
+
+결과는 `dist/`에 생성됩니다. API 프록시는 Vite 개발 서버에만 적용되므로,
+빌드 결과를 별도로 서비스할 때는 `/api` 요청을 백엔드로 전달하는 설정이 필요합니다.
+
+설정 참고: [Vite 개발 서버 프록시](https://vite.dev/config/server-options.html#server-proxy).
