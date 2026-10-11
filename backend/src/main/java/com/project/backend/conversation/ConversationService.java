@@ -11,6 +11,7 @@ import com.project.backend.conversation.dto.ConversationDetail;
 import com.project.backend.conversation.dto.ConversationSummary;
 import com.project.backend.conversation.dto.MessageResponse;
 import com.project.backend.user.AppUserRepository;
+import com.project.backend.rag.RagSource;
 
 @Service
 public class ConversationService {
@@ -56,7 +57,7 @@ public class ConversationService {
 
     // Keep the external AI call outside this transaction; save both messages together.
     @Transactional
-    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category) {
+    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category, List<RagSource> sources) {
         Conversation conversation;
         if (id == null) {
             var user = userRepository.findByEmail(email).orElseThrow(() ->
@@ -66,8 +67,9 @@ public class ConversationService {
             conversation = findOwned(id, email);
             conversation.touch();
         }
-        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", message),
-                new ChatMessage(conversation, "assistant", reply)));
+        var answer = new ChatMessage(conversation, "assistant", reply);
+        answer.setSources(sources);
+        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", message), answer));
         return conversation.getId();
     }
 

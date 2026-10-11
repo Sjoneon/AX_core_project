@@ -20,6 +20,7 @@ repositories {
 dependencies {
 	implementation platform('org.springframework.ai:spring-ai-bom:2.0.1')
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+	implementation 'org.springframework.ai:spring-ai-vector-store'
 	implementation 'io.github.cdimascio:dotenv-java:3.2.0'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -36,4 +37,10 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('processResources') {
+	from('rag-test-data/manuals') {
+		into 'rag/manuals'
+	}
 }

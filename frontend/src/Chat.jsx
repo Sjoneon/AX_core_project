@@ -132,11 +132,12 @@ export default function Chat({ session, onLogout }) {
       const data = await request('/api/chat', {
         method: 'POST',
         body: JSON.stringify({ message, conversationId, category: category || null }),
+        signal: AbortSignal.timeout(120_000),
       })
       if (typeof data?.reply !== 'string' || !data.reply.trim()) {
         throw new Error('답변이 비어 있습니다. 다시 시도해 주세요.')
       }
-      setMessages((previous) => [...previous, { id: crypto.randomUUID(), role: 'assistant', content: data.reply }])
+      setMessages((previous) => [...previous, { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [] }])
       setConversationId(data.conversationId)
       await loadHistory()
     } catch (exception) {
@@ -262,7 +263,22 @@ export default function Chat({ session, onLogout }) {
                 {messages.map((message) => (
                   <article className={`message ${message.role}`} key={message.id}>
                     {message.role === 'assistant' && <span className="assistant-avatar"><Icon name="spark" size={19} /></span>}
-                    <div className="message-content"><span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span><p className="message-bubble">{message.content}</p></div>
+                    <div className="message-content">
+                      <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
+                      <p className="message-bubble">{message.content}</p>
+                      {message.role === 'assistant' && message.sources?.length > 0 && (
+                        <div className="message-sources" aria-label="답변 생성에 전달한 검색 근거">
+                          <p>검색 근거 · 가상 테스트 매뉴얼</p>
+                          {message.sources.map((source) => (
+                            <details key={source.documentId}>
+                              <summary>{source.documentId} · {source.title}</summary>
+                              <small>{productName(source.category)} · 버전 {source.version} · {source.file}</small>
+                              <p className="source-content">{source.content}</p>
+                            </details>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </article>
                 ))}
                 {isSending && <p className="loading" role="status">HomeCare AI가 답변을 작성하고 있어요…</p>}
@@ -276,7 +292,7 @@ export default function Chat({ session, onLogout }) {
               <textarea id="chat-message" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={started ? '궁금한 점을 이어서 입력해 주세요.' : category ? `예: ${selectedProduct.example}` : '어떤 증상인지 편하게 적어주세요.'} maxLength={4000} readOnly={isBusy} required rows={2} aria-describedby="composer-hint" />
               <div className="composer-controls"><span className="character-count">{draft.length.toLocaleString()} / 4,000</span><button className="send-button" type="submit" disabled={isBusy || !draft.trim() || (!started && !category)}>{isSending ? '응답 기다리는 중' : started ? '보내기' : '상담 시작'}<Icon name="send" size={19} /></button></div>
             </form>
-            <div className="composer-help" id="composer-hint"><span>{!started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>AI는 각 질문에 독립적으로 답변해요.</span></div>
+            <div className="composer-help" id="composer-hint"><span>{!started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>가상 매뉴얼 기반 테스트 상담입니다.</span></div>
           </div>
         </main>
       </div>
