@@ -1,13 +1,17 @@
 # HomeCare 서비스 AWS 인프라
 
 퍼블릭 서브넷의 EC2 한 대에서 Nginx·Spring Boot 컨테이너 두 개를 실행할 인프라입니다.
-이 단계는 AWS 기반 자원을 구성합니다. Docker 설치, 앱 비밀값 주입, DB 스키마 초기화,
-`../proxy/`의 Nginx·HTTPS 구성과 GitHub Actions는 후속 단계입니다.
+AWS 기반 자원과 실행 권한·GitHub OIDC·일반 설정·로그 그룹을 관리합니다.
+EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습니다.
+앱 비밀값 등록과 EC2 운영 환경 파일 생성을 완료했으며 DB 스키마 초기화,
+`../proxy/`의 Nginx·HTTPS 구성과 GitHub Actions 워크플로는 후속 단계입니다.
 
 2026-10-12 실제 AWS 적용과 검증을 완료했습니다. 생성한 자원과 검증 결과는
 [배포 현황](DEPLOYMENT_STATUS.md)에 기록했습니다.
 
 ## 구성
+
+3단계의 실행 환경·비밀값 등록 범위·GitHub 설정은 [ops 안내](../ops/README.md)를 참고합니다.
 
 | 항목 | 설정 |
 |---|---|

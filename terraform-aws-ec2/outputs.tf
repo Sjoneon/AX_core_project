@@ -34,3 +34,15 @@ output "release_bucket" {
 output "ssm_start_session" {
   value = "aws ssm start-session --region ${var.aws_region} --target ${aws_instance.ubuntu.id}"
 }
+
+output "github_deploy_role_arn" {
+  value = aws_iam_role.github_deploy.arn
+}
+
+output "parameter_prefix" {
+  value = local.parameter_prefix
+}
+
+output "log_groups" {
+  value = { for name, group in aws_cloudwatch_log_group.runtime : name => group.name }
+}
