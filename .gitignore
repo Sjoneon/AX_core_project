@@ -54,7 +54,7 @@ Temporary Items
 .ionide
 
 temp_project/
-
 .env
+terraform-aws-ec2/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode
