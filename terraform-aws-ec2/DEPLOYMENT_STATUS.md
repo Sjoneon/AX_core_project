@@ -22,8 +22,12 @@ EC2 역할로 일반 설정과 비밀값 총 10개를 읽어 root 소유 0600의
 5단계에서 `homecare-backend-1`, `homecare-nginx-1` 두 컨테이너를 상시 배포했습니다.
 Nginx HTTP 80으로 API를 전달하며 앱의 8080은 호스트에 공개하지 않습니다.
 실제 EC2 재부팅 후 두 컨테이너 자동 복구와 외부 health를 확인했습니다.
-현재 릴리스는 `manual-backend-name-20261012-1c7c4c76fd`이며 이미지 digest·최종 S3 파일·SHA-256은
-[릴리스 기록](../ops/STAGE5_RELEASE.json)에 저장했습니다.
+5단계 릴리스는 [당시 기록](../ops/STAGE5_RELEASE.json)에 보관합니다.
+
+6단계에서 별도 도메인 없이 Let's Encrypt IP 인증서로 HTTPS·CORS를 적용했습니다.
+인증서 갱신 dry-run·Nginx reload hook과 활성 타이머를 확인했습니다.
+기존 Vercel 프로젝트 `homecare`의 Production API 주소를 등록하고 CLI로 운영 배포를 승격했습니다.
+현재 릴리스는 [HTTPS 릴리스 기록](../ops/STAGE6_RELEASE.json)에 저장했습니다.
 
 | 자원 | 생성 결과 |
 |---|---|
@@ -45,7 +49,9 @@ Nginx HTTP 80으로 API를 전달하며 앱의 8080은 호스트에 공개하지
 | GitHub 배포 역할 | `arn:aws:iam::528215464049:role/homecare-prod-github-deploy` |
 | GitHub 환경 | `production`, `main` 브랜치만 허용 |
 | 운영 컨테이너 | `homecare-backend-1`, `homecare-nginx-1`, 둘 다 healthy |
-| HTTP health | `http://43.202.80.116/actuator/health` |
+| HTTPS health | `https://43.202.80.116/actuator/health` |
+| 운영 프론트엔드 | `https://homecare-omega-eight.vercel.app` |
+| 인증서 갱신 | Certbot 5.8.0, IP `shortlived` 프로필, Snap systemd timer·reload hook |
 
 SSM 접속 명령:
 
@@ -54,7 +60,7 @@ aws ssm start-session --region ap-northeast-2 --target i-0223afa15057a76b2
 ```
 
 Session Manager를 CLI에서 사용하려면 Session Manager plugin이 필요합니다.
-현재 HTTP API는 실행 중입니다. HTTPS·CORS는 6단계이며 Vercel 브라우저 연동은 후속 단계입니다.
+현재 HTTPS API와 Vercel 프론트엔드가 연결됐습니다. Git 연동·CI/CD 자동화는 후속 단계입니다.
 
 ## 검증 결과
 
@@ -83,6 +89,10 @@ Session Manager를 CLI에서 사용하려면 Session Manager plugin이 필요합
 - 같은 릴리스 시작을 재실행해 컨테이너 ID가 유지됐습니다. 실제 boot ID 변경으로 EC2 재부팅을 확인하고 두 컨테이너의 자동 healthy 복구를 검증했습니다.
 - 운영 로그의 CloudWatch 전송과 제한된 로컬 캐시를 확인했습니다. 앱 비밀값은 Nginx 환경이나 로그 캐시에 없습니다. 합성 사용자와 상담 데이터는 제거했고 OpenAI는 호출하지 않았습니다.
 - 서비스명을 `backend`로 변경하고 기존 컨테이너를 정리했습니다. 변경 전 JWT·상담 데이터와 변경 후 인증·상담·삭제·백엔드 재생성 검증을 통과했습니다. Compose 서비스·Nginx 대상·검증 코드·로그 스트림의 이름을 함께 변경했습니다.
+- 외부 기본 CA 검증에서 IP SAN 인증서와 HTTPS health가 정상이고 HTTP 요청은 308로 전환됩니다. 정확한 Vercel origin의 preflight 204·401 CORS 헤더와 다른 origin·미지원 메서드 거부를 확인했습니다.
+- HTTPS 회원가입·로그인·상담·삭제·backend 교체 후 데이터·JWT 유지, 로컬 TLS·CORS 회귀 검사를 통과했습니다. 합성 데이터만 제거했으며 OpenAI는 호출하지 않았습니다.
+- Certbot 갱신 dry-run·실제 reload hook이 성공했고 `snap.certbot.renew.timer`가 enabled·active입니다. TLS 키는 root 소유 0600이며 Nginx에만 인증서 디렉터리를 읽기 전용으로 연결했습니다.
+- 기존 Vercel 운영 도메인이 새 production 배포를 제공하며 공개 JavaScript에 HTTPS API 주소가 반영됐습니다. 브라우저 페이지와 오류 없는 초기 표시를 확인했고 Node 24·Git 미연결 상태를 유지했습니다.
 
 ## 무료 계정 조정
 
@@ -96,5 +106,5 @@ RDS만 생성하는 plan으로 재시도하여 완료했습니다. 기존 자원
 
 ## 후속 단계
 
-1. API 도메인과 Vercel 운영 origin을 확정하고 HTTPS·CORS를 구성합니다.
-2. GitHub Actions·ECR·SSM 배포 자동화와 Vercel 연결을 진행합니다.
+1. GitHub Actions·ECR·SSM 배포 자동화를 진행합니다.
+2. Vercel의 Git 연동 또는 CLI 자동 배포 경로와 운영 모니터링·백업을 구성합니다.

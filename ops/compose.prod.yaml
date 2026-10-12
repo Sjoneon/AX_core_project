@@ -47,11 +47,15 @@ services:
         condition: service_healthy
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/homecare/acme:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     tmpfs:
       - /var/cache/nginx:size=16m
       - /var/run:size=1m
     healthcheck:
-      test: [CMD, wget, -q, -T, "3", -O, /dev/null, "http://127.0.0.1/actuator/health"]
+      test: [CMD, wget, -q, -T, "3", -O, /dev/null, "http://127.0.0.1/internal-health"]
       interval: 10s
       timeout: 5s
       retries: 6

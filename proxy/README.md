@@ -9,8 +9,11 @@
 | `/actuator/health` | 앱 health만 전달, 접근 로그 제외 |
 | 그 외 | 404 |
 
-5단계는 HTTP 80만 제공합니다. API 도메인·인증서·443·HTTP 리다이렉트와
-CORS origin 허용은 6단계에서 적용합니다. React 파일은 Vercel에서 제공합니다.
+현재 API는 `https://43.202.80.116`의 IP 인증서를 사용합니다.
+80은 ACME 인증 경로를 제공하고 사용자 요청을 HTTPS로 전환하며 443이 API를 제공합니다.
+`https://homecare-omega-eight.vercel.app`만 CORS에 허용합니다. React 파일은 Vercel에서 제공합니다.
+`bootstrap.conf`는 인증서 발급 전 임시 HTTP 설정이며 정상 배포에서는 사용하지 않습니다.
+로컬 전용 `/internal-health`는 Nginx healthcheck에 사용합니다.
 
 앱 주소는 Docker DNS `127.0.0.11`에서 10초 단위로 갱신합니다.
 앱 컨테이너 교체 후에도 주소를 다시 찾으며 시작 스크립트에서 설정 검사와 reload도 수행합니다.
@@ -18,12 +21,13 @@ CORS origin 허용은 6단계에서 적용합니다. React 파일은 Vercel에�
 X-Forwarded-For는 실제 접속 IP로 덮어쓰고 access 로그에는 query string·헤더·본문을 넣지 않습니다.
 
 ```bash
-docker build --platform linux/amd64 -t homecare-nginx:local proxy
-docker run --rm --platform linux/amd64 homecare-nginx:local nginx -t
+docker build --platform linux/amd64 -t homecare-nginx:stage6 proxy
+python3 ops/test-proxy.py
 ```
 
 위 명령은 프로젝트 루트에서 실행합니다. 실제 배포 절차는
-[운영 컨테이너 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
+[운영 컨테이너 안내](../ops/SERVICE_DEPLOYMENT.md)와
+[HTTPS·인증서 갱신 안내](../ops/HTTPS_CORS.md)를 참고합니다.
 
 [Nginx 프록시 경로 처리](https://nginx.org/en/docs/http/ngx_http_proxy_module.html),
 [upstream DNS 갱신](https://nginx.org/en/docs/http/ngx_http_upstream_module.html).

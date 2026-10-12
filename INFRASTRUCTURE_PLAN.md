@@ -2,13 +2,15 @@
 
 작성일: 2026-10-12
 
-> 1~5단계의 구현·검증을 완료했습니다. 단일 EC2에서 Nginx와 Spring Boot 컨테이너 두 개가 상시 실행되며 HTTP API 연결을 확인했습니다. 도메인·HTTPS·CORS와 배포 자동화는 후속 단계입니다.
+> 1~6단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. GitHub Actions 배포 자동화와 운영 모니터링은 후속 단계입니다.
 
 3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
 
 4단계 완료: 버전 관리하는 초기 SQL로 RDS를 초기화하고 세 앱 테이블의 CRUD만 가능한 앱 계정을 생성했습니다. 실제 Spring Boot의 스키마·TLS 검증과 재시작 후 상담 데이터·JWT 유지, 임시 관리자 권한 제거를 확인했습니다. [RDS 초기화 안내](ops/RDS_INITIALIZATION.md)를 참고합니다.
 
-5단계 완료: `proxy/`의 Nginx 이미지와 운영 Compose의 `backend`, `nginx` 두 서비스를 ECR digest 기준으로 배포했습니다. [외부 health](http://43.202.80.116/actuator/health), API·앱 교체·EC2 재부팅 복구를 확인했습니다. 서비스명 변경 전의 JWT·상담 데이터 유지도 확인했습니다. [운영 컨테이너 안내](ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
+5단계 완료: `proxy/`의 Nginx 이미지와 운영 Compose의 `backend`, `nginx` 두 서비스를 ECR digest 기준으로 배포했습니다. [외부 health](https://43.202.80.116/actuator/health), API·앱 교체·EC2 재부팅 복구를 확인했습니다. 서비스명 변경 전의 JWT·상담 데이터 유지도 확인했습니다. [운영 컨테이너 안내](ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
+
+6단계 완료: 별도 도메인이 없어 Let's Encrypt의 IP 인증서로 `https://43.202.80.116`을 구성했습니다. 정확한 Vercel 운영 origin만 CORS에 허용하고 갱신 dry-run·reload hook·타이머를 검증했습니다. 기존 `homecare` 프로젝트에 CLI로 API 주소를 등록·배포했습니다. [HTTPS·CORS 안내](ops/HTTPS_CORS.md)를 참고합니다.
 
 ### 구현 현황
 
@@ -23,12 +25,13 @@
 - 3단계 검증 완료: 실제 EC2에서 ECR 두 저장소 pull·컨테이너 실행·CloudWatch 로그 전송·SecureString 복호화를 확인했습니다. 운영 환경 파일은 root 소유 0600이며 재실행 후 키가 유지됩니다. Terraform 서비스 테스트 3개, 앱 설정 스크립트 테스트 5개와 변경 없는 plan을 확인했습니다. 비밀값은 Terraform state나 Git에 포함될 소스 파일에 없습니다.
 - 4단계 검증 완료: 임시 MySQL 8.4와 실제 RDS에서 V001 SQL·Hibernate validate를 검증했습니다. 회원가입·로그인·한글·이모지·검색 근거 조회와 재시작 후 보존을 확인했습니다. 비암호화·잘못된 CA·앱의 DDL·스키마 이력 조회·EC2의 관리자 비밀 조회는 거부됩니다. 운영 스크립트 테스트 총 13개를 통과했고 검증용 데이터·컨테이너·이미지를 정리했습니다.
 - 5단계 검증 완료: 두 컨테이너 healthy, Nginx 80만 호스트에 게시, 앱 포트 미게시, 외부 8080·3306 접근 차단을 확인했습니다. 프록시 경유 인증·상담·조회·삭제, 앱 재생성 후 데이터·JWT 보존과 Nginx reload, 동일 릴리스 시작 시 컨테이너 ID 유지, 실제 EC2 재부팅 자동 복구와 CloudWatch 전송을 확인했습니다. 합성 데이터는 제거했고 OpenAI는 호출하지 않았습니다.
+- 6단계 검증 완료: Nginx 80·443 게시, 인증서 SAN·신뢰 검증·키 권한, HTTP 308, 허용 origin의 preflight 204·401 CORS 헤더와 다른 origin·미지원 preflight 거부를 확인했습니다. 실제 HTTPS 인증·상담·삭제·backend 재생성 검증과 갱신 리허설을 통과했습니다. Vercel 공개 빌드의 HTTPS API 주소와 브라우저 페이지 표시를 확인했습니다. Git 연결은 아직 없습니다.
 
 ## 1. 목표와 확정 아키텍처
 
 학습·포트폴리오 용도로 서울 리전(`ap-northeast-2`)에서 구성합니다. 기존 데이터 이전은 없으며, 배포 중 짧은 서비스 중단을 허용합니다. 기존 실습 state와 실제 AWS를 확인해 남아 있는 실습 EC2·VPC가 없음을 확인한 뒤, `terraform-aws-ec2/`를 서비스용 구성으로 변경·적용했습니다.
 
-**퍼블릭 서브넷 하나에 EC2 한 대를 두고, 그 EC2 안에서 Nginx와 Spring Boot 컨테이너를 하나씩 실행합니다.** 프론트엔드는 Vercel에서 제공하고 브라우저가 API 도메인을 직접 호출합니다.
+**퍼블릭 서브넷 하나에 EC2 한 대를 두고, 그 EC2 안에서 Nginx와 Spring Boot 컨테이너를 하나씩 실행합니다.** 프론트엔드는 Vercel에서 제공하고 브라우저가 HTTPS API 주소를 직접 호출합니다. 현재 API 주소는 IP 인증서를 사용하는 Elastic IP입니다.
 
 ```text
 Vercel → 브라우저에서 React 실행
@@ -205,14 +208,17 @@ RDS의 정확한 마이너 버전과 인스턴스 조합은 서울 리전에서 
 
 ### 6단계 — HTTPS·CORS 구성
 
-도메인과 인증서는 다음 순서로 준비합니다.
+사용자에게 별도 API 도메인이 없어 2026년에 지원된 IP 인증서를 사용합니다.
+운영 API는 `https://43.202.80.116`, 프론트엔드는 `https://homecare-omega-eight.vercel.app`입니다.
+나중에 도메인을 사용할 때는 A 레코드와 인증서·API 주소를 함께 변경합니다.
+인증서는 다음 순서로 준비합니다.
 
-1. API용 도메인을 확보하고 DNS A 레코드를 Elastic IP에 연결합니다.
+1. 고정 Elastic IP를 API 주소로 확정합니다. 별도 DNS 레코드는 필요하지 않습니다.
 2. HTTP 전용 Nginx로 ACME 인증 경로를 먼저 제공합니다.
-3. 호스트의 Certbot으로 인증서를 발급합니다.
+3. 호스트의 Certbot 5.8.0으로 `shortlived` IP 인증서를 발급합니다.
 4. 인증서 디렉터리를 Nginx에 읽기 전용으로 연결하고 HTTPS를 활성화합니다.
 5. 인증 경로 외의 HTTP 요청은 HTTPS로 전환합니다.
-6. 호스트 systemd timer로 인증서를 갱신하고 성공 시 Nginx를 reload합니다.
+6. 호스트의 `snap.certbot.renew.timer`로 인증서를 갱신하고 성공 시 Nginx를 reload합니다. 약 6일 유효한 인증서이므로 갱신 리허설을 필수로 검증합니다.
 
 Certbot은 호스트에서 실행하므로 상시 컨테이너 수는 두 개로 유지합니다.
 
@@ -269,10 +275,10 @@ PR 검증:
 
 Vercel 설정:
 
-- Root Directory: `frontend`.
+- Git 연동 시 Root Directory: `frontend`. 현재 CLI는 `frontend/`에서 배포하며 프로젝트의 Root Directory는 비어 있습니다.
 - Build Command: `npm run build`.
 - Output Directory: `dist`.
-- 운영 환경변수: `VITE_API_BASE_URL=https://실제-API-도메인`.
+- 현재 운영 환경변수: `VITE_API_BASE_URL=https://43.202.80.116`.
 - 로그인·회원가입·상담·내역 조회·삭제는 모두 공통 API 주소를 사용합니다.
 - OpenAI 키·DB 비밀번호·JWT 서명 키는 프론트엔드 환경변수에 넣지 않습니다.
 - Preview origin은 운영 API CORS 허용 목록에 자동 추가하지 않습니다.

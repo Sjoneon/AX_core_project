@@ -23,7 +23,7 @@ def request(path, payload=None, token=None, method=None):
     if token:
         headers['Authorization'] = 'Bearer ' + token
     data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request('http://127.0.0.1' + path, data=data, headers=headers, method=method)
+    req = urllib.request.Request('https://43.202.80.116' + path, data=data, headers=headers, method=method)
     with urllib.request.urlopen(req, timeout=5) as response:
         return json.load(response) if response.status != 204 else None
 
@@ -61,7 +61,7 @@ def main():
             assert container['HostConfig']['Memory'] == 1073741824
         else:
             assert service == 'nginx'
-            assert set(container['HostConfig']['PortBindings']) == {'80/tcp'}
+            assert set(container['HostConfig']['PortBindings']) == {'80/tcp', '443/tcp'}
             assert container['HostConfig']['Memory'] == 134217728
     for path, status in (('/api/conversations', 401), ('/', 404), ('/actuator/env', 404)):
         try:

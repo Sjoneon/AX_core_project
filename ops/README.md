@@ -7,6 +7,8 @@ AWS CLI 2.37.12를 SSM으로 설치했습니다. Docker 자동 시작과 json-fi
 5단계에서 `backend`, `nginx` 두 컨테이너를 상시 배포했습니다. 운영 컨테이너 로그는
 CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태 확인은
 [운영 컨테이너 안내](SERVICE_DEPLOYMENT.md)를 참고합니다.
+6단계에서 IP 인증서 기반 HTTPS·정확한 Vercel origin CORS·인증서 자동 갱신을 적용했습니다.
+[HTTPS·CORS 안내](HTTPS_CORS.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
 
 ## 권한과 자격증명
 

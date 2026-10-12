@@ -1,0 +1,6 @@
+services:
+  nginx:
+    volumes:
+      - /opt/homecare/config/nginx-bootstrap.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: [CMD, wget, -q, -T, "3", -O, /dev/null, "http://127.0.0.1/actuator/health"]

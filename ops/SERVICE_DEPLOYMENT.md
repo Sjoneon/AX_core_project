@@ -1,11 +1,12 @@
 # 두 컨테이너의 운영 배포
 
 대상: 서울 리전 EC2 `i-0223afa15057a76b2`, Elastic IP `43.202.80.116`.
-5단계에서는 HTTP로 연결을 검증하며 HTTPS·CORS는 6단계에서 구성합니다.
+현재 API는 IP 인증서 기반 `https://43.202.80.116`을 사용합니다.
+[HTTPS·CORS 안내](HTTPS_CORS.md)에 인증서 발급·자동 갱신·Vercel 연결을 기록했습니다.
 
 2026-10-12, 두 컨테이너 상시 배포와 검증을 완료했습니다.
-현재 릴리스 ID는 `manual-backend-name-20261012-1c7c4c76fd`이며
-[릴리스 기록](STAGE5_RELEASE.json)에 ECR digest·최종 S3 파일·SHA-256을 보관합니다.
+현재 릴리스 ID는 `manual-https-20261012-f4c0a29c11`이며
+[릴리스 기록](STAGE6_RELEASE.json)에 ECR digest·S3 파일·SHA-256을 보관합니다.
 
 ## 실행 구성
 
@@ -15,12 +16,12 @@
 | 항목 | backend | nginx |
 |---|---|---|
 | 이미지 | ECR backend digest | ECR nginx digest |
-| 호스트 포트 | 없음 | 80 |
+| 호스트 포트 | 없음 | 80·443 |
 | 메모리 상한 | 1GiB, JVM heap 최대 65% | 128MiB |
 | 실행 사용자 | 10001:10001 | Nginx 기본 master/worker |
 | 루트 파일시스템 | 읽기 전용, `/tmp`는 tmpfs | 읽기 전용, cache·PID는 tmpfs |
 | 재시작 | unless-stopped | unless-stopped |
-| healthcheck | 앱 health HTTP 상태 | 프록시 경유 앱 health |
+| healthcheck | 앱 health HTTP 상태 | 로컬 전용 `/internal-health`의 프록시 경유 앱 health |
 | CloudWatch | `/homecare/prod/backend` | `/homecare/prod/nginx` |
 
 로그는 EC2 역할로 전송하고 로컬 캐시는 파일당 10MB·최대 3개입니다.
@@ -32,6 +33,7 @@ Docker는 프로세스 종료 시 재시작하며 healthcheck가 unhealthy인 �
 앱은 SSM에서 준비한 `/opt/homecare/config/runtime.env`만 환경 파일로 읽고
 RDS PKCS12 truststore를 읽기 전용으로 연결합니다. Nginx에는 앱 비밀값을 전달하지 않습니다.
 AWS 장기 키·RDS 관리자 비밀번호는 컨테이너에 전달하지 않습니다.
+Nginx에만 `/etc/letsencrypt`와 ACME webroot를 읽기 전용으로 연결합니다.
 
 ## 릴리스 파일과 시작
 
@@ -40,7 +42,7 @@ AWS 장기 키·RDS 관리자 비밀번호는 컨테이너에 전달하지 않�
 코드·이미지 참조만 아래 경로에 보관하며 비밀값은 묶음에 넣지 않습니다.
 
 ```text
-S3: releases/<release-id>/release-final.tar.gz
+S3: releases/<release-id>/<릴리스 기록의 파일명>
 EC2: /opt/homecare/releases/<release-id>/
   compose.prod.yaml
   images.env            # RELEASE_ID, BACKEND_IMAGE, NGINX_IMAGE; 비밀값 없음
@@ -48,6 +50,7 @@ EC2: /opt/homecare/releases/<release-id>/
   start-service.sh
   write-runtime-env.py
   verify-service.py
+  setup-https.sh / renew-nginx.sh / compose.acme.yaml / bootstrap.conf
 /opt/homecare/current -> 정상 기동을 확인한 릴리스 디렉터리
 ```
 
@@ -65,15 +68,15 @@ EC2 역할로 ECR에 로그인하고 이미지 pull 후 두 서비스가 healthy
 Nginx 설정 검사·reload와 프록시 health 확인 후에만 `current` 링크를 갱신합니다.
 Docker 로그인 파일은 임시 디렉터리에 두고 종료 시 삭제합니다.
 
-이 단계의 시작 스크립트는 수동 배포용입니다. 실패 시 자동 롤백, 동시 배포 잠금,
-GitHub Actions 실행과 외부 HTTPS 검증은 7단계에서 추가합니다.
+이 단계의 시작 스크립트는 유효한 인증서가 이미 존재하는 수동 배포용입니다.
+실패 시 자동 롤백, 동시 배포 잠금과 GitHub Actions 실행은 7단계에서 추가합니다.
 앱 설정을 포함할 수 있는 `docker compose config`나 전체 `docker inspect` 출력을
 채팅·CI 로그에 붙이지 않고 필요한 상태 필드만 조회합니다.
 
 ## 상태 확인과 검증
 
 ```bash
-curl -fsS http://43.202.80.116/actuator/health
+curl -fsS https://43.202.80.116/actuator/health
 # 정상 응답: status가 UP (liveness/readiness 그룹 이름이 함께 포함될 수 있음)
 
 # EC2에서 서비스 상태 확인
@@ -85,14 +88,14 @@ python3 /opt/homecare/current/verify-service.py
 ```
 
 검증 스크립트는 컨테이너 수·포트·메모리·로그·재시작 정책과 프록시 경로를 확인합니다.
-EC2 내부 HTTP로 합성 사용자 회원가입·로그인·상담·내역 조회·삭제를 테스트하고,
+인증서를 검증하는 HTTPS로 합성 사용자 회원가입·로그인·상담·내역 조회·삭제를 테스트하고,
 앱을 재생성한 뒤 Nginx reload·데이터와 JWT 유지 여부를 확인합니다.
 제품 카테고리 없는 문의의 로컬 안내 응답을 사용하므로 OpenAI를 호출하지 않습니다.
 검증 사용자와 그 데이터만 삭제하며 두 서비스 컨테이너는 유지합니다.
 이 명령은 앱 교체 중 짧은 중단이 발생하므로 실습 또는 정해진 점검 시간에 실행합니다.
 
 외부 health·인증 없는 API 응답과 8080·3306 접근 차단은 로컬에서 별도로 확인합니다.
-실제 로그인·회원가입을 사용자 브라우저에서 이용하려면 6단계 HTTPS·CORS 적용이 필요합니다.
+운영 프론트엔드는 `https://homecare-omega-eight.vercel.app`이며 해당 origin만 CORS에 허용합니다.
 
 실제 API·앱 재생성·Nginx reload 검증을 통과했고 합성 데이터는 정리했습니다.
 동일 릴리스 시작 시 두 컨테이너 ID가 유지됐으며, EC2를 실제 재부팅한 뒤에도

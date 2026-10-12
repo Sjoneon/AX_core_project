@@ -89,7 +89,9 @@ npm run lint
 ### 운영 API 주소
 
 Vercel에서는 Node 버전을 24로 선택하고, 빌드 환경변수에
-`VITE_API_BASE_URL=https://실제-API-도메인`을 등록합니다.
+현재 기존 Vercel 프로젝트 `homecare`의 Production Config에
+`VITE_API_BASE_URL=https://43.202.80.116`을 등록하고 CLI로 배포했습니다.
+운영 주소는 `https://homecare-omega-eight.vercel.app`입니다.
 주소에는 `/api` 경로를 붙이지 않습니다. 끝의 `/`는 자동으로 제거합니다.
 회원가입·로그인·상담·내역 조회·삭제 요청이 모두 이 주소를 사용합니다.
 
@@ -98,7 +100,7 @@ Vercel에서는 Node 버전을 24로 선택하고, 빌드 환경변수에
 Vite 환경변수는 빌드 시 포함되므로 API 주소를 바꾸면 다시 빌드해야 합니다.
 `VITE_*` 값은 브라우저에 공개되므로 API 키·DB 비밀번호·JWT 서명 키를 넣지 않습니다.
 
-API 도메인 직접 호출에는 CORS 허용이 필요합니다. 후속 단계에서 `../proxy/`의
-Nginx에 Vercel 운영 origin을 등록한 뒤 브라우저 통합 검증을 진행합니다.
+Nginx는 위 운영 origin만 CORS에 허용합니다. Git Repository는 아직 연결하지 않았으며
+현재는 CLI 배포를 사용합니다. [HTTPS·Vercel 배포 안내](../ops/HTTPS_CORS.md)를 참고합니다.
 
 설정 참고: [Vite 개발 서버 프록시](https://vite.dev/config/server-options.html#server-proxy).
