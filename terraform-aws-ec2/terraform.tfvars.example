@@ -1,0 +1,9 @@
+aws_account_id       = "528215464049"
+aws_region           = "ap-northeast-2"
+project_name         = "homecare"
+environment          = "prod"
+ami_id               = "ami-0c713e716602facc2"
+mysql_engine_version = "8.4.11"
+
+# Current AWS free plan. Set to 7 after upgrading the account plan.
+db_backup_retention_days = 1

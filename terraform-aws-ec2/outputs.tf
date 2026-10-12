@@ -1,19 +1,36 @@
 output "instance_id" {
-  description = "EC2 Instance ID"
-  value       = aws_instance.ubuntu.id
+  value = aws_instance.ubuntu.id
 }
 
 output "public_ip" {
-  description = "EC2 Public IPv4"
-  value       = aws_instance.ubuntu.public_ip
+  value = aws_eip.app.public_ip
 }
 
 output "private_ip" {
-  description = "EC2 Private IPv4"
-  value       = aws_instance.ubuntu.private_ip
+  value = aws_instance.ubuntu.private_ip
 }
 
 output "vpc_id" {
-  description = "Created VPC ID"
-  value       = aws_vpc.main.id
+  value = aws_vpc.main.id
+}
+
+output "rds_endpoint" {
+  value = aws_db_instance.mysql.endpoint
+}
+
+output "rds_master_secret_arn" {
+  description = "Secret reference only; the password is managed by RDS."
+  value       = aws_db_instance.mysql.master_user_secret[0].secret_arn
+}
+
+output "ecr_repositories" {
+  value = { for name, repository in aws_ecr_repository.service : name => repository.repository_url }
+}
+
+output "release_bucket" {
+  value = aws_s3_bucket.releases.id
+}
+
+output "ssm_start_session" {
+  value = "aws ssm start-session --region ${var.aws_region} --target ${aws_instance.ubuntu.id}"
 }

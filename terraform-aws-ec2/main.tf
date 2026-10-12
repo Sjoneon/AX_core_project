@@ -1,205 +1,107 @@
 terraform {
-  required_version = ">= 1.6.0"
-
+  required_version = ">= 1.10.0, < 2.0.0"
+  backend "s3" {}
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 6.0"
+      version = "6.68.0"
     }
   }
 }
-
-# --------------------------------------------------
-# Provider
-# --------------------------------------------------
 
 provider "aws" {
-  region = var.aws_region
-
+  region              = var.aws_region
+  allowed_account_ids = [var.aws_account_id]
   default_tags {
     tags = {
-      Project   = "terraform-aws-ec2"
-      ManagedBy = "Terraform"
+      Project     = var.project_name
+      Environment = var.environment
+      ManagedBy   = "Terraform"
     }
   }
 }
 
-# --------------------------------------------------
-# Ubuntu AMI
-# --------------------------------------------------
-
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+locals {
+  name = "${var.project_name}-${var.environment}"
 }
-
-# --------------------------------------------------
-# VPC
-# --------------------------------------------------
 
 resource "aws_vpc" "main" {
   cidr_block           = "10.20.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-
-  tags = {
-    Name = "aws-ec2-vpc"
-  }
+  tags                 = { Name = local.name }
 }
-
-# --------------------------------------------------
-# Public Subnet
-# --------------------------------------------------
 
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.20.1.0/24"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "aws-ec2-public-subnet"
-  }
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = false
+  tags                    = { Name = "${local.name}-public" }
 }
 
-# --------------------------------------------------
-# Internet Gateway
-# --------------------------------------------------
+resource "aws_subnet" "database" {
+  for_each = {
+    a = "10.20.10.0/24"
+    c = "10.20.11.0/24"
+  }
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = each.value
+  availability_zone       = "${var.aws_region}${each.key}"
+  map_public_ip_on_launch = false
+  tags                    = { Name = "${local.name}-database-${each.key}" }
+}
 
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "aws-ec2-igw"
-  }
+  tags   = { Name = local.name }
 }
-
-# --------------------------------------------------
-# Public Route Table
-# --------------------------------------------------
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
-
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-
-  tags = {
-    Name = "aws-ec2-public-rt"
-  }
+  tags = { Name = "${local.name}-public" }
 }
-
-# --------------------------------------------------
-# Route Table Association
-# --------------------------------------------------
 
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public.id
   route_table_id = aws_route_table.public.id
 }
 
-# --------------------------------------------------
-# Security Group
-# --------------------------------------------------
+resource "aws_route_table" "database" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "${local.name}-database" }
+}
+
+resource "aws_route_table_association" "database" {
+  for_each       = aws_subnet.database
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.database.id
+}
 
 resource "aws_security_group" "ec2" {
-  name_prefix = "aws-ec2-sg-"
-  description = "Allow SSH from my IP"
+  name        = "${local.name}-app"
+  description = "Public HTTP and HTTPS; administration through SSM"
   vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description = "SSH from my public IP"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    description = "Allow all outbound IPv4"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "aws-ec2-sg"
-  }
+  tags        = { Name = "${local.name}-app" }
 }
 
-# --------------------------------------------------
-# SSH Key Pair
-# --------------------------------------------------
-
-resource "aws_key_pair" "ec2" {
-  key_name_prefix = "aws-ec2-key-"
-
-  public_key = file(
-    pathexpand("~/.ssh/aws-ec2-key.pub")
-  )
-
-  tags = {
-    Name = "aws-ec2-key"
-  }
+resource "aws_vpc_security_group_ingress_rule" "web" {
+  for_each          = toset(["80", "443"])
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "tcp"
+  from_port         = tonumber(each.value)
+  to_port           = tonumber(each.value)
+  description       = "Public web traffic"
 }
 
-# --------------------------------------------------
-# EC2 Instance
-# --------------------------------------------------
-
-resource "aws_instance" "ubuntu" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro"
-
-  subnet_id                   = aws_subnet.public.id
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.ec2.id]
-  key_name                    = aws_key_pair.ec2.key_name
-
-  # 유료 상세 모니터링 비활성화
-  monitoring = false
-
-  # T3 Unlimited CPU 추가 과금 방지
-  credit_specification {
-    cpu_credits = "standard"
-  }
-
-  # EC2 종료 시 루트 EBS 자동 삭제
-  root_block_device {
-    volume_type           = "gp3"
-    volume_size           = 12
-    encrypted             = true
-    delete_on_termination = true
-  }
-
-  # EBS 볼륨 식별용 태그
-  volume_tags = {
-    Name = "aws-ec2-root"
-  }
-
-  # IMDSv2 필수
-  metadata_options {
-    http_tokens = "required"
-  }
-
-  # Public Route Table 구성 이후 EC2 생성
-  depends_on = [
-    aws_route_table_association.public
-  ]
-
-  tags = {
-    Name = "aws-ec2-ubuntu"
-  }
+resource "aws_vpc_security_group_egress_rule" "app" {
+  security_group_id = aws_security_group.ec2.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+  description       = "RDS and outbound AWS, package, and OpenAI connections"
 }

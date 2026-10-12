@@ -2,7 +2,7 @@
 
 작성일: 2026-10-12
 
-> 1단계의 빌드·실행 설정 준비와 로컬 검증을 완료했습니다. 2단계 이후의 AWS 자원 변경과 배포 자동화는 아직 수행하지 않았습니다.
+> 1단계와 2단계의 구현·검증을 완료했습니다. AWS 인프라를 실제 생성했고 Terraform state를 S3로 이전했습니다. 앱 실행 환경·비밀값·DB 초기화·Nginx·배포 자동화는 후속 단계입니다.
 
 ### 구현 현황
 
@@ -10,10 +10,14 @@
 - 검증 완료: 빈 Gradle 캐시의 새 체크아웃 빌드, H2 테스트 56개, MySQL 8.4 테스트 56개, Node 24의 새 의존성 설치·lint·로컬/운영 API 설정 빌드.
 - 컨테이너 검증 완료: `linux/amd64` 이미지 기동, 로그인, JWT 기본 1시간·변경값 적용, `ddl-auto=validate` 재기동 및 상담 데이터 유지.
 - 기존 Terraform 작업 폴더는 `terraform-aws-ec2/`이며, 후속 Nginx 구성은 `proxy/`를 사용합니다.
+- 2단계 완료: VPC·퍼블릭 서브넷 1개·프라이빗 서브넷 2개, EC2·EIP, 비공개 RDS, ECR 2개, 배포 파일 S3와 별도 state S3를 생성했습니다.
+- Terraform 검증 완료: 서비스 mock 테스트 2개, bootstrap mock 테스트 1개, 실제 AWS 설정 확인, 서비스와 bootstrap의 변경 없는 재실행 plan.
+- 현재 EC2는 `running` 및 SSM `Online`, RDS는 `available`입니다. [배포 현황](terraform-aws-ec2/DEPLOYMENT_STATUS.md)과 [Terraform 실행 안내](terraform-aws-ec2/README.md)를 참고합니다.
+- 무료 계정이 7일 백업을 거부하여 사용자 선택에 따라 현재 RDS 백업은 1일입니다. 서비스용 기본값은 7일이며, 유료 플랜 전환 후 늘릴 수 있습니다.
 
 ## 1. 목표와 확정 아키텍처
 
-학습·포트폴리오 용도로 서울 리전(`ap-northeast-2`)에서 구성합니다. 기존 데이터 이전은 없으며, 배포 중 짧은 서비스 중단을 허용합니다. 사용자가 EC2 배포에 사용한 기존 `terraform-aws-ec2/` 구성을 기반으로 후속 인프라 작업을 검토합니다. 실제 AWS 자원의 현재 상태는 이번 단계에서 조회하지 않았습니다.
+학습·포트폴리오 용도로 서울 리전(`ap-northeast-2`)에서 구성합니다. 기존 데이터 이전은 없으며, 배포 중 짧은 서비스 중단을 허용합니다. 기존 실습 state와 실제 AWS를 확인해 남아 있는 실습 EC2·VPC가 없음을 확인한 뒤, `terraform-aws-ec2/`를 서비스용 구성으로 변경·적용했습니다.
 
 **퍼블릭 서브넷 하나에 EC2 한 대를 두고, 그 EC2 안에서 Nginx와 Spring Boot 컨테이너를 하나씩 실행합니다.** 프론트엔드는 Vercel에서 제공하고 브라우저가 API 도메인을 직접 호출합니다.
 
@@ -118,7 +122,7 @@ Terraform은 AWS 자원을 관리하고, 애플리케이션 릴리스는 GitHub 
 | 서브넷 | EC2용 퍼블릭 1개, 서로 다른 AZ의 RDS용 프라이빗 2개 |
 | EC2 | Ubuntu 24.04 LTS x86_64, `t3.small`, 암호화 gp3 30GB |
 | 공인 주소 | Elastic IP 1개 |
-| RDS | MySQL 8.4, `db.t4g.micro`, Single-AZ, 암호화 gp3 20GB |
+| RDS | MySQL 8.4.11, `db.t4g.micro`, Single-AZ, 암호화 gp3 20GB, 현재 백업 1일 |
 | ECR | 백엔드·Nginx 이미지 저장소 |
 | 배포 파일 | Terraform state와 분리한 비공개 S3 버킷 |
 | 초기 제외 | ALB, NAT Gateway, Auto Scaling, Kubernetes |
@@ -271,7 +275,7 @@ Vercel Git 연동으로 자동 빌드하되, Deployment Checks에서 동일 커�
 - CloudWatch에 Nginx·앱 로그를 수집하고 보존 기간은 14일로 시작합니다.
 - 요청 본문·Authorization 헤더·비밀값은 로그에 남기지 않습니다.
 - EC2 상태·메모리·디스크, RDS 저장공간·연결 수, health 실패를 확인할 수 있게 합니다.
-- RDS 자동 백업은 7일로 설정하고 삭제 방지와 삭제 시 최종 스냅샷을 적용합니다.
+- RDS 자동 백업은 서비스 운영 시 7일을 목표로 합니다. 현재 무료 계정은 사용자 선택에 따라 1일이며, 삭제 방지와 삭제 시 최종 스냅샷을 적용했습니다.
 - ECR·릴리스 파일 정리 시 현재 운영 및 직전 정상 릴리스는 반드시 보존합니다.
 - DB 복구는 새 RDS로 복원·검증한 뒤 연결을 전환합니다.
 - 생성 전에 서울 리전 가격으로 EC2·EBS·공인 IPv4·RDS·로그·비밀 관리 비용을 산정하고 예산 알림을 설정합니다. OpenAI·도메인·Vercel 비용도 별도로 포함합니다.
