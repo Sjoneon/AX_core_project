@@ -55,6 +55,6 @@ Temporary Items
 
 temp_project/
 .env
-terraform-aws-ec2/
+# terraform-aws-ec2/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode

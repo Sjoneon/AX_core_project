@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { apiUrl } from './api.js'
 import Brand from './components/Brand.jsx'
 
 function AuthForm({ onLogin, notice }) {
@@ -17,7 +18,7 @@ function AuthForm({ onLogin, notice }) {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/auth/${isSignup ? 'signup' : 'login'}`, {
+      const response = await fetch(apiUrl(`/api/auth/${isSignup ? 'signup' : 'login'}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), password }),

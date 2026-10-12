@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { apiUrl } from './api.js'
 import Brand from './components/Brand.jsx'
 import Icon from './components/Icon.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -28,7 +29,7 @@ export default function Chat({ session, onLogout }) {
   const selectedProduct = PRODUCTS.find((product) => product.id === category) || PRODUCTS[0]
 
   const request = useCallback(async (path, options = {}) => {
-    const response = await fetch(path, {
+    const response = await fetch(apiUrl(path), {
       ...options,
       headers: {
         'Content-Type': 'application/json',

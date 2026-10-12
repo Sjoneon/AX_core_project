@@ -22,11 +22,13 @@ cd backend
 OPENAI_API_KEY="your-openai-api-key"
 OPENAI_MODEL=gpt-4o-mini
 JWT_SECRET=your-base64-encoded-signing-key
+JWT_EXPIRATION_MS=3600000
 ```
 
 `JWT_SECRET`은 32바이트 이상의 무작위 값을 Base64로 인코딩한 서명 키입니다.
 새 환경에서는 `openssl rand -base64 32`로 생성한 값을 사용합니다.
-키가 바뀌면 기존 로그인 토큰은 무효화됩니다. 토큰의 유효 기간은 1시간입니다.
+키가 바뀌면 기존 로그인 토큰은 무효화됩니다. 토큰의 기본 유효 기간은 1시간입니다.
+`JWT_EXPIRATION_MS`로 유효 기간을 밀리초 단위로 변경할 수 있습니다.
 운영체제 환경 변수와 Spring 실행 옵션이 `.env`보다 우선합니다.
 API 키, 모델, JWT 서명 키를 모두 설정해야 합니다.
 실제 채팅 호출에는 해당 키의 모델 접근 권한과 API 사용 가능한 잔액이 필요합니다.
@@ -49,7 +51,9 @@ spring.datasource.username=spring
 spring.datasource.password=spring1234
 ```
 
-다른 환경에서는 `.env`의 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 변경할 수 있습니다.
+다른 환경에서는 실행 환경변수 또는 `.env`의 `SPRING_DATASOURCE_URL`,
+`SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 변경할 수 있습니다.
+설정 예시는 `.env.example`에 있으며, 실제 비밀값은 Git에 저장하지 않습니다.
 로컬 개발용 `ddl-auto=update` 설정으로 기동 시 필요한 테이블을 생성합니다.
 `app_users`는 계정, `chat_conversations`는 사용자별 대화 제목과 생성·갱신 시간,
 `chat_messages`는 대화에 속한 질문·답변과 작성 시간을 저장합니다.
@@ -263,8 +267,8 @@ Spring Security의 JWT 검증 필터를 사용하며 인증용 쿠키나 HTTP �
 ## 검증 및 JAR 실행
 
 ```bash
-./gradlew test bootJar
-java -jar build/libs/backend-0.0.1-SNAPSHOT.jar
+./gradlew clean test bootJar
+java -jar build/libs/app.jar
 ```
 
 테스트는 로컬 모의 OpenAI 서버를 사용하여 실제 Spring AI HTTP 호출, 요청 모델과 인증 헤더,
@@ -273,10 +277,36 @@ java -jar build/libs/backend-0.0.1-SNAPSHOT.jar
 비로그인·변조·만료 토큰 차단도 검증합니다.
 대화·메시지 저장과 순서, 최신 대화 정렬, 재인증 후 조회, 사용자 간 접근 차단,
 잘못된 대화 ID, AI 실패 시 기록 유지, 긴 답변과 유니코드 제목도 검증합니다.
-테스트는 H2 메모리 DB와 가짜 API 키를 사용하므로 실제 MySQL 데이터나 LLM 사용량에 영향을 주지 않습니다.
+기본 테스트는 H2 메모리 DB와 가짜 API 키를 사용하므로 실제 MySQL 데이터나 LLM 사용량에 영향을 주지 않습니다.
 임베딩 모의 응답으로 카테고리 필터, 오류 코드 근거 우선 포함, 코드 없는 질문의 벡터 검색,
 근거의 저장·재조회, 미등록 코드와 제품 불일치, 검색 결과 없음, 임베딩 실패도 검증합니다.
 이 테스트는 실제 OpenAI의 검색 정확도나 답변 품질을 보장하지 않습니다.
+
+### MySQL 8.4 검증
+
+Docker를 실행한 상태에서 아래 명령으로 별도 테스트 MySQL을 기동합니다.
+테스트는 테이블을 생성·삭제하므로 개발·운영 DB와 분리된 `backend_test`만 사용합니다.
+테스트 DB는 로컬 3307 포트를 사용하며 데이터는 컨테이너 종료 시 제거됩니다.
+
+```bash
+docker compose -p core-stage1-test -f compose.mysql-test.yaml up -d --wait
+./gradlew mysqlTest
+docker compose -p core-stage1-test -f compose.mysql-test.yaml down
+```
+
+`mysqlTest`는 기본 테스트와 같은 API·인증·상담·검색 근거 검증을 MySQL에서 수행합니다.
+테스트 실패 시에도 마지막 `down` 명령으로 테스트 DB를 정리하세요.
+
+### Docker 이미지 빌드
+
+```bash
+./gradlew clean test bootJar
+docker build -t core-backend:local .
+```
+
+Docker 빌드에는 `build/libs/app.jar`만 전달하며 `.env`와 소스·캐시는 제외합니다.
+`compose.yaml`은 로컬 단독 실행용입니다. EC2의 Nginx 연결 및 비공개 앱 포트 구성은
+후속 단계에서 `../proxy/`를 사용해 준비합니다.
 
 공식 문서: [Spring AI 시작하기](https://docs.spring.io/spring-ai/reference/getting-started.html),
 [ChatClient](https://docs.spring.io/spring-ai/reference/api/chatclient.html),

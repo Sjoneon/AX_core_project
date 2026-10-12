@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # Gradle 빌드 결과물 복사
-COPY build/libs/*.jar app.jar
+COPY build/libs/app.jar app.jar
 
 # Spring Boot 포트
 EXPOSE 8080

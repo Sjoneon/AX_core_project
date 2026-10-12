@@ -54,10 +54,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 		properties = {
                 "spring.ai.openai.api-key=test-key",
                 "spring.ai.openai.chat.model=gpt-4o-mini",
-                "spring.datasource.url=jdbc:h2:mem:backend_auth_tests;MODE=MySQL;DB_CLOSE_DELAY=-1",
-                "spring.datasource.driver-class-name=org.h2.Driver",
-                "spring.datasource.username=sa",
-                "spring.datasource.password=",
+                "spring.datasource.url=${test.datasource.url:jdbc:h2:mem:backend_auth_tests;MODE=MySQL;DB_CLOSE_DELAY=-1}",
+                "spring.datasource.driver-class-name=${test.datasource.driver-class-name:org.h2.Driver}",
+                "spring.datasource.username=${test.datasource.username:sa}",
+                "spring.datasource.password=${test.datasource.password:}",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
         })

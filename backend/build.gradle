@@ -39,6 +39,23 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+tasks.named('bootJar') {
+	archiveFileName = 'app.jar'
+}
+
+tasks.register('mysqlTest', Test) {
+	description = 'Runs the API tests against the disposable MySQL 8.4 database.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform()
+	systemProperty 'test.datasource.url', 'jdbc:mysql://127.0.0.1:3307/backend_test'
+	systemProperty 'test.datasource.driver-class-name', 'com.mysql.cj.jdbc.Driver'
+	systemProperty 'test.datasource.username', 'backend_test'
+	systemProperty 'test.datasource.password', 'test-password'
+	outputs.upToDateWhen { false }
+}
+
 tasks.named('processResources') {
 	from('rag-test-data/manuals') {
 		into 'rag/manuals'
