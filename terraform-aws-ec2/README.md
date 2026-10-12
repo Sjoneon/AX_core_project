@@ -4,7 +4,8 @@
 AWS 기반 자원과 실행 권한·GitHub OIDC·일반 설정·로그 그룹을 관리합니다.
 EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습니다.
 앱 비밀값·EC2 운영 환경 파일과 RDS 앱 계정·초기 스키마·TLS 검증을 완료했습니다.
-`../proxy/`의 Nginx·상시 앱 배포·HTTPS 구성과 GitHub Actions 워크플로는 후속 단계입니다.
+`../proxy/`의 Nginx와 Spring Boot 컨테이너를 상시 배포해 HTTP 연결을 확인했습니다.
+도메인·HTTPS·CORS와 GitHub Actions 워크플로는 후속 단계입니다.
 
 2026-10-12 실제 AWS 적용과 검증을 완료했습니다. 생성한 자원과 검증 결과는
 [배포 현황](DEPLOYMENT_STATUS.md)에 기록했습니다.
@@ -13,6 +14,7 @@ EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습
 
 3단계의 실행 환경·비밀값 등록 범위·GitHub 설정은 [ops 안내](../ops/README.md)를 참고합니다.
 4단계의 SQL·앱 계정·TLS·임시 관리자 권한은 [RDS 초기화 안내](../ops/RDS_INITIALIZATION.md)를 참고합니다.
+5단계의 두 컨테이너·ECR digest·로그·재시작은 [운영 컨테이너 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
 
 | 항목 | 설정 |
 |---|---|

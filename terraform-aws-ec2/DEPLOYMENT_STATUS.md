@@ -19,6 +19,12 @@ EC2 역할로 일반 설정과 비밀값 총 10개를 읽어 root 소유 0600의
 관리자 비밀 조회 권한은 초기화에만 임시 부여한 뒤 제거했습니다.
 검증용 데이터·컨테이너·ECR 태그와 manifest는 정리했습니다.
 
+5단계에서 `homecare-backend-1`, `homecare-nginx-1` 두 컨테이너를 상시 배포했습니다.
+Nginx HTTP 80으로 API를 전달하며 앱의 8080은 호스트에 공개하지 않습니다.
+실제 EC2 재부팅 후 두 컨테이너 자동 복구와 외부 health를 확인했습니다.
+현재 릴리스는 `manual-backend-name-20261012-1c7c4c76fd`이며 이미지 digest·최종 S3 파일·SHA-256은
+[릴리스 기록](../ops/STAGE5_RELEASE.json)에 저장했습니다.
+
 | 자원 | 생성 결과 |
 |---|---|
 | VPC | `vpc-04a6e4a332688fadb` |
@@ -38,6 +44,8 @@ EC2 역할로 일반 설정과 비밀값 총 10개를 읽어 root 소유 0600의
 | bootstrap state key | `bootstrap/terraform.tfstate` |
 | GitHub 배포 역할 | `arn:aws:iam::528215464049:role/homecare-prod-github-deploy` |
 | GitHub 환경 | `production`, `main` 브랜치만 허용 |
+| 운영 컨테이너 | `homecare-backend-1`, `homecare-nginx-1`, 둘 다 healthy |
+| HTTP health | `http://43.202.80.116/actuator/health` |
 
 SSM 접속 명령:
 
@@ -46,7 +54,7 @@ aws ssm start-session --region ap-northeast-2 --target i-0223afa15057a76b2
 ```
 
 Session Manager를 CLI에서 사용하려면 Session Manager plugin이 필요합니다.
-앱과 Nginx는 아직 배포하지 않았으므로 Elastic IP의 웹 포트에서 서비스가 실행되는 단계는 아닙니다.
+현재 HTTP API는 실행 중입니다. HTTPS·CORS는 6단계이며 Vercel 브라우저 연동은 후속 단계입니다.
 
 ## 검증 결과
 
@@ -70,6 +78,11 @@ Session Manager를 CLI에서 사용하려면 Session Manager plugin이 필요합
 - 초기화 재실행 시 V001 checksum이 일치했고 DDL과 앱 비밀번호를 유지했습니다. 운영 스크립트 테스트는 총 13개를 통과했습니다.
 - 비암호화 연결·신뢰하지 않는 CA·앱의 CREATE 및 초기화 이력 조회가 거부됐습니다. 초기화용 정책 삭제 후 실제 EC2 관리자 비밀 조회도 거부됐습니다.
 - 검증 데이터·임시 컨테이너·이미지를 제거하고 운영 환경 파일의 root 소유 0600을 확인했습니다. 상세 절차는 [RDS 초기화 안내](../ops/RDS_INITIALIZATION.md)에 기록했습니다.
+- Nginx 1.30.5 이미지·운영 Compose 문법과 두 서비스의 메모리 상한·읽기 전용 파일시스템·재시작 정책·healthcheck를 검증했습니다. 앱은 일반 사용자로 실행합니다.
+- 외부 health 200·인증 없는 API 401과 8080·3306 접근 차단을 확인했습니다. EC2 내부 프록시 경유 회원가입·로그인·상담·조회·삭제와 앱 재생성 후 RDS 데이터·JWT 보존을 확인했습니다.
+- 같은 릴리스 시작을 재실행해 컨테이너 ID가 유지됐습니다. 실제 boot ID 변경으로 EC2 재부팅을 확인하고 두 컨테이너의 자동 healthy 복구를 검증했습니다.
+- 운영 로그의 CloudWatch 전송과 제한된 로컬 캐시를 확인했습니다. 앱 비밀값은 Nginx 환경이나 로그 캐시에 없습니다. 합성 사용자와 상담 데이터는 제거했고 OpenAI는 호출하지 않았습니다.
+- 서비스명을 `backend`로 변경하고 기존 컨테이너를 정리했습니다. 변경 전 JWT·상담 데이터와 변경 후 인증·상담·삭제·백엔드 재생성 검증을 통과했습니다. Compose 서비스·Nginx 대상·검증 코드·로그 스트림의 이름을 함께 변경했습니다.
 
 ## 무료 계정 조정
 
@@ -83,5 +96,5 @@ RDS만 생성하는 plan으로 재시도하여 완료했습니다. 기존 자원
 
 ## 후속 단계
 
-1. `../proxy/`에서 Nginx를 구성하고 Spring Boot와 함께 EC2에 컨테이너 두 개를 배포합니다.
-2. API 도메인·HTTPS·CORS, GitHub Actions·ECR·SSM 배포 자동화와 Vercel 연결을 진행합니다.
+1. API 도메인과 Vercel 운영 origin을 확정하고 HTTPS·CORS를 구성합니다.
+2. GitHub Actions·ECR·SSM 배포 자동화와 Vercel 연결을 진행합니다.

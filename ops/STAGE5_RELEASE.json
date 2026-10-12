@@ -1,0 +1,9 @@
+{
+  "release_id": "manual-backend-name-20261012-1c7c4c76fd",
+  "source_commit": "bef3d6f5afce752d9a6f89d00e0e5c990904c354",
+  "source_note": "Service renamed to backend; current workspace configuration archived; baseline commit recorded separately.",
+  "backend_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/backend@sha256:5499c9246c9d356c2871b4e15f14fe9095f2ea3fbff6df0ab35378cfe30afc44",
+  "nginx_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/nginx@sha256:8706facdfd4b14271c901684d044161a1ac2eb152d8d2d79b7ff8bfc4def344a",
+  "artifact_s3_uri": "s3://homecare-prod-releases-528215464049-ap-northeast-2/releases/manual-backend-name-20261012-1c7c4c76fd/release-final.tar.gz",
+  "artifact_sha256": "16952eef1034f61d5175da1ba87ddb35174b17c8b18d06cced5a2183bae7d1e0"
+}

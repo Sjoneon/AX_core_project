@@ -305,8 +305,9 @@ docker build -t core-backend:local .
 ```
 
 Docker 빌드에는 `build/libs/app.jar`만 전달하며 `.env`와 소스·캐시는 제외합니다.
-`compose.yaml`은 로컬 단독 실행용입니다. EC2의 Nginx 연결 및 비공개 앱 포트 구성은
-후속 단계에서 `../proxy/`를 사용해 준비합니다.
+`compose.yaml`은 `backend` 서비스의 로컬 단독 실행용입니다. EC2에서는
+`../ops/compose.prod.yaml`의 `backend`, `nginx` 두 서비스를 사용하며
+앱 포트는 호스트에 공개하지 않습니다. [운영 배포 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
 
 공식 문서: [Spring AI 시작하기](https://docs.spring.io/spring-ai/reference/getting-started.html),
 [ChatClient](https://docs.spring.io/spring-ai/reference/api/chatclient.html),

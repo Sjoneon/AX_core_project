@@ -4,6 +4,10 @@
 AWS CLI 2.37.12를 SSM으로 설치했습니다. Docker 자동 시작과 json-file 로그
 회전(파일당 10MB, 최대 3개)을 적용했습니다.
 
+5단계에서 `backend`, `nginx` 두 컨테이너를 상시 배포했습니다. 운영 컨테이너 로그는
+CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태 확인은
+[운영 컨테이너 안내](SERVICE_DEPLOYMENT.md)를 참고합니다.
+
 ## 권한과 자격증명
 
 - 로컬 AWS CLI는 사용자 `~/.aws/credentials` 또는 SSO·임시 자격증명을 사용합니다.

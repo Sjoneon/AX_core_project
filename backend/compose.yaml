@@ -1,5 +1,5 @@
 services:
-  app:
+  backend:
     build: .
     image: backend:1.0
     container_name: backend-container
