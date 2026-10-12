@@ -2,9 +2,11 @@
 
 작성일: 2026-10-12
 
-> 1~3단계의 구현·검증을 완료했습니다. AWS 인프라를 실제 생성했고 Terraform state를 S3로 이전했으며 EC2 실행 환경·권한·비밀값을 준비했습니다. DB 초기화·Nginx·배포 자동화는 후속 단계입니다.
+> 1~4단계의 구현·검증을 완료했습니다. AWS 인프라·EC2 실행 환경·권한·비밀값과 RDS 앱 계정·초기 스키마·TLS 연결을 준비했습니다. Nginx·상시 앱 배포·배포 자동화는 후속 단계입니다.
 
 3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
+
+4단계 완료: 버전 관리하는 초기 SQL로 RDS를 초기화하고 세 앱 테이블의 CRUD만 가능한 앱 계정을 생성했습니다. 실제 Spring Boot의 스키마·TLS 검증과 재시작 후 상담 데이터·JWT 유지, 임시 관리자 권한 제거를 확인했습니다. [RDS 초기화 안내](ops/RDS_INITIALIZATION.md)를 참고합니다.
 
 ### 구현 현황
 
@@ -17,6 +19,7 @@
 - 현재 EC2는 `running` 및 SSM `Online`, RDS는 `available`입니다. [배포 현황](terraform-aws-ec2/DEPLOYMENT_STATUS.md)과 [Terraform 실행 안내](terraform-aws-ec2/README.md)를 참고합니다.
 - 무료 계정이 7일 백업을 거부하여 사용자 선택에 따라 현재 RDS 백업은 1일입니다. 서비스용 기본값은 7일이며, 유료 플랜 전환 후 늘릴 수 있습니다.
 - 3단계 검증 완료: 실제 EC2에서 ECR 두 저장소 pull·컨테이너 실행·CloudWatch 로그 전송·SecureString 복호화를 확인했습니다. 운영 환경 파일은 root 소유 0600이며 재실행 후 키가 유지됩니다. Terraform 서비스 테스트 3개, 앱 설정 스크립트 테스트 5개와 변경 없는 plan을 확인했습니다. 비밀값은 Terraform state나 Git에 포함될 소스 파일에 없습니다.
+- 4단계 검증 완료: 임시 MySQL 8.4와 실제 RDS에서 V001 SQL·Hibernate validate를 검증했습니다. 회원가입·로그인·한글·이모지·검색 근거 조회와 재시작 후 보존을 확인했습니다. 비암호화·잘못된 CA·앱의 DDL·스키마 이력 조회·EC2의 관리자 비밀 조회는 거부됩니다. 운영 스크립트 테스트 총 13개를 통과했고 검증용 데이터·컨테이너·이미지를 정리했습니다.
 
 ## 1. 목표와 확정 아키텍처
 
