@@ -25,14 +25,14 @@ public class ProductService {
     @Transactional(readOnly = true)
     public List<ProductResponse> list(String email) {
         return productRepository.findByUserEmailOrderByCreatedAtDescIdDesc(email).stream()
-                .map(UserProduct::response).toList();
+                .map(product -> product.response()).toList();
     }
 
     @Transactional
     public ProductResponse create(ProductRequest request, String email) {
         LocalDate purchaseDate = validate(request);
-        var user = userRepository.findByEmail(email).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
         var product = new UserProduct(user);
         product.update(request, purchaseDate);
         return productRepository.save(product).response();
@@ -40,16 +40,16 @@ public class ProductService {
 
     @Transactional
     public ProductResponse update(Long id, ProductRequest request, String email) {
-        var product = productRepository.findByIdAndUserEmail(id, email).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
+        var product = productRepository.findByIdAndUserEmail(id, email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
         product.update(request, validate(request));
         return product.response();
     }
 
     @Transactional
     public void delete(Long id, String email) {
-        var product = productRepository.findByIdAndUserEmail(id, email).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
+        var product = productRepository.findByIdAndUserEmail(id, email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
         productRepository.delete(product);
     }
 
@@ -60,7 +60,8 @@ public class ProductService {
         if (request.addressDetail() != null && request.address() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "상세 주소를 입력하려면 기본 주소가 필요합니다.");
         }
-        if (request.purchaseDate() == null) return null;
+        if (request.purchaseDate() == null)
+            return null;
         try {
             LocalDate date = LocalDate.parse(request.purchaseDate());
             if (date.getYear() < 1 || date.isAfter(LocalDate.now(ZoneId.of("Asia/Seoul")))) {
