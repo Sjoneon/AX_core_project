@@ -25,6 +25,8 @@
 .my-products-table thead th:nth-child(6) { width: 10%; }
 .my-products-table small { color: var(--muted); }
 .my-product-category { display: flex; align-items: center; gap: 8px; }
+.my-product-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#product-delete-description { color: var(--muted); font-size: 13px; line-height: 1.8; margin-bottom: 20px; }
 .product-success { padding: 14px 18px; margin-bottom: 18px; background: #edf7f0; color: #276d43; border-radius: 10px; font-size: 14px; }
 .product-dialog { width: min(600px, calc(100% - 28px)); max-height: calc(100dvh - 40px); padding: 28px; border: 1px solid var(--border); border-radius: 18px; color: inherit; overflow-y: auto; }
 .product-dialog::backdrop { background: #25202c66; }

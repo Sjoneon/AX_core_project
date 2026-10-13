@@ -865,6 +865,63 @@ class BackendApplicationTests {
     }
 
     @Test
+    void deleteRemovesOnlySelectedProductAndUpdatesList() throws Exception {
+        long removed = createProduct("{\"category\":\"WASHER\",\"name\":\"삭제할 제품\"}");
+        long retained = createProduct("{\"category\":\"REFRIGERATOR\",\"name\":\"유지할 제품\"}");
+        String ownerToken = accessToken;
+        appUserRepository.save(new AppUser("other@example.com", "unused", "USER"));
+        accessToken = jwtTokenProvider.createToken("other@example.com");
+        long otherProduct = createProduct("{\"category\":\"DRYER\"}");
+        accessToken = ownerToken;
+        var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+        var conversation = conversationRepository.save(new Conversation(user, "기존 상담", ProductCategory.WASHER));
+        messageRepository.save(new ChatMessage(conversation, "user", "기존 질문"));
+
+        var result = mockMvc.perform(delete("/api/products/{id}", removed).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent()).andReturn();
+        assertThat(result.getResponse().getContentAsString()).isEmpty();
+        assertThat(productRepository.existsById(removed)).isFalse();
+        assertThat(productRepository.existsById(retained)).isTrue();
+        assertThat(productRepository.existsById(otherProduct)).isTrue();
+        assertThat(productRepository.count()).isEqualTo(2);
+        assertThat(conversationRepository.existsById(conversation.getId())).isTrue();
+        assertThat(messageRepository.count()).isEqualTo(1);
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(retained))
+                .andExpect(jsonPath("$[0].name").value("유지할 제품"));
+        mockMvc.perform(delete("/api/products/{id}", retained).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void otherUsersProductsAndMissingProductsCannotBeDeleted() throws Exception {
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        appUserRepository.save(new AppUser("other@example.com", "unused", "USER"));
+        String token = jwtTokenProvider.createToken("other@example.com");
+        for (long target : new long[]{id, Long.MAX_VALUE}) {
+            mockMvc.perform(delete("/api/products/{id}", target).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("제품을 찾을 수 없습니다."));
+        }
+        assertThat(productRepository.existsById(id)).isTrue();
+        assertThat(productRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void missingAndAlreadyDeletedProductsReturnNotFound() throws Exception {
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        mockMvc.perform(delete("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        for (long target : new long[]{id, Long.MAX_VALUE}) {
+            mockMvc.perform(delete("/api/products/{id}", target).header("Authorization", "Bearer " + accessToken))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("제품을 찾을 수 없습니다."));
+        }
+        assertThat(productRepository.count()).isZero();
+    }
+
+    @Test
     void productsRequireValidAuthentication() throws Exception {
         long id = createProduct("{\"category\":\"WASHER\"}");
         Instant now = Instant.now();
@@ -872,12 +929,15 @@ class BackendApplicationTests {
                 .issuedAt(now.minusSeconds(600)).expiresAt(now.minusSeconds(300)).build();
         String expired = jwtEncoder.encode(JwtEncoderParameters.from(
                 JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+        mockMvc.perform(delete("/api/products/{id}", id)).andExpect(status().isUnauthorized());
         for (String token : new String[]{"", "invalid", expired}) {
             mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
             mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}")).andExpect(status().isUnauthorized());
             mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + token)
                     .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"DRYER\"}")).andExpect(status().isUnauthorized());
+            mockMvc.perform(delete("/api/products/{id}", id).header("Authorization", "Bearer " + token))
+                    .andExpect(status().isUnauthorized());
         }
         assertThat(productRepository.count()).isEqualTo(1);
     }

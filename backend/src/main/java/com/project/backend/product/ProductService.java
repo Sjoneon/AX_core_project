@@ -46,6 +46,13 @@ public class ProductService {
         return product.response();
     }
 
+    @Transactional
+    public void delete(Long id, String email) {
+        var product = productRepository.findByIdAndUserEmail(id, email).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
+        productRepository.delete(product);
+    }
+
     private LocalDate validate(ProductRequest request) {
         if (!request.category().isSupported()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "에어컨은 지원 종료된 품목입니다.");

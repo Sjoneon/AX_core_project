@@ -155,6 +155,7 @@ AI 호출이 실패하거나 답변이 비어 있으면 대화 내역을 변경�
 | `GET /api/products` | 내 제품 목록, 등록 최신순 | 200, 제품 배열 (없으면 `[]`) |
 | `POST /api/products` | 제품 등록 | 201, 저장된 제품 |
 | `PUT /api/products/{id}` | 내 제품 전체 정보 수정 | 200, 수정된 제품 |
+| `DELETE /api/products/{id}` | 내가 등록한 제품 삭제 | 204, 본문 없음 |
 
 요청 예시:
 
@@ -177,7 +178,8 @@ AI 호출이 실패하거나 답변이 비어 있으면 대화 내역을 변경�
 같은 품목을 여러 개 등록하거나 품목을 수정할 수 있습니다.
 응답은 요청 필드와 `id`, `createdAt`, `updatedAt`을 포함합니다.
 유효하지 않은 입력은 400, 인증 실패는 401, 존재하지 않거나 다른 계정의 제품 수정은 동일하게 404입니다.
-제품 삭제 API는 제공하지 않습니다. `user_products` 생성에는 새 V002 마이그레이션을 적용해야 합니다.
+제품 삭제는 인증된 사용자 소유의 제품만 허용하며, 타인 소유·없는 제품·이미 삭제한 제품은 404를 반환합니다.
+`user_products` 생성에는 새 V002 마이그레이션을 적용해야 합니다.
 
 ### RAG 동작
 
@@ -345,6 +347,17 @@ docker build -t core-backend:local .
 ```
 
 Docker 빌드에는 `build/libs/app.jar`만 전달하며 `.env`와 소스·캐시는 제외합니다.
+로컬 Docker 서버에 API 변경을 반영하려면 `backend` 디렉터리에서 JAR와 이미지를 모두 다시 빌드합니다.
+
+```bash
+./gradlew test bootJar
+docker compose up -d --build backend
+curl http://127.0.0.1:8080/actuator/health
+```
+
+`docker compose restart`는 기존 이미지의 JAR를 다시 실행하므로 소스 변경을 반영하지 않습니다.
+`docker compose up --build`도 JAR를 컴파일하지 않으므로 먼저 `bootJar`를 실행해야 합니다.
+예를 들어 제품 삭제 버튼에서 405(Method Not Allowed)가 발생하면 실행 중인 JAR에 `DELETE /api/products/{id}`가 포함되어 있는지 확인합니다.
 `compose.yaml`은 `backend` 서비스의 로컬 단독 실행용입니다. EC2에서는
 `../ops/compose.prod.yaml`의 `backend`, `nginx` 두 서비스를 사용하며
 앱 포트는 호스트에 공개하지 않습니다. [운영 배포 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
