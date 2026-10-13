@@ -28,6 +28,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.flywaydb:flyway-core'
+	runtimeOnly 'org.flywaydb:flyway-mysql'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
@@ -53,10 +55,37 @@ tasks.register('mysqlTest', Test) {
 	systemProperty 'test.datasource.driver-class-name', 'com.mysql.cj.jdbc.Driver'
 	systemProperty 'test.datasource.username', 'backend_test'
 	systemProperty 'test.datasource.password', 'test-password'
+	systemProperty 'test.ddl-auto', 'validate'
+	exclude '**/DatabaseMigrationTests.class'
 	outputs.upToDateWhen { false }
 }
 
+tasks.register('migrateDatabase', JavaExec) {
+	description = 'Applies versioned SQL using MIGRATION_JDBC_URL, MIGRATION_USERNAME and MIGRATION_PASSWORD.'
+	group = 'application'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.project.backend.migration.DatabaseMigration'
+}
+
+tasks.register('migrationTest', Test) {
+	description = 'Verifies SQL upgrades, data preservation and failed migrations on disposable MySQL.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform()
+	include '**/DatabaseMigrationTests.class'
+	systemProperty 'migration.integration', 'true'
+	outputs.upToDateWhen { false }
+}
+
+tasks.named('mysqlTest') {
+	mustRunAfter tasks.named('migrationTest')
+}
+
 tasks.named('processResources') {
+	from('../ops/sql') {
+		into 'db/migration'
+	}
 	from('rag-test-data/manuals') {
 		into 'rag/manuals'
 	}

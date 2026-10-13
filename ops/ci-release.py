@@ -99,7 +99,7 @@ def main():
 
         release = work / 'release'
         release.mkdir()
-        for name in ('compose.prod.yaml', 'deploy-service.sh', 'write-runtime-env.py', 'verify-service.py'):
+        for name in ('compose.prod.yaml', 'deploy-service.sh', 'write-runtime-env.py', 'verify-service.py', 'migrate-database.py'):
             shutil.copyfile(ROOT / 'ops' / name, release / name)
         (release / 'images.env').write_text(
             f'RELEASE_ID={release_id}\nBACKEND_IMAGE={images["backend"]}\nNGINX_IMAGE={images["nginx"]}\n')

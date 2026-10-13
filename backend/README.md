@@ -54,7 +54,9 @@ spring.datasource.password=spring1234
 다른 환경에서는 실행 환경변수 또는 `.env`의 `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 변경할 수 있습니다.
 설정 예시는 `.env.example`에 있으며, 실제 비밀값은 Git에 저장하지 않습니다.
-로컬 개발용 `ddl-auto=update` 설정으로 기동 시 필요한 테이블을 생성합니다.
+로컬도 `ddl-auto=validate`로 스키마를 검사합니다. 테이블은 앱이 자동 생성하지 않습니다.
+`ops/sql`의 버전별 SQL을 Flyway로 적용한 뒤 실행합니다.
+로컬 명령·기존 DB 전환·CI/RDS 자동 적용은 [DB 마이그레이션 안내](../ops/DATABASE_MIGRATIONS.md)를 참조합니다.
 `app_users`는 계정, `chat_conversations`는 사용자별 대화 제목과 생성·갱신 시간,
 `chat_messages`는 대화에 속한 질문·답변과 작성 시간을 저장합니다.
 `chat_conversations.category`는 제품 카테고리를 저장합니다. 기존 기록은 `null`로 유지합니다.

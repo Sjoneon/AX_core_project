@@ -32,8 +32,9 @@ class DeploymentTests(unittest.TestCase):
             for name in ('old', 'new'):
                 directory = home / 'releases' / name
                 directory.mkdir(parents=True)
-                for file in ('compose.prod.yaml', 'images.env', 'write-runtime-env.py'):
+                for file in ('compose.prod.yaml', 'write-runtime-env.py', 'migrate-database.py'):
                     (directory / file).touch()
+                (directory / 'images.env').write_text('BACKEND_IMAGE=test-image\n')
             if previous:
                 (home / 'current').symlink_to(home / 'releases/old')
             script = root / 'deploy.sh'
@@ -60,6 +61,8 @@ elif name=='aws': print('fake-test-password')
 elif name=='python3' and args[0].endswith('write-runtime-env.py'):
     if failure=='parameters': sys.exit(1)
     Path(args[-1]).write_text('JWT_SECRET=new-test-secret\\n')
+elif name=='python3' and args[0].endswith('migrate-database.py'):
+    sys.exit(1 if failure=='migration' else 0)
 elif name=='python3': os.execv({sys.executable!r},[{sys.executable!r},*args])
 elif name=='curl': print('{{"status":"UP"}}')
 elif name=='docker':
@@ -104,13 +107,22 @@ elif name=='docker':
                 self.assertNotIn('test-secret', result.stdout + result.stderr)
 
     def test_preparation_failure_never_replaces_containers_or_settings(self):
-        for failure in ('parameters', 'pull', 'lock'):
+        for failure in ('parameters', 'pull', 'lock', 'migration'):
             with self.subTest(failure=failure):
                 result, current, settings, calls = self.run_deployment(failure)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(current, 'old')
                 self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
                 self.assertFalse(any(call[0] == 'docker' and 'up' in call for call in calls))
+
+    def test_sql_runs_after_image_pull_and_before_container_replacement(self):
+        result, _, _, calls = self.run_deployment()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        pull = next(i for i, call in enumerate(calls) if call[0] == 'docker' and 'pull' in call)
+        migrate = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('migrate-database.py'))
+        up = next(i for i, call in enumerate(calls) if call[0] == 'docker' and 'up' in call)
+        self.assertLess(pull, migrate)
+        self.assertLess(migrate, up)
 
     def test_first_deploy_failure_is_reported_without_fake_rollback(self):
         result, current, _, _ = self.run_deployment('health', previous=False)

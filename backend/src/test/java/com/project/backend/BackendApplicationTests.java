@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "spring.datasource.driver-class-name=${test.datasource.driver-class-name:org.h2.Driver}",
                 "spring.datasource.username=${test.datasource.username:sa}",
                 "spring.datasource.password=${test.datasource.password:}",
-                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.hibernate.ddl-auto=${test.ddl-auto:create-drop}",
                 "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
         })
 @AutoConfigureMockMvc
@@ -99,7 +99,13 @@ class BackendApplicationTests {
     private String accessToken;
 
 	@DynamicPropertySource
-	static void configureUpstream(DynamicPropertyRegistry registry) throws IOException {
+	static void configureUpstream(DynamicPropertyRegistry registry) throws Exception {
+        if ("com.mysql.cj.jdbc.Driver".equals(System.getProperty("test.datasource.driver-class-name"))) {
+            com.project.backend.migration.DatabaseMigration.migrate(
+                    System.getProperty("test.datasource.url"),
+                    System.getProperty("test.datasource.username"),
+                    System.getProperty("test.datasource.password"), "classpath:db/migration");
+        }
 		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		upstream.createContext("/v1/chat/completions", exchange -> {
 			requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));

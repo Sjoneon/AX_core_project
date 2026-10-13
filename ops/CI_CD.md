@@ -8,7 +8,7 @@ Terraform에서 준비한 기존 역할·저장소·버킷을 사용하며 인�
 ## 실행 흐름
 
 PR, `main` push와 수동 실행에서 Java 21 테스트·JAR 빌드,
-임시 MySQL 8.4 통합 테스트, Node 24 설치·lint·빌드,
+임시 MySQL 8.4 마이그레이션·통합 테스트, Node 24 설치·lint·빌드,
 운영 스크립트 테스트와 두 Docker 이미지 빌드·HTTPS/CORS 테스트를 실행합니다.
 PR은 AWS 권한·운영 설정을 받지 않습니다. `pull_request_target`은 사용하지 않습니다.
 
@@ -22,7 +22,7 @@ AWS 액세스 키를 GitHub에 복사하거나 새로운 Secrets를 등록할 �
 3. `<commit-sha>-<run-id>-<run-attempt>`별로 Compose·배포 스크립트·digest·소스 기록을 묶습니다.
 4. S3 `releases/<release-id>/release.tar.gz`에 게시하고 SHA-256을 SSM 명령에 전달합니다.
 5. EC2 역할로 묶음을 내려받아 해시를 확인하고 root 전용 릴리스 폴더에 풉니다.
-6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고 컨테이너를 교체합니다.
+6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고, 별도 DB 계정으로 버전별 SQL을 적용한 뒤 컨테이너를 교체합니다.
 7. 두 서비스의 health, Nginx 설정 검사·reload와 인증서 검증 HTTPS health를 확인합니다.
 8. SSM 실행 종료·exit code 0을 기다린 뒤 GitHub runner에서도 외부 HTTPS health를 확인합니다.
 
@@ -49,6 +49,8 @@ EC2는 `/opt/homecare/deploy.lock`의 `flock`을 사용합니다.
 정상 대상이 없는 첫 배포 실패나 복원 실패는 각각 명시적으로 오류를 남깁니다.
 DB 데이터·스키마와 자동 갱신되는 TLS 인증서는 앱 롤백으로 되돌리지 않습니다.
 DB 변경은 이전 앱과의 호환성을 별도로 확인해야 합니다.
+SQL 실패는 기존 컨테이너·설정을 유지한 채 배포를 중단합니다.
+스키마 변경은 [DB 마이그레이션 안내](DATABASE_MIGRATIONS.md)의 새 버전 SQL로 관리합니다.
 
 `runtime.snapshot.env`와 준비 중인 설정 파일은 EC2에만 존재합니다.
 S3·Git·이미지·CI 로그에는 비밀값을 넣지 않습니다.

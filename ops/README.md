@@ -37,6 +37,7 @@ Terraform이 `/homecare/prod/` 아래에 일반 String 파라미터 7개를 관�
 
 DB 앱 계정·스키마와 RDS CA truststore는 4단계에서 준비·검증했습니다.
 [RDS 초기화 안내](RDS_INITIALIZATION.md)에 초기 SQL·권한·TLS와 재실행 절차를 기록했습니다.
+후속 스키마 변경 자동화는 [DB 마이그레이션 안내](DATABASE_MIGRATIONS.md)를 따릅니다.
 truststore 비밀번호 `changeit`은 공개 CA 인증서를 담은 파일의 설정이며 DB 비밀번호가 아닙니다.
 검증 컨테이너에 호스트의 공개 CA truststore를 `/app/config/rds-truststore.p12`에
 읽기 전용으로 연결했습니다. 5단계 상시 앱 배포에서도 같은 경로를 사용합니다.

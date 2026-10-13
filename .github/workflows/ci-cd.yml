@@ -38,7 +38,7 @@ jobs:
         working-directory: backend
         run: |
           docker compose -p homecare-ci -f compose.mysql-test.yaml up -d --wait --wait-timeout 180
-          ./gradlew --no-daemon mysqlTest
+          ./gradlew --no-daemon migrationTest mysqlTest
       - name: Remove test database
         if: always()
         working-directory: backend
