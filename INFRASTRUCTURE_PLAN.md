@@ -2,7 +2,7 @@
 
 작성일: 2026-10-12
 
-> 1~6단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. GitHub Actions 배포 자동화와 운영 모니터링은 후속 단계입니다.
+> 1~6단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. 7단계 GitHub Actions 배포 자동화를 구현하고 실제 실행·복원을 검증 중입니다. 운영 확인은 8단계입니다.
 
 3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
 
@@ -235,6 +235,8 @@ CORS는 Nginx 한 곳에서 처리합니다.
 **완료 기준:** HTTPS, 인증서 갱신, 로그인·채팅의 preflight와 실제 요청이 성공합니다.
 
 ### 7단계 — GitHub Actions·ECR·SSM 배포 자동화
+
+구현한 워크플로와 배포·복원 절차는 [CI/CD 안내](ops/CI_CD.md)를 참고합니다.
 
 초기에는 복잡한 변경 경로 최적화 없이 모든 PR에서 공통 CI를 실행합니다.
 

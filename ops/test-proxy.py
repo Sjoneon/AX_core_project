@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise HTTPS, redirects and CORS using disposable local Nginx containers."""
 import http.client
+import argparse
 import json
 import ssl
 import subprocess
@@ -20,6 +21,9 @@ def docker(*args):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--image', default='homecare-nginx:stage6')
+    args = parser.parse_args()
     network = 'homecare-proxy-test-' + uuid.uuid4().hex[:10]
     backend, proxy = network + '-backend', network + '-nginx'
     with tempfile.TemporaryDirectory(prefix='homecare-proxy-test-') as work:
@@ -42,7 +46,7 @@ def main():
                    'nginx:1.30.5-alpine@sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94')
             docker('run', '-d', '--name', proxy, '--network', network, '--platform', 'linux/amd64',
                    '-p', '127.0.0.1:18443:443', '-p', '127.0.0.1:18080:80',
-                   '-v', str(root) + ':/etc/letsencrypt:ro', 'homecare-nginx:stage6')
+                   '-v', str(root) + ':/etc/letsencrypt:ro', args.image)
             for _ in range(30):
                 try:
                     connection = http.client.HTTPSConnection('127.0.0.1', 18443, context=context, timeout=3)

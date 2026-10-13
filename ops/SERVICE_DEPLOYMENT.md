@@ -5,7 +5,7 @@
 [HTTPS·CORS 안내](HTTPS_CORS.md)에 인증서 발급·자동 갱신·Vercel 연결을 기록했습니다.
 
 2026-10-12, 두 컨테이너 상시 배포와 검증을 완료했습니다.
-현재 릴리스 ID는 `manual-https-20261012-f4c0a29c11`이며
+6단계에서 배포한 릴리스 ID는 `manual-https-20261012-f4c0a29c11`이며
 [릴리스 기록](STAGE6_RELEASE.json)에 ECR digest·S3 파일·SHA-256을 보관합니다.
 
 ## 실행 구성
@@ -69,7 +69,8 @@ Nginx 설정 검사·reload와 프록시 health 확인 후에만 `current` 링�
 Docker 로그인 파일은 임시 디렉터리에 두고 종료 시 삭제합니다.
 
 이 단계의 시작 스크립트는 유효한 인증서가 이미 존재하는 수동 배포용입니다.
-실패 시 자동 롤백, 동시 배포 잠금과 GitHub Actions 실행은 7단계에서 추가합니다.
+7단계 자동 배포는 [CI/CD 안내](CI_CD.md)의 `deploy-service.sh`를 사용하며
+배포 잠금·설정 스냅샷·실패 복원을 제공합니다.
 앱 설정을 포함할 수 있는 `docker compose config`나 전체 `docker inspect` 출력을
 채팅·CI 로그에 붙이지 않고 필요한 상태 필드만 조회합니다.
 
@@ -101,7 +102,7 @@ python3 /opt/homecare/current/verify-service.py
 동일 릴리스 시작 시 두 컨테이너 ID가 유지됐으며, EC2를 실제 재부팅한 뒤에도
 두 컨테이너가 자동으로 healthy가 되고 외부 health가 복구됐습니다.
 외부 8080·3306 접속은 차단됐고 두 로그 그룹에 운영 로그가 전송됐습니다.
-앱 교체 중에는 짧게 502가 발생할 수 있습니다. 자동 롤백은 7단계의 작업입니다.
+앱 교체 중에는 짧게 502가 발생할 수 있습니다.
 
 서비스명 변경 후 `homecare-backend-1`, `homecare-nginx-1`만 실행되며,
 변경 전 JWT와 상담 데이터가 유지되는 것을 확인했습니다.

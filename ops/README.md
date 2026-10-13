@@ -9,6 +9,7 @@ CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태
 [운영 컨테이너 안내](SERVICE_DEPLOYMENT.md)를 참고합니다.
 6단계에서 IP 인증서 기반 HTTPS·정확한 Vercel origin CORS·인증서 자동 갱신을 적용했습니다.
 [HTTPS·CORS 안내](HTTPS_CORS.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
+7단계 워크플로와 릴리스·복원 정책은 [CI/CD 안내](CI_CD.md)를 참고합니다.
 
 ## 권한과 자격증명
 
@@ -86,7 +87,7 @@ EC2 역할로 파라미터 10개를 읽어 `/opt/homecare/config/runtime.env`를
 - 역할 ARN·리전·EC2 ID·배포 버킷·ECR 주소와 저장소 이름을 production Variables로 등록했습니다.
 - 앱 키나 AWS 장기 액세스 키를 GitHub Secrets에 등록하지 않았습니다.
 - 배포 작업은 `environment: production`, `permissions: id-token: write`를 사용합니다.
-  실제 워크플로 작성·실행과 OIDC 토큰 발급 검증은 7단계입니다.
+  [.github/workflows/ci-cd.yml](../.github/workflows/ci-cd.yml)이 같은 실행의 CI 성공 후 배포합니다.
 
 ## 설치 재현과 검증
 
