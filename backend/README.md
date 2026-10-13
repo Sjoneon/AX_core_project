@@ -6,6 +6,7 @@ Spring AI로 가상 수리 매뉴얼을 검색하고, 검색 근거와 고객 �
 ## 실행
 
 프로젝트 루트에서 실행합니다.
+빈 DB에는 먼저 [마이그레이션 SQL](../ops/DATABASE_MIGRATIONS.md)을 적용해야 합니다.
 
 ```bash
 cd backend

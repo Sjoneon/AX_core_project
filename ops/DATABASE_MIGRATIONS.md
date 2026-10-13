@@ -1,6 +1,8 @@
 # 로컬·CI·RDS 스키마 변경 자동화
 
-2026-10-13: 구현·로컬 MySQL·실제 이미지 검증과 운영 계정 준비 완료. main 반영·실제 자동 배포 검증을 진행합니다.
+2026-10-13: 구현·운영 계정 준비·main 반영·실제 자동 배포 검증 완료.
+첫 검증 기록은 [DATABASE_MIGRATION_VERIFICATION.json](DATABASE_MIGRATION_VERIFICATION.json)에 저장했습니다.
+최신 배포 상태는 GitHub Actions·EC2의 current 릴리스에서 확인합니다.
 
 스키마 변경의 원본은 [`sql/`](sql/)의 버전별 SQL입니다. Gradle이 같은 파일을
 백엔드 JAR의 `db/migration`에 넣습니다. 로컬·CI·운영은 Flyway로 이 SQL을 실행합니다.
@@ -119,3 +121,12 @@ MySQL DDL은 전체 마이그레이션을 트랜잭션으로 되돌리지 못할
 운영 백업은 현재 무료 플랜 기준 1일이며 복구 절차는 [운영 안내](OPERATIONS.md)를 참조합니다.
 
 참고: [Spring Boot의 DB 초기화·Flyway 안내](https://docs.spring.io/spring-boot/how-to/data-initialization.html).
+
+## 실제 검증 결과
+
+- 로컬 H2 API 56개, MySQL API 56개, 마이그레이션 업그레이드·실패 검증, 운영 스크립트 27개 통과.
+- 실제 amd64 이미지의 별도 Java 진입점·TLS·기존 V001 baseline·재실행·새 테이블 CRUD 부여 확인.
+- [첫 GitHub CI/CD](https://github.com/gwonu1/core_project/actions/runs/38341086240) 통과 및 동일 커밋 Vercel 운영 승격 확인.
+- 실제 RDS의 V001 baseline·기존 앱 테이블 구조/행 수/권한 유지 확인. 앱에는 마이그레이션 비밀번호를 전달하지 않음.
+- 마이그레이션 임시 파일·컨테이너 정리, 상시 컨테이너 두 개 healthy, 공개 HTTPS health UP 확인.
+- 추가 컬럼과 부분 실패는 임시 MySQL에서만 검증했으며 운영에는 테스트 V002·V003을 적용하지 않음.

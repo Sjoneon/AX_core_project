@@ -1,0 +1,36 @@
+{
+  "release_id": "dc283b455b004dce0f227203a9ec9cb6e5b260ee-38341086240-1",
+  "flyway_history": [
+    [
+      "1",
+      "BASELINE",
+      1
+    ]
+  ],
+  "application_schema_and_counts_preserved": true,
+  "application_grants_preserved": true,
+  "migration_credentials_not_in_app": true,
+  "temporary_files_and_containers_removed": true,
+  "persistent_healthy_containers": 2,
+  "verified_at": "2026-10-13",
+  "account": "528215464049",
+  "region": "ap-northeast-2",
+  "setup_ssm_command": "9c5625c4-5351-4388-bc27-e120f61ea28b",
+  "before_check_ssm_command": "a87c7903-fea0-4bf6-97d4-30934b86e839",
+  "verification_ssm_command": "27036c63-89e8-4023-b5c5-66b7ac179972",
+  "github_run": "https://github.com/gwonu1/core_project/actions/runs/38341086240",
+  "source_commit": "dc283b455b004dce0f227203a9ec9cb6e5b260ee",
+  "vercel_deployment_id": "dpl_A48o1Lg3edxn4nk4YQVdDBm2VPn5",
+  "local_checks": {
+    "h2_api_tests": 56,
+    "mysql_api_tests": 56,
+    "migration_upgrade_test": "passed",
+    "operations_unit_tests": 27,
+    "actual_image_entrypoint_and_grants": "passed"
+  },
+  "deployment_ssm_command": "eb90d210-543a-43a9-9471-bf72dd3ab540",
+  "github_ci_and_deploy": "success",
+  "vercel_production_promotion": "passed",
+  "trusted_https_health": "UP",
+  "temporary_admin_secret_policy_removed": true
+}
