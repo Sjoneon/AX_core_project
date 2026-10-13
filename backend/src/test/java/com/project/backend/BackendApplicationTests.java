@@ -286,6 +286,109 @@ class BackendApplicationTests {
         }
 
         @Test
+        void withdrawalDeletesOnlyAuthenticatedUsersAccountAndRelatedData() throws Exception {
+                var owner = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                long product = createProduct("{\"category\":\"WASHER\"}");
+                createProduct("{\"category\":\"REFRIGERATOR\",\"address\":\"검증용 주소\"}");
+                var conversation = conversationRepository.save(new Conversation(owner, "탈퇴할 회원의 상담", ProductCategory.WASHER));
+                var legacy = conversationRepository.save(new Conversation(owner, "과거 상담", ProductCategory.AIR_CONDITIONER));
+                var answer = new ChatMessage(conversation, "assistant", "답변");
+                answer.setSources(List.of(new RagSource("HC-WS-001", "검색 근거", ProductCategory.WASHER,
+                                "1.0", "washer.md", "근거 본문")));
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "질문"), answer,
+                                new ChatMessage(legacy, "assistant", "과거 답변")));
+                var other = appUserRepository.save(new AppUser("other@example.com", "unused", "USER"));
+                String ownerToken = accessToken;
+                accessToken = jwtTokenProvider.createToken(other.getEmail());
+                long otherProduct = createProduct("{\"category\":\"DRYER\"}");
+                var otherConversation = conversationRepository.save(new Conversation(other, "다른 회원 상담", ProductCategory.DRYER));
+                var otherMessage = messageRepository.save(new ChatMessage(otherConversation, "user", "유지할 질문"));
+
+                var result = mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + ownerToken)
+                                .contentType(MediaType.APPLICATION_JSON).content("{\"email\":\"other@example.com\"}"))
+                                .andExpect(status().isNoContent()).andReturn();
+                assertThat(result.getResponse().getContentAsString()).isEmpty();
+                assertThat(appUserRepository.existsById(owner.getId())).isFalse();
+                assertThat(productRepository.existsById(product)).isFalse();
+                assertThat(conversationRepository.existsById(conversation.getId())).isFalse();
+                assertThat(conversationRepository.existsById(legacy.getId())).isFalse();
+                assertThat(appUserRepository.count()).isEqualTo(1);
+                assertThat(productRepository.count()).isEqualTo(1);
+                assertThat(conversationRepository.count()).isEqualTo(1);
+                assertThat(messageRepository.count()).isEqualTo(1);
+                assertThat(appUserRepository.existsById(other.getId())).isTrue();
+                assertThat(messageRepository.existsById(otherMessage.getId())).isTrue();
+                mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(otherProduct));
+                mockMvc.perform(get("/api/conversations/{id}", otherConversation.getId()).header("Authorization", "Bearer " + accessToken))
+                                .andExpect(status().isOk()).andExpect(jsonPath("$.messages[0].content").value("유지할 질문"));
+        }
+
+        @Test
+        void withdrawalInvalidatesAllOldTokensEvenAfterRegisteringSameEmailAgain() throws Exception {
+                long oldUserId = appUserRepository.findByEmail("chat-test@example.com").orElseThrow().getId();
+                String secondToken = jwtTokenProvider.createToken("chat-test@example.com");
+                mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + accessToken))
+                                .andExpect(status().isNoContent());
+                assertThat(appUserRepository.count()).isZero();
+                for (String token : new String[]{accessToken, secondToken}) {
+                        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
+                        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
+                        mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
+                }
+                String body = "{\"email\":\"chat-test@example.com\",\"password\":\"password123\"}";
+                mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+                                .andExpect(status().isUnauthorized());
+                mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
+                                .andExpect(status().isCreated());
+                long newUserId = appUserRepository.findByEmail("chat-test@example.com").orElseThrow().getId();
+                assertThat(newUserId).isNotEqualTo(oldUserId);
+                var login = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
+                                .andExpect(status().isOk()).andReturn();
+                String newToken = JsonPath.read(login.getResponse().getContentAsString(), "$.accessToken");
+                for (String token : new String[]{accessToken, secondToken}) {
+                        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + token)
+                                        .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}"))
+                                        .andExpect(status().isUnauthorized());
+                        mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
+                }
+                assertThat(appUserRepository.existsById(newUserId)).isTrue();
+                mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + newToken))
+                                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+                mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + newToken)
+                                .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}"))
+                                .andExpect(status().isCreated());
+        }
+
+        @Test
+        void withdrawalRequiresValidAuthenticationAndMatchingAccountId() throws Exception {
+                long product = createProduct("{\"category\":\"WASHER\"}");
+                Instant now = Instant.now();
+                var header = JwsHeader.with(MacAlgorithm.HS256).build();
+                var expiredClaims = JwtClaimsSet.builder().subject("chat-test@example.com")
+                                .claim("userId", appUserRepository.findByEmail("chat-test@example.com").orElseThrow().getId())
+                                .issuedAt(now.minusSeconds(600)).expiresAt(now.minusSeconds(300)).build();
+                String expired = jwtEncoder.encode(JwtEncoderParameters.from(header, expiredClaims)).getTokenValue();
+                var wrongIdClaims = JwtClaimsSet.builder().subject("chat-test@example.com").claim("userId", Long.MAX_VALUE)
+                                .issuedAt(now).expiresAt(now.plusSeconds(600)).build();
+                String wrongId = jwtEncoder.encode(JwtEncoderParameters.from(header, wrongIdClaims)).getTokenValue();
+                var missingIdClaims = JwtClaimsSet.builder().subject("chat-test@example.com")
+                                .issuedAt(now).expiresAt(now.plusSeconds(600)).build();
+                String missingId = jwtEncoder.encode(JwtEncoderParameters.from(header, missingIdClaims)).getTokenValue();
+                mockMvc.perform(delete("/api/auth/me")).andExpect(status().isUnauthorized());
+                for (String token : new String[]{"", "invalid", expired, wrongId, missingId}) {
+                        mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
+                }
+                assertThat(appUserRepository.count()).isEqualTo(1);
+                assertThat(productRepository.existsById(product)).isTrue();
+        }
+
+        @Test
         void duplicateEmailReturnsConflict() throws Exception {
                 String body = "{\"email\":\"user@example.com\",\"password\":\"password123\"}";
                 mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))

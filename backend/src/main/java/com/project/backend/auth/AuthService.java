@@ -16,6 +16,9 @@ import com.project.backend.auth.dto.LoginRequest;
 import com.project.backend.auth.dto.LoginResponse;
 import com.project.backend.auth.dto.SignupRequest;
 import com.project.backend.auth.dto.SignupResponse;
+import com.project.backend.conversation.ChatMessageRepository;
+import com.project.backend.conversation.ConversationRepository;
+import com.project.backend.product.UserProductRepository;
 import com.project.backend.security.JwtTokenProvider;
 import com.project.backend.user.AppUser;
 import com.project.backend.user.AppUserRepository;
@@ -27,13 +30,21 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserProductRepository productRepository;
+    private final ChatMessageRepository messageRepository;
+    private final ConversationRepository conversationRepository;
 
     public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder,
-            AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+            AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
+            UserProductRepository productRepository, ChatMessageRepository messageRepository,
+            ConversationRepository conversationRepository) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.productRepository = productRepository;
+        this.messageRepository = messageRepository;
+        this.conversationRepository = conversationRepository;
     }
 
     @Transactional
@@ -58,6 +69,16 @@ public class AuthService {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, request.password()));
         return new LoginResponse(jwtTokenProvider.createToken(email), email);
+    }
+
+    @Transactional
+    public void deleteAccount(String email) {
+        var user = appUserRepository.findByEmail(email).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
+        productRepository.deleteAllByUserId(user.getId());
+        messageRepository.deleteAllByConversationUserId(user.getId());
+        conversationRepository.deleteAllByUserId(user.getId());
+        appUserRepository.delete(user);
     }
 
     private void checkPasswordLength(String password) {

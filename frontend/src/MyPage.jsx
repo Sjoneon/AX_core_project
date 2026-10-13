@@ -19,11 +19,16 @@ export default function MyPage({ session, onLogout, onBack }) {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false)
+  const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [withdrawalError, setWithdrawalError] = useState('')
   const [postcodeStatus, setPostcodeStatus] = useState('loading')
   const savingRef = useRef(false)
   const deletingRef = useRef(false)
   const deleteDialogRef = useRef(null)
-  const isBusy = isSaving || isDeleting
+  const withdrawingRef = useRef(false)
+  const withdrawalDialogRef = useRef(null)
+  const isBusy = isSaving || isDeleting || isWithdrawing
   const request = useAuthenticatedRequest(session, onLogout)
 
   useEffect(() => {
@@ -48,6 +53,11 @@ export default function MyPage({ session, onLogout, onBack }) {
     else deleteDialogRef.current.close()
   }, [deleteTarget])
 
+  useEffect(() => {
+    if (withdrawalOpen) withdrawalDialogRef.current.showModal()
+    else withdrawalDialogRef.current.close()
+  }, [withdrawalOpen])
+
   function retry() {
     setIsLoading(true)
     setLoadError('')
@@ -55,7 +65,7 @@ export default function MyPage({ session, onLogout, onBack }) {
   }
 
   function edit(item) {
-    if (savingRef.current || deletingRef.current) return
+    if (savingRef.current || deletingRef.current || withdrawingRef.current) return
     setSaveError('')
     setNotice('')
     setEditor({ item })
@@ -66,7 +76,7 @@ export default function MyPage({ session, onLogout, onBack }) {
   }
 
   async function save(body) {
-    if (savingRef.current || deletingRef.current) return
+    if (savingRef.current || deletingRef.current || withdrawingRef.current) return
     savingRef.current = true
     setIsSaving(true)
     setSaveError('')
@@ -88,7 +98,7 @@ export default function MyPage({ session, onLogout, onBack }) {
   }
 
   function beginDelete(item) {
-    if (savingRef.current || deletingRef.current) return
+    if (savingRef.current || deletingRef.current || withdrawingRef.current) return
     setDeleteError('')
     setNotice('')
     setDeleteTarget(item)
@@ -102,7 +112,7 @@ export default function MyPage({ session, onLogout, onBack }) {
 
   async function deleteProduct(event) {
     event.preventDefault()
-    if (savingRef.current || deletingRef.current || !deleteTarget) return
+    if (savingRef.current || deletingRef.current || withdrawingRef.current || !deleteTarget) return
     const id = deleteTarget.id
     deletingRef.current = true
     setIsDeleting(true)
@@ -118,6 +128,36 @@ export default function MyPage({ session, onLogout, onBack }) {
     } finally {
       deletingRef.current = false
       setIsDeleting(false)
+    }
+  }
+
+  function beginWithdrawal() {
+    if (savingRef.current || deletingRef.current || withdrawingRef.current) return
+    setWithdrawalError('')
+    setWithdrawalOpen(true)
+  }
+
+  function cancelWithdrawal() {
+    if (withdrawingRef.current) return
+    setWithdrawalOpen(false)
+    setWithdrawalError('')
+  }
+
+  async function withdraw(event) {
+    event.preventDefault()
+    if (savingRef.current || deletingRef.current || withdrawingRef.current || !withdrawalOpen) return
+    withdrawingRef.current = true
+    setIsWithdrawing(true)
+    setWithdrawalError('')
+    try {
+      await request('/api/auth/me', { method: 'DELETE', signal: AbortSignal.timeout(15_000) })
+      onLogout('회원 탈퇴가 완료되었습니다.')
+    } catch (exception) {
+      setWithdrawalError(exception.name === 'TimeoutError' ? '회원 탈퇴 요청 시간이 초과되었습니다. 다시 시도해 주세요.'
+        : exception instanceof TypeError ? '서버에 연결하지 못했습니다. 다시 시도해 주세요.' : exception.message)
+    } finally {
+      withdrawingRef.current = false
+      setIsWithdrawing(false)
     }
   }
 
@@ -161,6 +201,10 @@ export default function MyPage({ session, onLogout, onBack }) {
                   </tr>)}</tbody>
                 </table>}
         </section>
+        <section className="account-panel" aria-labelledby="withdrawal-heading">
+          <div><h2 id="withdrawal-heading">회원 탈퇴</h2><p>탈퇴하면 계정과 등록 제품, 모든 상담 내역이 삭제됩니다.</p></div>
+          <button className="logout-button" type="button" onClick={beginWithdrawal} disabled={isBusy}>회원 탈퇴</button>
+        </section>
       </main>
       {editor && <ProductDialog initial={editor.item} onSave={save} onClose={closeEditor} isSaving={isSaving} saveError={saveError} postcodeStatus={postcodeStatus} />}
       <dialog className="delete-dialog" ref={deleteDialogRef} aria-labelledby="product-delete-title" aria-describedby="product-delete-description"
@@ -173,6 +217,19 @@ export default function MyPage({ session, onLogout, onBack }) {
           <div className="delete-actions">
             <button className="logout-button" type="button" onClick={cancelDelete} disabled={isDeleting} autoFocus>취소</button>
             <button className="send-button" type="submit" disabled={isDeleting}>{isDeleting ? '삭제 중…' : '삭제'}</button>
+          </div>
+        </form>
+      </dialog>
+      <dialog className="delete-dialog" ref={withdrawalDialogRef} aria-labelledby="withdrawal-title" aria-describedby="withdrawal-description"
+        onCancel={(event) => { event.preventDefault(); cancelWithdrawal() }}>
+        <form onSubmit={withdraw} aria-busy={isWithdrawing}>
+          <h2 id="withdrawal-title">회원 탈퇴를 진행할까요?</h2>
+          <p className="delete-target">{session.email}</p>
+          <p id="withdrawal-description">계정과 등록한 모든 제품의 구매 정보·설치 주소, 상담의 질문·답변·검색 근거가 삭제됩니다. 탈퇴 후에는 복구할 수 없습니다.</p>
+          {withdrawalError && <p className="error" role="alert">{withdrawalError}</p>}
+          <div className="delete-actions">
+            <button className="logout-button" type="button" onClick={cancelWithdrawal} disabled={isWithdrawing} autoFocus>취소</button>
+            <button className="send-button" type="submit" disabled={isWithdrawing}>{isWithdrawing ? '탈퇴 처리 중…' : '회원 탈퇴'}</button>
           </div>
         </form>
       </dialog>
