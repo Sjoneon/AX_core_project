@@ -45,7 +45,7 @@ class DeploymentTests(unittest.TestCase):
             bin_dir = root / 'bin'
             bin_dir.mkdir()
             shim = f'''#!{sys.executable}
-import json,os,sys
+import json,os,signal,sys
 from pathlib import Path
 name=Path(sys.argv[0]).name
 args=sys.argv[1:]
@@ -65,6 +65,7 @@ elif name=='curl': print('{{"status":"UP"}}')
 elif name=='docker':
     if 'login' in args: sys.stdin.read()
     is_new=any('/releases/new/' in arg for arg in args)
+    if failure=='signal' and is_new and 'up' in args: os.kill(os.getppid(),signal.SIGTERM)
     if (failure=='pull' and 'pull' in args) or (failure=='health' and is_new and 'up' in args): sys.exit(1)
 '''
             for name in ('id', 'flock', 'mv', 'aws', 'python3', 'curl', 'docker'):
@@ -91,14 +92,16 @@ elif name=='docker':
         self.assertNotIn('test-secret', result.stdout + result.stderr)
 
     def test_unhealthy_release_restores_previous_images_and_settings(self):
-        result, current, settings, calls = self.run_deployment('health')
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(current, 'old')
-        self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
-        self.assertIn('ROLLBACK_OK', result.stderr)
-        self.assertTrue(any(call[0] == 'docker' and 'up' in call and
-                            any('/releases/old/' in arg for arg in call) for call in calls))
-        self.assertNotIn('test-secret', result.stdout + result.stderr)
+        for failure in ('health', 'signal'):
+            with self.subTest(failure=failure):
+                result, current, settings, calls = self.run_deployment(failure)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(current, 'old')
+                self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
+                self.assertIn('ROLLBACK_OK', result.stderr)
+                self.assertTrue(any(call[0] == 'docker' and 'up' in call and
+                                    any('/releases/old/' in arg for arg in call) for call in calls))
+                self.assertNotIn('test-secret', result.stdout + result.stderr)
 
     def test_preparation_failure_never_replaces_containers_or_settings(self):
         for failure in ('parameters', 'pull', 'lock'):
@@ -118,6 +121,11 @@ elif name=='docker':
 
 
 class ReleaseTests(unittest.TestCase):
+    def setUp(self):
+        stdout = patch('sys.stdout', new=io.StringIO())
+        stdout.start()
+        self.addCleanup(stdout.stop)
+
     @patch.object(ci_release.urllib.request, 'urlopen')
     @patch.object(ci_release, 'wait_for_deployment')
     @patch.object(ci_release, 'aws')

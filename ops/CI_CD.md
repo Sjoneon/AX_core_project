@@ -1,6 +1,7 @@
 # GitHub Actions CI/CD
 
-7단계 구현: [워크플로](../.github/workflows/ci-cd.yml),
+2026-10-13, 7단계 구현·실제 배포·실패 복원 검증을 완료했습니다.
+[워크플로](../.github/workflows/ci-cd.yml),
 [릴리스 게시·SSM 대기](ci-release.py), [EC2 배포·복원](deploy-service.sh).
 Terraform에서 준비한 기존 역할·저장소·버킷을 사용하며 인프라 교체는 없습니다.
 
@@ -89,9 +90,15 @@ Vercel Git 연결·배포 검사·운영 모니터링은 다음 단계에서 진
 
 ## 검증
 
-- 로컬 운영 스크립트 테스트: 준비 실패·교체 실패·설정 복원·첫 배포 실패·SSM 종료 확인.
-- `actionlint`: 워크플로 구문·권한·표현식 검사.
-- 실제 GitHub OIDC 배포와 EC2 실패 릴리스 복원 결과는 검증 후 아래에 기록합니다.
+- 운영 스크립트 테스트 21개: 준비 실패·health 실패·종료 신호·설정 복원·첫 배포 실패·SSM 종료·이미지 재사용 확인.
+- `actionlint`와 실제 GitHub CI: H2 56개·MySQL 8.4 56개 테스트, Java 21 JAR, Node 24 lint·빌드, 두 Docker 이미지와 HTTPS·CORS 테스트 통과.
+- [첫 Actions 실행](https://github.com/gwonu1/core_project/actions/runs/38327445009): OIDC 역할 획득·ECR 게시·S3 해시 검증·SSM 종료·외부 HTTPS health 성공.
+- 같은 커밋의 `deploy` 작업 재실행: 두 ECR 이미지를 다시 빌드·push하지 않고 기존 digest를 재사용해 배포 성공.
+- 사용자 승인 후 실제 EC2 실패 릴리스 검증: backend에 Nginx 이미지를 지정하고 JWT 만료시간 설정을 임시 변경했습니다. 배포 실패 후 기존 이미지·Compose·설정 바이트가 복원됐고 이전 JWT와 상담 내역이 유지됐습니다. 검증용 사용자·상담·실패 릴리스는 삭제했습니다.
+- 실제 S3 릴리스의 파일 6개를 확인했으며 운영 환경 파일·비밀값 스냅샷은 포함되지 않습니다.
+
+첫 자동 배포·재실행·실패 복원의 command ID와 digest는 [검증 기록](STAGE7_RELEASE.json)에 보관합니다.
+이 기록은 최초 검증 시점의 릴리스이며 이후 배포의 현재 릴리스는 EC2의 `current` 링크와 Actions 배포 요약에서 확인합니다.
 
 참고: [GitHub AWS OIDC](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws),
 [GitHub concurrency](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency),

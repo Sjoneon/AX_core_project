@@ -1,0 +1,24 @@
+{
+  "description": "First GitHub Actions deployment and verification record; current release is /opt/homecare/current on EC2.",
+  "verified_on": "2026-10-13",
+  "source_commit": "65248f9092143084f20395eae8d387a8bda9bc42",
+  "workflow_run": "https://github.com/gwonu1/core_project/actions/runs/38327445009",
+  "release_id": "65248f9092143084f20395eae8d387a8bda9bc42-38327445009-2",
+  "backend_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/backend@sha256:3698af9b74c6e32cde886c73567e1315ebcfca2837b954c322917918de9233b6",
+  "nginx_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/nginx@sha256:d65327fe1e3cc9e25cfcbda9a46e915e9d9da07ee0ec01d2eb87fd1c91ba0f58",
+  "artifact_s3_uri": "s3://homecare-prod-releases-528215464049-ap-northeast-2/releases/65248f9092143084f20395eae8d387a8bda9bc42-38327445009-2/release.tar.gz",
+  "artifact_sha256": "19c5273fc14eecc0a6ac312deee959d5e2a44b0e51e5e1545c6fb9a51438d51f",
+  "first_deploy_ssm_command_id": "51302754-ef43-43ae-8887-3d5d4e8d9796",
+  "same_commit_rerun_ssm_command_id": "bb2a0191-ba84-40f7-8ca5-f3ae870293a5",
+  "rollback_verification_ssm_command_id": "bd3c4be8-f500-4ee3-ac47-22e5c2cce71c",
+  "verification": {
+    "github_ci": "passed",
+    "production_oidc": "passed",
+    "same_commit_image_reuse": "passed",
+    "ssm_completion_and_external_https": "passed",
+    "bad_image_rollback": "passed",
+    "previous_runtime_settings_restored": "passed",
+    "existing_jwt_and_conversation_preserved": "passed",
+    "synthetic_test_data_and_release_removed": "passed"
+  }
+}

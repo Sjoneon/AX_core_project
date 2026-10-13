@@ -2,7 +2,7 @@
 
 작성일: 2026-10-12
 
-> 1~6단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. 7단계 GitHub Actions 배포 자동화를 구현하고 실제 실행·복원을 검증 중입니다. 운영 확인은 8단계입니다.
+> 1~7단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. GitHub Actions의 CI·OIDC·ECR·SSM 자동 배포와 실제 실패 복원을 검증했습니다. Vercel 자동 배포 연결과 운영 확인은 8단계입니다.
 
 3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
 
@@ -11,6 +11,8 @@
 5단계 완료: `proxy/`의 Nginx 이미지와 운영 Compose의 `backend`, `nginx` 두 서비스를 ECR digest 기준으로 배포했습니다. [외부 health](https://43.202.80.116/actuator/health), API·앱 교체·EC2 재부팅 복구를 확인했습니다. 서비스명 변경 전의 JWT·상담 데이터 유지도 확인했습니다. [운영 컨테이너 안내](ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
 
 6단계 완료: 별도 도메인이 없어 Let's Encrypt의 IP 인증서로 `https://43.202.80.116`을 구성했습니다. 정확한 Vercel 운영 origin만 CORS에 허용하고 갱신 dry-run·reload hook·타이머를 검증했습니다. 기존 `homecare` 프로젝트에 CLI로 API 주소를 등록·배포했습니다. [HTTPS·CORS 안내](ops/HTTPS_CORS.md)를 참고합니다.
+
+7단계 완료: PR·main 공통 CI와 OIDC·ECR·S3·SSM 자동 배포를 구현하고 실제 main push·동일 커밋 재배포를 확인했습니다. 사용자 승인 후 잘못된 이미지로 실패를 유도해 이전 이미지·Compose·설정과 JWT·상담 데이터 보존을 검증했습니다. [CI/CD 안내](ops/CI_CD.md)를 참고합니다.
 
 ### 구현 현황
 
@@ -26,6 +28,7 @@
 - 4단계 검증 완료: 임시 MySQL 8.4와 실제 RDS에서 V001 SQL·Hibernate validate를 검증했습니다. 회원가입·로그인·한글·이모지·검색 근거 조회와 재시작 후 보존을 확인했습니다. 비암호화·잘못된 CA·앱의 DDL·스키마 이력 조회·EC2의 관리자 비밀 조회는 거부됩니다. 운영 스크립트 테스트 총 13개를 통과했고 검증용 데이터·컨테이너·이미지를 정리했습니다.
 - 5단계 검증 완료: 두 컨테이너 healthy, Nginx 80만 호스트에 게시, 앱 포트 미게시, 외부 8080·3306 접근 차단을 확인했습니다. 프록시 경유 인증·상담·조회·삭제, 앱 재생성 후 데이터·JWT 보존과 Nginx reload, 동일 릴리스 시작 시 컨테이너 ID 유지, 실제 EC2 재부팅 자동 복구와 CloudWatch 전송을 확인했습니다. 합성 데이터는 제거했고 OpenAI는 호출하지 않았습니다.
 - 6단계 검증 완료: Nginx 80·443 게시, 인증서 SAN·신뢰 검증·키 권한, HTTP 308, 허용 origin의 preflight 204·401 CORS 헤더와 다른 origin·미지원 preflight 거부를 확인했습니다. 실제 HTTPS 인증·상담·삭제·backend 재생성 검증과 갱신 리허설을 통과했습니다. Vercel 공개 빌드의 HTTPS API 주소와 브라우저 페이지 표시를 확인했습니다. Git 연결은 아직 없습니다.
+- 7단계 검증 완료: GitHub의 실제 CI·OIDC 배포, ECR SHA 태그·digest·재사용, S3 묶음의 비밀값 제외, SSM 종료·외부 HTTPS health를 확인했습니다. 운영 스크립트 테스트 21개와 실제 실패 릴리스의 이미지·설정 복원, 기존 JWT·데이터 보존을 확인했습니다. Terraform·AWS 장기 키·Vercel 연결 설정은 변경하지 않았습니다.
 
 ## 1. 목표와 확정 아키텍처
 
