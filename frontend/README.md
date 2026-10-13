@@ -100,7 +100,9 @@ Vercel에서는 Node 버전을 24로 선택하고, 빌드 환경변수에
 Vite 환경변수는 빌드 시 포함되므로 API 주소를 바꾸면 다시 빌드해야 합니다.
 `VITE_*` 값은 브라우저에 공개되므로 API 키·DB 비밀번호·JWT 서명 키를 넣지 않습니다.
 
-Nginx는 위 운영 origin만 CORS에 허용합니다. Git Repository는 아직 연결하지 않았으며
-현재는 CLI 배포를 사용합니다. [HTTPS·Vercel 배포 안내](../ops/HTTPS_CORS.md)를 참고합니다.
+Nginx는 위 운영 origin만 CORS에 허용합니다. Vercel은 `gwonu1/core_project`의 `main`에
+연결했으며 Root Directory는 `frontend`입니다. 동일 커밋의 GitHub `ci`·`deploy`가
+성공해야 운영 도메인으로 승격합니다. CLI는 저장소 루트에서 실행합니다.
+[운영·자동 배포 안내](../ops/OPERATIONS.md)를 참고합니다.
 
 설정 참고: [Vite 개발 서버 프록시](https://vite.dev/config/server-options.html#server-proxy).

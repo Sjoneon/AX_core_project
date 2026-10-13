@@ -1,0 +1,37 @@
+{
+  "verified_on": "2026-10-13",
+  "source_commit": "1a81e3e3fbc9becf5ec199cd470e4c553a9f7b75",
+  "workflow_run": "https://github.com/gwonu1/core_project/actions/runs/38330964092",
+  "vercel_deployment_id": "dpl_5dRD9yjcKfcaVXgLH1oBV5T4Wk5L",
+  "production_origin": "https://homecare-omega-eight.vercel.app",
+  "api_base_url": "https://43.202.80.116",
+  "monitoring": {
+    "dashboard": "homecare-prod",
+    "namespace": "homecare/prod",
+    "timer": "homecare-metrics.timer",
+    "metric_count": 5,
+    "received": "passed",
+    "install_ssm_command": "7f3dd718-4395-4772-8eff-5b8e639cd280"
+  },
+  "browser_verification": {
+    "signup_login": "passed",
+    "real_ai_first_and_followup": "passed",
+    "rag_sources_and_history_reload": "passed",
+    "ui_delete": "passed",
+    "logout": "passed",
+    "synthetic_account_cleanup_ssm": "79ce0127-49c8-49d8-8c52-24e5d8143ed6"
+  },
+  "backup_restore": {
+    "target": "homecare-prod-restore-check-20261013",
+    "source": "homecare-prod-mysql",
+    "restore_time": "2026-10-13T01:13:57.935083+00:00",
+    "seed_ssm_command": "e155cce1-9345-4188-b1b9-6cf06b571304",
+    "verification_ssm_command": "d71a5169-30fa-4ccd-83ed-69da19944bc5",
+    "data_and_tls": "passed",
+    "endpoint": "homecare-prod-restore-check-20261013.cnsso26use8s.ap-northeast-2.rds.amazonaws.com",
+    "temporary_instance_deleted": true,
+    "source_fixture_cleanup_ssm": "cfb358fa-b28c-4f07-8f17-06398f8beb83"
+  },
+  "terraform_no_changes": "passed",
+  "email_budget_notifications": "skipped by user"
+}

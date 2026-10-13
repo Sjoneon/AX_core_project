@@ -23,5 +23,15 @@
       "check_id": "chk_c4f4fdc9-9afc-4a7d-ac75-e19fd775ebe7",
       "timeout_seconds": 3600
     }
-  ]
+  ],
+  "first_git_deployment": {
+    "source_commit": "1a81e3e3fbc9becf5ec199cd470e4c553a9f7b75",
+    "deployment_id": "dpl_5dRD9yjcKfcaVXgLH1oBV5T4Wk5L",
+    "workflow_run": "https://github.com/gwonu1/core_project/actions/runs/38330964092",
+    "staged_before_checks": true,
+    "ci_check": "succeeded",
+    "deploy_check": "succeeded",
+    "ready_substate": "PROMOTED",
+    "production_alias_verified": true
+  }
 }

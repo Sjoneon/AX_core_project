@@ -5,9 +5,10 @@ AWS 기반 자원과 실행 권한·GitHub OIDC·일반 설정·로그 그룹을
 EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습니다.
 앱 비밀값·EC2 운영 환경 파일과 RDS 앱 계정·초기 스키마·TLS 검증을 완료했습니다.
 `../proxy/`의 두 컨테이너에 IP 인증서 기반 HTTPS·CORS·자동 갱신을 적용하고
-기존 Vercel 프론트엔드를 CLI로 연결했습니다. GitHub Actions 워크플로는 후속 단계입니다.
+기존 Vercel 프론트엔드를 연결하고 GitHub Actions로 ECR·SSM 배포를 자동화했습니다.
+Vercel은 Git 빌드 후 같은 커밋의 CI·백엔드 배포 성공을 확인해 운영 도메인으로 승격합니다.
 
-2026-10-12 실제 AWS 적용과 검증을 완료했습니다. 생성한 자원과 검증 결과는
+2026-10-12 최초 AWS 적용, 2026-10-13 CI/CD·운영 관측을 적용했습니다. 생성한 자원과 검증 결과는
 [배포 현황](DEPLOYMENT_STATUS.md)에 기록했습니다.
 
 ## 구성
@@ -16,6 +17,8 @@ EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습
 4단계의 SQL·앱 계정·TLS·임시 관리자 권한은 [RDS 초기화 안내](../ops/RDS_INITIALIZATION.md)를 참고합니다.
 5단계의 두 컨테이너·ECR digest·로그·재시작은 [운영 컨테이너 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
 6단계의 IP 인증서·갱신·Vercel origin과 배포는 [HTTPS·CORS 안내](../ops/HTTPS_CORS.md)를 참고합니다.
+7단계 자동 배포·실패 복원은 [CI/CD 안내](../ops/CI_CD.md),
+8단계 대시보드·Vercel Git·백업 복구는 [운영 안내](../ops/OPERATIONS.md)를 참고합니다.
 
 | 항목 | 설정 |
 |---|---|
@@ -35,6 +38,7 @@ EC2 Docker 설치는 `../ops/`의 SSM 초기 준비 스크립트로 수행했습
 | ECR | `homecare-prod/backend`, `homecare-prod/nginx`, 태그 불변·push 시 검사 |
 | 배포 파일 | 비공개·암호화·버전 관리된 별도 S3 |
 | Terraform state | 전용 S3, 암호화·버전 관리·TLS·퍼블릭 차단, S3 lockfile |
+| 운영 관측 | CloudWatch `homecare-prod` 대시보드, 분당 호스트·HTTPS·인증서 메트릭 |
 
 이번 작업 시작 전 state에는 관리 자원이 없었고, 기존 실습 태그의 EC2·VPC도 없음을 확인했습니다.
 기존 `terraform.tfstate.backup`은 삭제하지 않습니다. 다른 환경에서 실행할 때는 state와
@@ -68,7 +72,8 @@ MySQL 자동 마이너 업그레이드는 비활성화했습니다. 정기 점�
 도메인·Vercel 비용은 별도입니다. RDS 저장공간은 최대 100GB까지 자동 확장되며
 확장 후 스토리지 비용은 증가합니다. EC2 CPU credit은 `standard`로 설정하여
 추가 CPU credit 과금을 막지만, 지속적인 CPU 부하에서는 처리량이 제한됩니다.
-비용 알림과 부하 기반 증설은 후속 운영 단계에서 구성합니다.
+이메일·예산 알림은 사용자 요청으로 생략했습니다. 사용자 메트릭의 CloudWatch 사용량은
+별도 과금될 수 있으며 현재 대시보드로 상태를 확인합니다. 부하 기반 증설은 초기 범위 밖입니다.
 
 ## 초기화와 적용 순서
 

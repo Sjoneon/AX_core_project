@@ -28,7 +28,8 @@
 비동기 전송 버퍼는 4MB이며 CloudWatch 전송이 지연되면 버퍼를 넘는 로그는 유실될 수 있습니다.
 로그 그룹 보존기간은 14일입니다.
 Docker는 프로세스 종료 시 재시작하며 healthcheck가 unhealthy인 것만으로 재시작하지는 않습니다.
-알림·운영 대응은 후속 운영 단계에서 구성합니다.
+8단계 [운영 대시보드](OPERATIONS.md)에서 상태를 확인합니다.
+이메일·예산 알림은 사용자 요청으로 생략했습니다.
 
 앱은 SSM에서 준비한 `/opt/homecare/config/runtime.env`만 환경 파일로 읽고
 RDS PKCS12 truststore를 읽기 전용으로 연결합니다. Nginx에는 앱 비밀값을 전달하지 않습니다.

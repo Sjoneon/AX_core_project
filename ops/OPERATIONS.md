@@ -1,6 +1,7 @@
 # Vercel 자동 배포와 운영·복구
 
-8단계 구현·검증 기록입니다. 이메일·예산 알림은 사용자 요청으로 생략합니다.
+2026-10-13, 8단계 구현·실제 Git 배포·브라우저·RDS 백업 복구 검증을 완료했습니다.
+이메일·예산 알림은 사용자 요청으로 생략합니다.
 운영 컨테이너는 `backend`, `nginx` 두 개이며 추가 상시 컨테이너는 없습니다.
 
 ## Vercel Git 배포
@@ -56,6 +57,11 @@ EC2 기본 CPU·상태·크레딧은 5분 단위, RDS 저장공간·연결 수�
 HTTPS health는 EC2에서 측정하므로 인터넷 전체 경로의 가용성 측정은 아닙니다.
 GitHub 배포에서는 별도로 runner의 외부 HTTPS health를 확인합니다.
 
+ECR은 태그 없는 이미지에만 7일 정리 정책을 적용하며 태그 있는 릴리스는 보존합니다.
+S3 릴리스와 EC2의 `current`·`previous`는 자동 삭제하지 않습니다.
+디스크 정리가 필요하면 두 링크의 Compose·이미지 digest·설정 스냅샷을 먼저 확인하고,
+현재·직전 정상 이미지와 릴리스는 보존합니다. 운영 DB·TLS 키·설정 파일은 이미지 정리 대상이 아닙니다.
+
 ```bash
 # 최초 설치 또는 스크립트 갱신: 두 파일이 있는 디렉터리에서 EC2 root로 실행
 bash install-monitoring.sh i-0223afa15057a76b2
@@ -78,19 +84,28 @@ systemctl status snap.certbot.renew.timer
 새 앱 릴리스로 반영합니다. endpoint 변경·DB 사용자 비밀번호 갱신은 자동으로 수행하지 않습니다.
 
 이번 실습의 임시 복원 대상은 `homecare-prod-restore-check-20261013`입니다.
-사용자가 추가 비용을 승인했으며, 복구 데이터를 검증한 뒤 이 임시 대상만 삭제합니다.
+사용자가 추가 비용을 승인했고, 실제 복구 데이터를 검증한 뒤 이 임시 대상을 삭제했습니다.
 실습용 복사본은 최종 스냅샷 없이 삭제하고 운영 DB·기존 자동 백업은 유지합니다.
 [verify-backup-data.py](verify-backup-data.py)는 UUID 합성 사용자·상담만 생성·확인·정리합니다.
-관리자 비밀번호 없이 EC2 역할과 기존 앱 계정의 TLS 연결을 사용합니다.
+복원 명령은 로컬 AWS CLI 자격증명으로 실행하고, 데이터 검증은 EC2의 기존 앱 계정으로 수행합니다.
+DB 관리자 비밀번호를 조회하거나 EC2에 관리자 비밀 조회 권한을 추가하지 않았습니다.
 검증 기록은 EC2의 root 전용 폴더에 두고 앱 비밀값을 로컬이나 Git으로 옮기지 않습니다.
+실제 MySQL PITR 요청에서 `ManageMasterUserPassword` 옵션이 거부돼 해당 옵션을 제외했습니다.
+복원 데이터는 기존 앱 계정으로 확인했으며 운영 DB의 암호·주소·스키마는 바꾸지 않았습니다.
 
 ## 검증 상태
 
 - Terraform mock 테스트 4개와 운영 스크립트 테스트 23개 통과.
 - 대시보드 생성·제한된 메트릭 권한 적용·systemd 타이머 설치·5개 실제 메트릭 수신 확인.
 - Vercel Git 연결·프로젝트 빌드 설정·운영 승격 필수 검사 2개·운영 도메인 등록 확인.
-- 실제 Git 자동 빌드·승격, 브라우저 인수 테스트와 RDS 임시 복구 결과는 완료 후 기록합니다.
+- [실제 Git 배포](https://github.com/gwonu1/core_project/actions/runs/38330964092): Vercel 빌드가 STAGED로 대기하고 같은 커밋 `ci`·`deploy` 성공 후 PROMOTED로 전환됐습니다. 기존 운영 도메인의 새 배포 연결과 공개 번들의 HTTPS API 주소를 확인했습니다.
+- 실제 브라우저 회원가입·로그인·첫 AI 상담·후속 상담·검색 근거·상담 내역 재조회·확인 창의 삭제·빈 내역·로그아웃을 검증했습니다. 사용자 승인 후 OpenAI를 호출했고 합성 상담·계정을 정리했습니다.
+- 자동 백업이 합성 데이터의 커밋 시점을 포함할 때까지 기다린 뒤 별도 RDS에 시점 복원했습니다. 복원 사용자·상담 소유권·메시지 2개·한글/이모지·TLS를 확인했습니다. 임시 RDS 삭제와 원본 합성 데이터 정리, 운영 DB 주소 유지도 확인했습니다.
+- 모니터링 적용 후 실제 Terraform plan은 변경 없음입니다.
 - EC2 재부팅 자동 복구·인증서 갱신 리허설·실제 앱 실패 복원은 각각 5·6·7단계에서 검증했습니다.
+
+SSM command ID와 첫 Git 배포·RDS 복원 검증은 [완료 기록](STAGE8_OPERATIONS.json)에 보관합니다.
+기록은 검증 시점 기준이며 이후 현재 릴리스는 Actions·Vercel 배포 결과와 EC2 `current` 링크에서 확인합니다.
 
 참고: [Vercel Deployment Checks](https://vercel.com/docs/deployment-checks),
 [Vercel Git](https://vercel.com/docs/git),
