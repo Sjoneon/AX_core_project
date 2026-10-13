@@ -52,6 +52,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS, properties = {
@@ -286,6 +287,24 @@ class BackendApplicationTests {
         }
 
         @Test
+        void accountCheckReturnsOnlyAuthenticatedEmailWithoutRenewingToken() throws Exception {
+                var before = jwtDecoder.decode(accessToken);
+                for (int attempt = 0; attempt < 2; attempt++) {
+                        mockMvc.perform(get("/api/auth/me").param("email", "other@example.com")
+                                        .header("Authorization", "Bearer " + accessToken))
+                                        .andExpect(status().isOk())
+                                        .andExpect(jsonPath("$.email").value("chat-test@example.com"))
+                                        .andExpect(jsonPath("$.accessToken").doesNotExist())
+                                        .andExpect(jsonPath("$.password").doesNotExist())
+                                        .andExpect(jsonPath("$.userId").doesNotExist())
+                                        .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+                }
+                assertThat(jwtDecoder.decode(accessToken).getExpiresAt()).isEqualTo(before.getExpiresAt());
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+        }
+
+        @Test
         void withdrawalDeletesOnlyAuthenticatedUsersAccountAndRelatedData() throws Exception {
                 var owner = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
                 long product = createProduct("{\"category\":\"WASHER\"}");
@@ -332,6 +351,8 @@ class BackendApplicationTests {
                                 .andExpect(status().isNoContent());
                 assertThat(appUserRepository.count()).isZero();
                 for (String token : new String[]{accessToken, secondToken}) {
+                        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
                         mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token))
                                         .andExpect(status().isUnauthorized());
                         mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + token))
@@ -350,6 +371,8 @@ class BackendApplicationTests {
                                 .andExpect(status().isOk()).andReturn();
                 String newToken = JsonPath.read(login.getResponse().getContentAsString(), "$.accessToken");
                 for (String token : new String[]{accessToken, secondToken}) {
+                        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
                         mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + token)
                                         .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}"))
                                         .andExpect(status().isUnauthorized());
@@ -357,6 +380,8 @@ class BackendApplicationTests {
                                         .andExpect(status().isUnauthorized());
                 }
                 assertThat(appUserRepository.existsById(newUserId)).isTrue();
+                mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + newToken))
+                                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value("chat-test@example.com"));
                 mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + newToken))
                                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
                 mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + newToken)
@@ -380,7 +405,10 @@ class BackendApplicationTests {
                                 .issuedAt(now).expiresAt(now.plusSeconds(600)).build();
                 String missingId = jwtEncoder.encode(JwtEncoderParameters.from(header, missingIdClaims)).getTokenValue();
                 mockMvc.perform(delete("/api/auth/me")).andExpect(status().isUnauthorized());
+                mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
                 for (String token : new String[]{"", "invalid", expired, wrongId, missingId}) {
+                        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + token))
+                                        .andExpect(status().isUnauthorized());
                         mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + token))
                                         .andExpect(status().isUnauthorized());
                 }

@@ -107,7 +107,7 @@ function AuthForm({ onLogin, notice }) {
           {isSignup ? '이미 계정이 있나요? 로그인' : '계정이 없나요? 회원가입'}
         </button>
       </section>
-      <p className="footnote">새로고침하거나 창을 닫으면 다시 로그인해야 합니다.</p>
+      <p className="footnote">같은 탭에서 새로고침해도 로그인은 유지됩니다. 탭을 닫거나 로그인이 만료되면 다시 로그인해 주세요.</p>
     </main>
   )
 }
