@@ -10,6 +10,7 @@ CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태
 6단계에서 IP 인증서 기반 HTTPS·정확한 Vercel origin CORS·인증서 자동 갱신을 적용했습니다.
 [HTTPS·CORS 안내](HTTPS_CORS.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
 7단계 워크플로와 릴리스·복원 정책은 [CI/CD 안내](CI_CD.md)를 참고합니다.
+8단계 Vercel Git 배포·대시보드·백업 복구는 [운영 안내](OPERATIONS.md)를 참고합니다.
 
 ## 권한과 자격증명
 

@@ -3,7 +3,8 @@
 API 주소: `https://43.202.80.116`.
 프론트엔드 운영 origin: `https://homecare-omega-eight.vercel.app`.
 사용자에게 별도 API 도메인이 없어 Elastic IP의 IP 인증서를 사용합니다.
-기존 Vercel 프로젝트 `homecare`를 CLI로 배포하며 Git 연동은 후속 단계입니다.
+기존 Vercel 프로젝트 `homecare`는 8단계에서 Git에 연결했습니다.
+[운영·자동 배포 안내](OPERATIONS.md)를 참고합니다.
 
 2026-10-12 실제 적용·검증을 완료했습니다. [릴리스 기록](STAGE6_RELEASE.json)을 참고합니다.
 최초 인증서 만료는 2026-10-19 10:29:08 KST이며 갱신 시 연장됩니다.
@@ -34,14 +35,16 @@ Nginx는 80·443만 호스트에 게시하며 8080은 게시하지 않습니다.
 # 준비된 릴리스 디렉터리에서 EC2 root 권한으로 최초 실행
 bash /opt/homecare/releases/<release-id>/setup-https.sh /opt/homecare/releases/<release-id>
 
-# 일상적인 앱 배포: 유효한 인증서가 이미 존재해야 함
-bash /opt/homecare/current/start-service.sh /opt/homecare/current
+# 일상적인 앱 배포는 main push의 GitHub Actions가 수행
+# 신규 릴리스 수동 배포: 유효한 인증서가 이미 존재해야 함
+bash /opt/homecare/releases/<새-release-id>/deploy-service.sh /opt/homecare/releases/<새-release-id>
 ```
 
 자동 갱신은 Snap의 `snap.certbot.renew.timer`를 사용합니다.
 갱신 성공 후 `/etc/letsencrypt/renewal-hooks/deploy/homecare-nginx`가
 현재 릴리스의 Nginx 문법을 검사하고 reload합니다. private key는 출력하지 않습니다.
-ACME 계정에 이메일을 등록하지 않으며 만료 알림과 운영 모니터링은 8단계에서 구성합니다.
+ACME 계정에 이메일을 등록하지 않습니다. 8단계 대시보드에서 인증서 남은 시간과
+갱신 타이머를 확인하며 이메일·예산 알림은 사용자 요청으로 생략했습니다.
 
 ```bash
 systemctl status snap.certbot.renew.timer
@@ -73,14 +76,15 @@ Production의 공개 Config `VITE_API_BASE_URL=https://43.202.80.116`만 등록�
 API 주소는 빌드에 포함되므로 주소 변경 시 새 배포가 필요합니다.
 
 ```bash
-# frontend/에서, 이미 존재하는 값은 env update로 변경
+# Git 연동 후에는 저장소 루트에서 실행; 기존 값은 env update로 변경
 vercel env add VITE_API_BASE_URL production --value https://43.202.80.116 --no-sensitive --yes
 vercel deploy --prod --skip-domain --yes
 # HTTPS·CORS와 새 빌드가 READY임을 확인한 뒤
 vercel promote <새-배포-URL> --yes
 ```
 
-Git Repository 연결 없이 기존 프로젝트에 CLI로 배포할 수 있습니다.
+6단계의 최초 CLI 배포는 Git 연결 없이 진행했습니다.
+현재는 Git 연결과 동일 커밋의 CI·백엔드 배포 검사를 사용합니다.
 Preview에는 API 주소를 자동 등록하지 않고 CORS origin도 추가하지 않습니다.
 
 ## 검증

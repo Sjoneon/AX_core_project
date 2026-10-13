@@ -58,3 +58,5 @@ temp_project/
 # terraform-aws-ec2/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode
+.vercel
+.env.local

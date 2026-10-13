@@ -1,0 +1,27 @@
+{
+  "project_id": "prj_jQbxnoT1BTChfAlc2LWReTZnQ4h1",
+  "team_id": "team_nYhRJyQb0aU2L1ZJr9ZK70YQ",
+  "git_repository": "gwonu1/core_project",
+  "production_branch": "main",
+  "root_directory": "frontend",
+  "framework": "vite",
+  "node_version": "24.x",
+  "install_command": "npm ci",
+  "build_command": "npm run build",
+  "output_directory": "dist",
+  "production_origin": "https://homecare-omega-eight.vercel.app",
+  "api_base_url": "https://43.202.80.116",
+  "auto_assign_custom_domains": true,
+  "required_checks": [
+    {
+      "github_job": "ci",
+      "check_id": "chk_7042e7ee-fa2c-4b66-8705-6bbc167d58ed",
+      "timeout_seconds": 1800
+    },
+    {
+      "github_job": "deploy",
+      "check_id": "chk_c4f4fdc9-9afc-4a7d-ac75-e19fd775ebe7",
+      "timeout_seconds": 3600
+    }
+  ]
+}

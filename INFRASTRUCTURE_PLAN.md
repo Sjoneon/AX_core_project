@@ -2,7 +2,7 @@
 
 작성일: 2026-10-12
 
-> 1~7단계의 구현·검증을 완료했습니다. 단일 EC2의 두 컨테이너에서 HTTPS API를 제공하고 기존 Vercel 프론트엔드를 연결했습니다. GitHub Actions의 CI·OIDC·ECR·SSM 자동 배포와 실제 실패 복원을 검증했습니다. Vercel 자동 배포 연결과 운영 확인은 8단계입니다.
+> 1~7단계의 구현·검증을 완료했습니다. 8단계에서는 Vercel Git 연결·승격 검사와 운영 대시보드를 적용하고 실제 화면·백업 복구를 검증 중입니다. 이메일·예산 알림은 사용자 요청으로 생략합니다.
 
 3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
 
@@ -278,9 +278,11 @@ PR 검증:
 
 ### 8단계 — Vercel 연결·운영 확인·백업
 
+구현·실습 결과와 사용자 선택은 [운영 안내](ops/OPERATIONS.md)에 기록합니다.
+
 Vercel 설정:
 
-- Git 연동 시 Root Directory: `frontend`. 현재 CLI는 `frontend/`에서 배포하며 프로젝트의 Root Directory는 비어 있습니다.
+- Git Root Directory: `frontend`. Git 연동 후 CLI는 `.vercel`로 연결한 저장소 루트에서 실행합니다.
 - Build Command: `npm run build`.
 - Output Directory: `dist`.
 - 현재 운영 환경변수: `VITE_API_BASE_URL=https://43.202.80.116`.
@@ -298,7 +300,7 @@ Vercel Git 연동으로 자동 빌드하되, Deployment Checks에서 동일 커�
 - RDS 자동 백업은 서비스 운영 시 7일을 목표로 합니다. 현재 무료 계정은 사용자 선택에 따라 1일이며, 삭제 방지와 삭제 시 최종 스냅샷을 적용했습니다.
 - ECR·릴리스 파일 정리 시 현재 운영 및 직전 정상 릴리스는 반드시 보존합니다.
 - DB 복구는 새 RDS로 복원·검증한 뒤 연결을 전환합니다.
-- 생성 전에 서울 리전 가격으로 EC2·EBS·공인 IPv4·RDS·로그·비밀 관리 비용을 산정하고 예산 알림을 설정합니다. OpenAI·도메인·Vercel 비용도 별도로 포함합니다.
+- 서울 리전의 EC2·EBS·공인 IPv4·RDS·로그·비밀 관리 비용과 OpenAI·도메인·Vercel 비용을 확인합니다. 이번 실습의 이메일·예산 알림은 사용자 요청으로 생략합니다.
 - 실습 종료 시 DB 보존 여부를 확인한 뒤 자원을 정리하고 잔여 EIP·볼륨·스냅샷을 점검합니다.
 
 **완료 기준:** 실제 Vercel 화면에서 회원가입부터 상담 내역 삭제까지 동작하며, EC2 재부팅 복구·인증서 갱신·이전 릴리스 복원·RDS 백업 복원을 각각 확인합니다.

@@ -49,3 +49,21 @@ run "runtime_access_and_oidc" {
     error_message = "Runtime settings must require verified DB TLS and schema validation, and bound log retention."
   }
 }
+
+run "dashboard_and_metric_scope" {
+  command = apply
+  assert {
+    condition = anytrue([for statement in jsondecode(aws_iam_role_policy.ec2_runtime.policy).Statement :
+      statement.Sid == "ReportServiceMetrics" ? statement.Condition.StringEquals["cloudwatch:namespace"] == "homecare/prod" : false
+    ])
+    error_message = "The instance must publish custom metrics only to its service namespace."
+  }
+  assert {
+    condition = alltrue([for metric in ["MemoryUsedPercent", "DiskUsedPercent", "ServiceHealthy", "CertificateRemainingHours", "CertbotTimerActive", "FreeStorageSpace", "DatabaseConnections", "StatusCheckFailed"] :
+      contains(flatten([for widget in jsondecode(aws_cloudwatch_dashboard.service.dashboard_body).widgets :
+        [for item in try(widget.properties.metrics, []) : item[1]]
+      ]), metric)
+    ])
+    error_message = "The dashboard must include host, HTTPS, certificate and RDS observations."
+  }
+}

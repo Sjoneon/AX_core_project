@@ -65,6 +65,15 @@ resource "aws_iam_role_policy" "ec2_runtime" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:DescribeLogStreams", "logs:PutLogEvents"]
         Resource = [for group in aws_cloudwatch_log_group.runtime : "${group.arn}:*"]
+      },
+      {
+        Sid      = "ReportServiceMetrics"
+        Effect   = "Allow"
+        Action   = "cloudwatch:PutMetricData"
+        Resource = "*"
+        Condition = {
+          StringEquals = { "cloudwatch:namespace" = "${var.project_name}/${var.environment}" }
+        }
       }
     ]
   })
