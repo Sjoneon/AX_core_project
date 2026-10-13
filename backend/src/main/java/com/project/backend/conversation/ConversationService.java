@@ -45,6 +45,8 @@ public class ConversationService {
     public ProductCategory resolveCategory(Long id, String email, ProductCategory requestedCategory) {
         if (id != null) {
             ProductCategory savedCategory = findOwned(id, email).getCategory();
+            rejectUnsupported(savedCategory);
+            rejectUnsupported(requestedCategory);
             if (requestedCategory != null && requestedCategory != savedCategory) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "기존 상담의 카테고리는 변경할 수 없습니다.");
             }
@@ -52,7 +54,14 @@ public class ConversationService {
         } else if (!userRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요.");
         }
+        rejectUnsupported(requestedCategory);
         return requestedCategory;
+    }
+
+    private void rejectUnsupported(ProductCategory category) {
+        if (category != null && !category.isSupported()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "에어컨 상담은 지원 종료되었습니다. 기존 기록만 조회할 수 있습니다.");
+        }
     }
 
     // Keep the external AI call outside this transaction; save both messages together.

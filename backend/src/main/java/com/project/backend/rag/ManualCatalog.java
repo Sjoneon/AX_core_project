@@ -30,7 +30,7 @@ public class ManualCatalog {
                 String section = sections[i].strip();
                 String id = field(section, "문서 ID");
                 String category = field(section, "카테고리");
-                ProductCategory.valueOf(category);
+                if (!ProductCategory.valueOf(category).isSupported()) continue;
                 if (!ids.add(id)) throw new IllegalStateException("중복 매뉴얼 ID: " + id);
                 String title = section.lines().findFirst().orElseThrow().split("\\|", 2)[1].strip();
                 loaded.add(new Document(id, section, Map.of(

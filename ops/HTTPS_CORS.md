@@ -63,7 +63,7 @@ Nginx 한 곳에서 다음을 처리합니다.
 
 - 정확히 `https://homecare-omega-eight.vercel.app`만 허용하며 임의 origin을 반사하지 않습니다.
 - 허용된 OPTIONS는 인증 전에 204로 응답합니다.
-- GET·POST·DELETE·OPTIONS 및 Authorization·Content-Type을 허용합니다.
+- GET·POST·PUT·DELETE·OPTIONS 및 Authorization·Content-Type을 허용합니다.
 - 허용 origin의 401 등 오류 응답에도 CORS 헤더와 `Vary: Origin`을 붙입니다.
 - 다른 origin·preview 주소·미지원 preflight 메서드는 403으로 거부합니다.
 - 프론트엔드는 쿠키 대신 메모리의 Bearer JWT를 사용하므로 credentials 허용 헤더를 추가하지 않습니다.

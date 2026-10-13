@@ -29,11 +29,14 @@ public class ManualRetriever {
     }
 
     public Result retrieve(String question, ProductCategory category) {
+        if (question.contains("에어컨")) {
+            return new Result("에어컨은 지원 종료된 품목입니다. 냉장고, 세탁기, 건조기, 식기세척기 상담을 이용해 주세요.", List.of());
+        }
         if (Pattern.compile("(?i)\\bTV\\b|텔레비전").matcher(question).find()) {
             return new Result("제공된 가상 매뉴얼에 TV 상담 자료가 없습니다. 자료에 없는 수리 절차는 안내할 수 없어요.", List.of());
         }
         if (category == null) {
-            return new Result("어떤 가전에 대한 문의인가요? 에어컨, 냉장고, 세탁기, 건조기, 식기세척기 중 제품 카테고리를 선택해 새 상담을 시작해 주세요.", List.of());
+            return new Result("어떤 가전에 대한 문의인가요? 냉장고, 세탁기, 건조기, 식기세척기 중 제품 카테고리를 선택해 새 상담을 시작해 주세요.", List.of());
         }
         for (var product : ProductCategory.values()) {
             if (product != category && question.contains(product.getLabel())) {

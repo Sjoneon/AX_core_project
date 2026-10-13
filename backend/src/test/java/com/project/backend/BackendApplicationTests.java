@@ -18,6 +18,11 @@ import com.project.backend.security.JwtTokenProvider;
 import com.project.backend.conversation.ChatMessageRepository;
 import com.project.backend.conversation.ConversationRepository;
 import com.project.backend.conversation.ProductCategory;
+import com.project.backend.conversation.Conversation;
+import com.project.backend.conversation.ChatMessage;
+import com.project.backend.product.UserProductRepository;
+import com.project.backend.rag.ManualCatalog;
+import com.project.backend.rag.RagSource;
 import com.project.backend.user.AppUser;
 import com.project.backend.user.AppUserRepository;
 
@@ -46,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -96,6 +102,12 @@ class BackendApplicationTests {
     @Autowired
     private ChatMessageRepository messageRepository;
 
+    @Autowired
+    private UserProductRepository productRepository;
+
+    @Autowired
+    private ManualCatalog manualCatalog;
+
     private String accessToken;
 
 	@DynamicPropertySource
@@ -145,6 +157,7 @@ class BackendApplicationTests {
 
 	@BeforeEach
 	void resetUpstream() {
+        productRepository.deleteAll();
         messageRepository.deleteAll();
         conversationRepository.deleteAll();
         appUserRepository.deleteAll();
@@ -500,7 +513,7 @@ class BackendApplicationTests {
     }
 
     @ParameterizedTest
-    @EnumSource(ProductCategory.class)
+    @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
     void categoryIsPersistedReturnedAndReusedForFollowUpQuestions(ProductCategory category) throws Exception {
         long id = sendChat("{\"message\":\"작동하지 않아요\",\"category\":\"" + category.name() + "\"}", accessToken);
         assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(category);
@@ -624,7 +637,7 @@ class BackendApplicationTests {
     }
 
     @ParameterizedTest
-    @EnumSource(ProductCategory.class)
+    @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
     void ragErrorCodeUsesOnlySelectedCategoryAndPersistsEvidence(ProductCategory category) throws Exception {
         String prefix = switch (category) {
             case AIR_CONDITIONER -> "AC";
@@ -663,12 +676,12 @@ class BackendApplicationTests {
     void semanticSearchFindsManualWithoutErrorCode() throws Exception {
         mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"message\":\"에어컨에서 찬 바람이 안 나와요\",\"category\":\"AIR_CONDITIONER\"}"))
+                .content("{\"message\":\"세탁기가 탈수할 때 크게 흔들려요\",\"category\":\"WASHER\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sources.length()").value(1))
-                .andExpect(jsonPath("$.sources[0].documentId").value("HC-AC-003"));
-        assertThat(embeddingRequest.get()).contains("찬 바람", "text-embedding-3-small");
-        assertThat(requestBody.get()).contains("24°C", "10분간", "HC-AC-003");
+                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-003"));
+        assertThat(embeddingRequest.get()).contains("크게 흔들려요", "text-embedding-3-small");
+        assertThat(requestBody.get()).contains("문 잠금", "HC-WS-003");
     }
 
     @Test
@@ -744,6 +757,189 @@ class BackendApplicationTests {
         sendChat("{\"message\":\"세탁기 HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
     }
 
+    @Test
+    void productsPersistAcrossLoginAndSortByRegistration() throws Exception {
+        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"product-login@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isCreated());
+        var login = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"product-login@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk()).andReturn();
+        accessToken = JsonPath.read(login.getResponse().getContentAsString(), "$.accessToken");
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        long first = createProduct("{\"category\":\"WASHER\"}");
+        long second = createProduct("""
+                {"category":"REFRIGERATOR","name":"  주방 냉장고  ","model":"  RF-1  ",
+                 "purchaseDate":"1950-01-01","postcode":"01234","address":"  서울시  ","addressDetail":"  101호  "}
+                """);
+        mockMvc.perform(put("/api/products/{id}", first).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"DRYER\",\"name\":\"수정한 제품\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.category").value("DRYER"));
+        var relogin = mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"product-login@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk()).andReturn();
+        String token = JsonPath.read(relogin.getResponse().getContentAsString(), "$.accessToken");
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(second)).andExpect(jsonPath("$[1].id").value(first))
+                .andExpect(jsonPath("$[0].name").value("주방 냉장고")).andExpect(jsonPath("$[0].model").value("RF-1"))
+                .andExpect(jsonPath("$[0].purchaseDate").value("1950-01-01"))
+                .andExpect(jsonPath("$[0].postcode").value("01234"))
+                .andExpect(jsonPath("$[0].address").value("서울시")).andExpect(jsonPath("$[0].addressDetail").value("101호"))
+                .andExpect(jsonPath("$[0].createdAt").isString()).andExpect(jsonPath("$[0].updatedAt").isString())
+                .andExpect(jsonPath("$[1].category").value("DRYER"));
+    }
+
+    private long createProduct(String body) throws Exception {
+        var result = mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    @Test
+    void productUpdatesCanClearOptionalInformation() throws Exception {
+        long id = createProduct("""
+                {"category":"REFRIGERATOR","name":"주방","model":"RF-1","purchaseDate":"2024-02-29",
+                 "postcode":"01234","address":"서울","addressDetail":"101호"}
+                """);
+        mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"category":"DISHWASHER","name":null,"model":"  ","purchaseDate":null,
+                         "postcode":null,"address":null,"addressDetail":null}
+                        """))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.category").value("DISHWASHER"))
+                .andExpect(jsonPath("$.name").isEmpty()).andExpect(jsonPath("$.model").isEmpty())
+                .andExpect(jsonPath("$.purchaseDate").isEmpty()).andExpect(jsonPath("$.postcode").isEmpty())
+                .andExpect(jsonPath("$.address").isEmpty()).andExpect(jsonPath("$.addressDetail").isEmpty());
+        assertThat(productRepository.count()).isEqualTo(1);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{}", "{\"category\":\"AIR_CONDITIONER\"}", "{\"category\":\"INVALID\"}",
+            "{\"category\":\"WASHER\",\"purchaseDate\":\"2025-02-29\"}",
+            "{\"category\":\"WASHER\",\"purchaseDate\":\"2024-02-30\"}",
+            "{\"category\":\"WASHER\",\"purchaseDate\":\"0000-01-01\"}",
+            "{\"category\":\"WASHER\",\"purchaseDate\":\"9999-12-31\"}",
+            "{\"category\":\"WASHER\",\"purchaseDate\":\"20240101\"}",
+            "{\"category\":\"WASHER\",\"postcode\":\"1234\"}",
+            "{\"category\":\"WASHER\",\"postcode\":\"abcde\"}",
+            "{\"category\":\"WASHER\",\"addressDetail\":\"101호\",\"address\":\"  \"}"
+    })
+    void invalidProductsDoNotCreateOrModifyRows(String body) throws Exception {
+        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        assertThat(productRepository.count()).isZero();
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        assertThat(productRepository.findById(id).orElseThrow().response().category()).isEqualTo(ProductCategory.WASHER);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"name", "model", "address", "addressDetail"})
+    void productFieldLengthLimitsAreEnforced(String field) throws Exception {
+        int length = switch (field) { case "name" -> 40; case "model" -> 80; case "address" -> 160; default -> 100; };
+        String body = "{\"category\":\"WASHER\",\"" + field + "\":\"" + "가".repeat(length + 1) + "\"}";
+        mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isBadRequest());
+        assertThat(productRepository.count()).isZero();
+    }
+
+    @Test
+    void productsArePrivateAndUnknownIdsHaveTheSameResponse() throws Exception {
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        appUserRepository.save(new AppUser("other@example.com", "unused", "USER"));
+        String token = jwtTokenProvider.createToken("other@example.com");
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        for (long target : new long[]{id, Long.MAX_VALUE}) {
+            mockMvc.perform(put("/api/products/{id}", target).header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"DRYER\"}"))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("제품을 찾을 수 없습니다."));
+        }
+        assertThat(productRepository.findById(id).orElseThrow().response().category()).isEqualTo(ProductCategory.WASHER);
+    }
+
+    @Test
+    void productsRequireValidAuthentication() throws Exception {
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        Instant now = Instant.now();
+        var claims = JwtClaimsSet.builder().subject("chat-test@example.com")
+                .issuedAt(now.minusSeconds(600)).expiresAt(now.minusSeconds(300)).build();
+        String expired = jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+        for (String token : new String[]{"", "invalid", expired}) {
+            mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+            mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}")).andExpect(status().isUnauthorized());
+            mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"DRYER\"}")).andExpect(status().isUnauthorized());
+        }
+        assertThat(productRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void airConditionerRequestsAreRejectedBeforeAiOrPersistence() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"질문\",\"category\":\"AIR_CONDITIONER\"}"))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("지원 종료")));
+        assertThat(conversationRepository.count()).isZero();
+        assertThat(messageRepository.count()).isZero();
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @Test
+    void legacyAirConditionerHistoryAndEvidenceRemainReadableAndDeletable() throws Exception {
+        var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+        var conversation = conversationRepository.save(new Conversation(user, "과거 에어컨 상담", ProductCategory.AIR_CONDITIONER));
+        var reply = new ChatMessage(conversation, "assistant", "과거 답변");
+        reply.setSources(List.of(new RagSource("HC-AC-003", "과거 근거", ProductCategory.AIR_CONDITIONER,
+                "1.0", "rag-test-data/manuals/air-conditioner.md", "보존할 근거 본문")));
+        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "과거 질문"), reply));
+        long id = conversation.getId();
+        var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+        for (String category : new String[]{"", ",\"category\":\"WASHER\"", ",\"category\":\"AIR_CONDITIONER\""}) {
+            mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"추가 질문\",\"conversationId\":" + id + category + "}"))
+                    .andExpect(status().isBadRequest());
+        }
+        assertThat(messageRepository.count()).isEqualTo(2);
+        assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].category").value("AIR_CONDITIONER"));
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.category").value("AIR_CONDITIONER"))
+                .andExpect(jsonPath("$.messages[1].content").value("과거 답변"))
+                .andExpect(jsonPath("$.messages[1].sources[0].content").value("보존할 근거 본문"));
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        assertThat(messageRepository.count()).isZero();
+    }
+
+    @Test
+    void airConditionerMentionReturnsRetirementNoticeWithoutAi() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"에어컨이 안 켜져요\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("지원 종료")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @Test
+    void activeCatalogContainsOnlySixteenSupportedDocuments() {
+        assertThat(manualCatalog.documents()).hasSize(16).allMatch(document ->
+                !document.getMetadata().get("category").equals("AIR_CONDITIONER"));
+    }
+
     // Deterministic vectors test the real VectorStore/filter/prompt pipeline without paid API calls.
     private static float[] testEmbedding(String text) {
         float[] vector = new float[22];
@@ -752,8 +948,8 @@ class BackendApplicationTests {
             int group = List.of("AC", "RF", "WS", "DR", "DW").indexOf(document.group(1));
             vector[group * 4 + Integer.parseInt(document.group(2)) - 1] = 1;
             vector[20] = 1;
-        } else if (text.contains("찬 바람")) {
-            vector[2] = 1;
+        } else if (text.contains("크게 흔들려요")) {
+            vector[10] = 1;
         } else if (text.contains("아침 메뉴")) {
             vector[21] = 1;
         } else {

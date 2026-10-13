@@ -16,4 +16,8 @@ public enum ProductCategory {
     public String getLabel() {
         return label;
     }
+
+    public boolean isSupported() {
+        return this != AIR_CONDITIONER;
+    }
 }

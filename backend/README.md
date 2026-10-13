@@ -60,6 +60,7 @@ spring.datasource.password=spring1234
 로컬 명령·기존 DB 전환·CI/RDS 자동 적용은 [DB 마이그레이션 안내](../ops/DATABASE_MIGRATIONS.md)를 참조합니다.
 `app_users`는 계정, `chat_conversations`는 사용자별 대화 제목과 생성·갱신 시간,
 `chat_messages`는 대화에 속한 질문·답변과 작성 시간을 저장합니다.
+`user_products`는 사용자별 등록 가전의 품목·이름·모델명·구매일·설치 주소를 저장합니다.
 `chat_conversations.category`는 제품 카테고리를 저장합니다. 기존 기록은 `null`로 유지합니다.
 `chat_messages.sources`에는 답변 생성에 전달한 검색 근거를 JSON 문자열로 저장합니다.
 기존 메시지의 근거는 비어 있으며, 가상 매뉴얼이 나중에 바뀌어도 저장된 근거 본문은 유지됩니다.
@@ -135,7 +136,9 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 `conversationId`를 생략하거나 `null`로 보내면 새 대화를 만듭니다.
 기존 대화에 질문을 추가하려면 `{"message":"추가 질문","conversationId":1}`처럼 전달합니다.
 새 상담에는 `{"message":"탈수할 때 소리가 커요","category":"WASHER"}`처럼 제품 카테고리를 지정할 수 있습니다.
-지원 값은 `AIR_CONDITIONER`, `REFRIGERATOR`, `WASHER`, `DRYER`, `DISHWASHER`입니다.
+지원 값은 `REFRIGERATOR`, `WASHER`, `DRYER`, `DISHWASHER`입니다.
+`AIR_CONDITIONER` 요청과 기존 에어컨 상담의 추가 질문은 400을 반환하며 AI를 호출하거나 기록을 변경하지 않습니다.
+기존 에어컨 상담·검색 근거는 조회와 삭제가 가능합니다. 다른 품목으로 에어컨 질문을 보내면 AI 호출 없이 지원 종료를 안내합니다.
 카테고리는 대화에 저장되며 목록·상세 응답의 `category` 필드로 반환합니다.
 후속 요청에서 카테고리를 생략하면 저장된 값을 사용하며, 다른 카테고리로 변경하려 하면 400을 반환합니다.
 선택한 제품 카테고리를 LLM 질문에 함께 전달하되 DB의 질문 본문은 고객이 입력한 원문으로 저장합니다.
@@ -143,11 +146,44 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 첫 질문의 앞 50자를 대화 제목으로 사용합니다. 성공한 질문·답변은 하나의 트랜잭션으로 저장하며,
 AI 호출이 실패하거나 답변이 비어 있으면 대화 내역을 변경하지 않습니다.
 
+### 내 제품 조회·등록·수정
+
+아래 API는 모두 JWT 인증이 필요합니다. 사용자 ID는 요청으로 받지 않고 인증된 계정에서 결정합니다.
+
+| API | 동작 | 성공 응답 |
+| --- | --- | --- |
+| `GET /api/products` | 내 제품 목록, 등록 최신순 | 200, 제품 배열 (없으면 `[]`) |
+| `POST /api/products` | 제품 등록 | 201, 저장된 제품 |
+| `PUT /api/products/{id}` | 내 제품 전체 정보 수정 | 200, 수정된 제품 |
+
+요청 예시:
+
+```json
+{
+  "category": "REFRIGERATOR",
+  "name": "주방 냉장고",
+  "model": "RF-1",
+  "purchaseDate": "2025-03-15",
+  "postcode": "01234",
+  "address": "서울시 예시 주소",
+  "addressDetail": "101호"
+}
+```
+
+품목만 필수이며 냉장고·세탁기·건조기·식기세척기를 지원합니다. 이름은 40자, 모델명은 80자,
+기본 주소는 160자, 상세 주소는 100자까지 입력할 수 있습니다. 구매일은 한국 시간 기준 오늘 이하의 실제 날짜,
+우편번호는 숫자 5자리입니다. 상세 주소가 있으면 기본 주소가 필요합니다.
+문자열의 앞뒤 공백은 제거하며 빈 값은 `null`로 저장합니다. PUT에서 생략하거나 `null`로 보낸 선택 항목은 지워집니다.
+같은 품목을 여러 개 등록하거나 품목을 수정할 수 있습니다.
+응답은 요청 필드와 `id`, `createdAt`, `updatedAt`을 포함합니다.
+유효하지 않은 입력은 400, 인증 실패는 401, 존재하지 않거나 다른 계정의 제품 수정은 동일하게 404입니다.
+제품 삭제 API는 제공하지 않습니다. `user_products` 생성에는 새 V002 마이그레이션을 적용해야 합니다.
+
 ### RAG 동작
 
-1. `rag-test-data/manuals/*.md`를 `## HC-...` 단위로 나누어 20개 문서를 읽습니다. Gradle 빌드 시 매뉴얼을 JAR에 포함하므로 실행 위치와 관계없이 읽을 수 있습니다.
+1. `rag-test-data/manuals/*.md`를 `## HC-...` 단위로 나누어 16개 문서를 읽습니다. Gradle 빌드 시 매뉴얼을 JAR에 포함하므로 실행 위치와 관계없이 읽을 수 있습니다.
 2. 선택한 카테고리와 오류 코드를 확인합니다. 카테고리가 질문 속 제품과 다르면 확인 질문을 반환하며, 해당 제품 자료에 없는 `HC-E...` 코드는 의미를 만들어 답하지 않습니다.
-3. 최초 검색 시 `text-embedding-3-small`로 20개 문서를 배치 임베딩해 Spring AI `SimpleVectorStore`에 보관합니다. 이후에는 질문만 임베딩합니다.
+3. 최초 검색 시 `text-embedding-3-small`로 16개 문서를 배치 임베딩해 Spring AI `SimpleVectorStore`에 보관합니다. 이후에는 질문만 임베딩합니다.
 4. 제품명을 포함한 질문으로 검색하고 카테고리 메타데이터로 범위를 제한합니다. 유사도 0.30 이상인 상위 2개 문서를 찾습니다. 명시한 오류 코드가 있으면 그 코드의 문서를 우선 포함하며, 중복을 제거해 최대 3개 항목을 전달합니다.
 5. 검색한 매뉴얼과 질문을 `ChatClient`에 전달합니다. 근거에 없는 원인·수리비·보증 정책을 만들지 않도록 요청합니다. 검색 결과가 없으면 LLM 호출 없이 정보 부족 안내를 반환합니다.
 6. 답변과 검색 근거를 함께 저장하고 `sources`로 반환합니다. `GET /api/conversations/{id}`의 각 메시지에도 `sources`가 포함됩니다.
@@ -247,6 +283,7 @@ src/main/java/com/project/backend/
 ├── BackendApplication.java        # .env 로딩과 서버 기동
 ├── auth/                         # 회원가입·로그인 Controller, Service, DTO
 ├── user/                         # 사용자 엔티티, Repository, UserDetailsService
+├── product/                      # 사용자별 제품 조회·등록·수정 API와 저장
 ├── config/                       # Spring Security, JWT 서명·검증 설정
 ├── security/                     # JWT 발급
 ├── conversation/                 # 대화·메시지 엔티티, Repository, 조회·저장 API와 DTO

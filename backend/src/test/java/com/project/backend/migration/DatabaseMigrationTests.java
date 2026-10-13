@@ -2,6 +2,7 @@ package com.project.backend.migration;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -20,6 +21,18 @@ class DatabaseMigrationTests {
     private static final String URL = "jdbc:mysql://127.0.0.1:3307/backend_test";
     private static final String USER = "backend_test";
     private static final String PASSWORD = "test-password";
+
+    @BeforeEach
+    void resetDisposableDatabase() throws Exception {
+        try (var connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             var sql = connection.createStatement()) {
+            sql.execute("SET FOREIGN_KEY_CHECKS=0");
+            for (String table : new String[]{"user_products", "chat_messages", "chat_conversations", "app_users", "schema_migrations", "flyway_schema_history"}) {
+                sql.execute("DROP TABLE IF EXISTS " + table);
+            }
+            sql.execute("SET FOREIGN_KEY_CHECKS=1");
+        }
+    }
 
     @Test
     void verifiesFreshInstallLegacyAdoptionAndUpgradeFailures(@TempDir Path directory) throws Exception {
@@ -80,14 +93,52 @@ class DatabaseMigrationTests {
             assertThatThrownBy(() -> Flyway.configure().dataSource(URL, USER, PASSWORD).load().clean())
                     .hasMessageContaining("cleanDisabled");
         } finally {
-            try (var connection = DriverManager.getConnection(URL, USER, PASSWORD);
-                 var sql = connection.createStatement()) {
-                sql.execute("SET FOREIGN_KEY_CHECKS=0");
-                for (String table : new String[]{"chat_messages", "chat_conversations", "app_users", "schema_migrations", "flyway_schema_history"}) {
-                    sql.execute("DROP TABLE IF EXISTS " + table);
-                }
-                sql.execute("SET FOREIGN_KEY_CHECKS=1");
+            resetDisposableDatabase();
+        }
+    }
+
+    @Test
+    void productMigrationPreservesLegacyHistoryAndSupportsFreshInstall(@TempDir Path directory) throws Exception {
+        try (var stream = getClass().getResourceAsStream("/db/migration/V001__initial_schema.sql")) {
+            Files.write(directory.resolve("V001__initial_schema.sql"), stream.readAllBytes());
+        }
+        String location = "filesystem:" + directory;
+        try (var connection = DriverManager.getConnection(URL, USER, PASSWORD);
+             var sql = connection.createStatement()) {
+            DatabaseMigration.migrate(URL, USER, PASSWORD, location);
+            sql.executeUpdate("INSERT INTO app_users(id,email,password,role) VALUES (1,'product-migration@example.com','hash','USER')");
+            sql.executeUpdate("INSERT INTO chat_conversations(id,user_id,title,category,created_at,updated_at) VALUES (1,1,'legacy','AIR_CONDITIONER',NOW(),NOW())");
+            sql.executeUpdate("INSERT INTO chat_messages(conversation_id,role,content,sources,created_at) VALUES (1,'assistant','legacy reply','[]',NOW())");
+            try (var stream = getClass().getResourceAsStream("/db/migration/V002__create_user_products.sql")) {
+                Files.write(directory.resolve("V002__create_user_products.sql"), stream.readAllBytes());
             }
+            DatabaseMigration.migrate(URL, USER, PASSWORD, location);
+            DatabaseMigration.migrate(URL, USER, PASSWORD, location);
+            try (var rows = sql.executeQuery("SELECT category,content,sources FROM chat_conversations JOIN chat_messages ON chat_conversations.id=conversation_id")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString(1)).isEqualTo("AIR_CONDITIONER");
+                assertThat(rows.getString(2)).isEqualTo("legacy reply");
+                assertThat(rows.getString(3)).isEqualTo("[]");
+            }
+            sql.executeUpdate("INSERT INTO user_products(user_id,category,created_at,updated_at) VALUES (1,'WASHER',NOW(),NOW())");
+            try (var rows = sql.executeQuery("SELECT name,purchase_date,address FROM user_products")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getString(1)).isNull();
+                assertThat(rows.getDate(2)).isNull();
+                assertThat(rows.getString(3)).isNull();
+            }
+            assertThatThrownBy(() -> sql.executeUpdate("INSERT INTO user_products(user_id,category,created_at,updated_at) VALUES (1,'AIR_CONDITIONER',NOW(),NOW())"))
+                    .isInstanceOf(java.sql.SQLException.class);
+            for (String table : new String[]{"user_products", "chat_messages", "chat_conversations", "app_users", "flyway_schema_history"}) {
+                sql.execute("DROP TABLE " + table);
+            }
+            DatabaseMigration.migrate(URL, USER, PASSWORD, "classpath:db/migration");
+            try (var rows = sql.executeQuery("SELECT COUNT(*) FROM user_products")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getInt(1)).isZero();
+            }
+        } finally {
+            resetDisposableDatabase();
         }
     }
 }

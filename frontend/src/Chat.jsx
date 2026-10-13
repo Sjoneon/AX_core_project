@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { apiUrl } from './api.js'
+import { useAuthenticatedRequest } from './api.js'
 import Brand from './components/Brand.jsx'
 import Icon from './components/Icon.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { PRODUCTS, productName } from './data/products.js'
 
-export default function Chat({ session, onLogout }) {
+export default function Chat({ session, onLogout, isActive, onMyPage }) {
   const [messages, setMessages] = useState([])
   const [conversations, setConversations] = useState([])
   const [conversationId, setConversationId] = useState(null)
@@ -26,27 +26,10 @@ export default function Chat({ session, onLogout }) {
   const sendingRef = useRef(false)
   const isBusy = isSending || isLoading || isDeleting
   const started = messages.length > 0
+  const retired = category === 'AIR_CONDITIONER'
   const selectedProduct = PRODUCTS.find((product) => product.id === category) || PRODUCTS[0]
 
-  const request = useCallback(async (path, options = {}) => {
-    const response = await fetch(apiUrl(path), {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      signal: options.signal || AbortSignal.timeout(35_000),
-    })
-    const data = await response.json().catch(() => null)
-    if (response.status === 401) {
-      onLogout('로그인이 만료되었습니다. 다시 로그인해 주세요.')
-      throw new Error('다시 로그인해 주세요.')
-    }
-    if (!response.ok) {
-      throw new Error(data?.message || '요청을 처리하지 못했습니다. 서버 실행 상태를 확인해 주세요.')
-    }
-    return data
-  }, [session.accessToken, onLogout])
+  const request = useAuthenticatedRequest(session, onLogout)
 
   const loadHistory = useCallback(async (signal) => {
     try {
@@ -79,10 +62,11 @@ export default function Chat({ session, onLogout }) {
   }, [request])
 
   useEffect(() => {
+    if (!isActive) return
     const conversation = conversationRef.current
-    if (!isBusy && !mobileOpen && !deleteTarget) inputRef.current.focus({ preventScroll: true })
+    if (!isBusy && !mobileOpen && !deleteTarget && !retired) inputRef.current.focus({ preventScroll: true })
     conversation.scrollTop = messages.length ? conversation.scrollHeight : 0
-  }, [messages, isBusy, mobileOpen, deleteTarget])
+  }, [messages, isBusy, mobileOpen, deleteTarget, isActive, retired])
 
   useEffect(() => {
     if (mobileOpen) historyDialogRef.current.showModal()
@@ -121,7 +105,7 @@ export default function Chat({ session, onLogout }) {
   async function sendMessage(event) {
     event.preventDefault()
     const message = draft.trim()
-    if (!message || isBusy || sendingRef.current || (!started && !category)) return
+    if (!message || isBusy || retired || sendingRef.current || (!started && !category)) return
 
     sendingRef.current = true
     setError('')
@@ -227,6 +211,7 @@ export default function Chat({ session, onLogout }) {
         <span className="header-description">가전의 불편함, 함께 해결해요.</span>
         <div className="header-account">
           <span className="signed-in-email" title={session.email}>{session.email}</span>
+          <button className="logout-button" type="button" onClick={onMyPage} disabled={isBusy || mobileOpen || Boolean(deleteTarget)}>마이페이지</button>
           <button className="logout-button" type="button" onClick={() => onLogout()} disabled={isBusy}>로그아웃</button>
         </div>
       </header>
@@ -234,8 +219,8 @@ export default function Chat({ session, onLogout }) {
         <div className="desktop-sidebar"><Sidebar {...sidebarProps} /></div>
         <main className="chat-main" id="main">
           <div className="chat-toolbar">
-            <div><span className="toolbar-icon"><Icon name={started ? category : 'chat'} size={21} /></span><h1>{started ? `${productName(category)} 상담` : '가전 상담'}</h1><span className="toolbar-label">{isLoading ? '불러오는 중' : isSending ? '답변 작성 중' : started ? '상담 중' : '새 상담'}</span></div>
-            <span className="toolbar-help">모델명 없이 카테고리로 시작해요</span>
+            <div><span className="toolbar-icon"><Icon name={started ? category : 'chat'} size={21} /></span><h1>{started ? `${productName(category)} 상담` : '가전 상담'}</h1><span className="toolbar-label">{isLoading ? '불러오는 중' : isSending ? '답변 작성 중' : retired ? '기록 조회' : started ? '상담 중' : '새 상담'}</span></div>
+            <span className="toolbar-help">{retired ? '기존 기록을 조회할 수 있어요' : '모델명 없이 카테고리로 시작해요'}</span>
           </div>
           <div className="chat-scroll" ref={conversationRef} aria-busy={isBusy}>
             {!started ? (
@@ -290,10 +275,10 @@ export default function Chat({ session, onLogout }) {
             {error && <p className="error" role="alert">{error}</p>}
             <form className="chat-form" onSubmit={sendMessage}>
               <label className="sr-only" htmlFor="chat-message">제품 증상 또는 질문</label>
-              <textarea id="chat-message" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={started ? '궁금한 점을 이어서 입력해 주세요.' : category ? `예: ${selectedProduct.example}` : '어떤 증상인지 편하게 적어주세요.'} maxLength={4000} readOnly={isBusy} required rows={2} aria-describedby="composer-hint" />
-              <div className="composer-controls"><span className="character-count">{draft.length.toLocaleString()} / 4,000</span><button className="send-button" type="submit" disabled={isBusy || !draft.trim() || (!started && !category)}>{isSending ? '응답 기다리는 중' : started ? '보내기' : '상담 시작'}<Icon name="send" size={19} /></button></div>
+              <textarea id="chat-message" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={retired ? '에어컨 상담은 지원 종료되었습니다. 기존 기록만 조회할 수 있어요.' : started ? '궁금한 점을 이어서 입력해 주세요.' : category ? `예: ${selectedProduct.example}` : '어떤 증상인지 편하게 적어주세요.'} maxLength={4000} readOnly={isBusy || retired} disabled={retired} required rows={2} aria-describedby="composer-hint" />
+              <div className="composer-controls"><span className="character-count">{draft.length.toLocaleString()} / 4,000</span><button className="send-button" type="submit" disabled={isBusy || retired || !draft.trim() || (!started && !category)}>{retired ? '지원 종료' : isSending ? '응답 기다리는 중' : started ? '보내기' : '상담 시작'}<Icon name="send" size={19} /></button></div>
             </form>
-            <div className="composer-help" id="composer-hint"><span>{!started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>가상 매뉴얼 기반 테스트 상담입니다.</span></div>
+            <div className="composer-help" id="composer-hint"><span>{retired ? '새 상담 시작을 눌러 지원하는 품목을 선택해 주세요.' : !started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>가상 매뉴얼 기반 테스트 상담입니다.</span></div>
           </div>
         </main>
       </div>

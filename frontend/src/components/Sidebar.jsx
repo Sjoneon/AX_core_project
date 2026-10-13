@@ -44,7 +44,7 @@ export default function Sidebar({ conversations, activeId, onSelect, onNew, onDe
                   <button className={`history-item ${activeId === item.id ? 'is-active' : ''}`} type="button" onClick={() => onSelect(item.id)} disabled={isBusy} aria-current={activeId === item.id ? 'true' : undefined}>
                     <span className="history-product"><Icon name={item.category} size={17} />{productName(item.category)}<time dateTime={item.updatedAt}>{new Date(item.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}</time></span>
                     <strong>{item.title}</strong>
-                    <span className="history-date">{new Date(item.updatedAt).toLocaleDateString('ko-KR')} · 이어서 질문하기</span>
+                    <span className="history-date">{new Date(item.updatedAt).toLocaleDateString('ko-KR')} · {item.category === 'AIR_CONDITIONER' ? '기록 조회' : '이어서 질문하기'}</span>
                   </button>
                   <button className="delete-chat" type="button" onClick={() => onDelete(item)} disabled={isBusy} aria-label={`${productName(item.category)} 상담 삭제: ${item.title}`} title="상담 삭제"><Icon name="trash" size={16} /></button>
                 </div>
