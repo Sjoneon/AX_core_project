@@ -11,14 +11,14 @@ from unittest.mock import patch
 
 
 def load_script(name):
-    spec = importlib.util.spec_from_file_location(name, Path(__file__).parents[1] / f'{name}.py')
+    spec = importlib.util.spec_from_file_location(Path(name).name, Path(__file__).parents[1] / f'{name}.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-writer = load_script('write-runtime-env')
-registrar = load_script('register-parameters')
+writer = load_script('deploy/write-runtime-env')
+registrar = load_script('setup/register-parameters')
 
 
 class RuntimeEnvironmentTests(unittest.TestCase):

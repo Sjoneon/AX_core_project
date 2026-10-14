@@ -1,0 +1,17 @@
+{
+  "release_id": "manual-https-20261012-f4c0a29c11",
+  "source_commit": "203090e6d6576390be76bbd7cdc61a20d62a0851",
+  "source_note": "HTTPS IP certificate and exact Vercel-origin CORS; workspace configuration archived.",
+  "backend_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/backend@sha256:5499c9246c9d356c2871b4e15f14fe9095f2ea3fbff6df0ab35378cfe30afc44",
+  "api_base_url": "https://43.202.80.116",
+  "frontend_origin": "https://homecare-omega-eight.vercel.app",
+  "nginx_image": "528215464049.dkr.ecr.ap-northeast-2.amazonaws.com/homecare-prod/nginx@sha256:c18b56874026f5202dc15433b4be3a305ed5e6baaa5cb1536d2f1883ba8d6f79",
+  "artifact_s3_uri": "s3://homecare-prod-releases-528215464049-ap-northeast-2/releases/manual-https-20261012-f4c0a29c11/release-v2.tar.gz",
+  "artifact_sha256": "5e712cd5442a254462931a9132e3c98930abc0500f1ca06def71f9c0513c1dd9",
+  "vercel_project": "homecare",
+  "vercel_deployment_id": "dpl_J14w5eXGVpRp9dxNCxuS8mhAwmcj",
+  "vercel_git_connected": false,
+  "certificate_name": "homecare-api",
+  "certificate_profile": "shortlived",
+  "certificate_initial_not_after": "2026-10-19T01:29:08Z"
+}
