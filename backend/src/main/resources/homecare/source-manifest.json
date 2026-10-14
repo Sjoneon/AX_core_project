@@ -1,0 +1,117 @@
+{
+  "version": "B30-COST-V3-20261013-R3",
+  "knowledgeCount": 1542,
+  "exactSalesCodes": 52,
+  "costGroups": 32,
+  "originalB30": {
+    "schema_version": "1.0",
+    "batch": "B30",
+    "created_at": "2026-10-11T11:36:52.355536+09:00",
+    "status": "collection_closed_and_offline_consolidation_complete",
+    "source": {
+      "batch": "B29",
+      "library_file_id": "libfile_fae7ead9b0708191b1eb42d57bf50946",
+      "file_id": "file_0000000022b481fdb60fe8dd0d4d35d7",
+      "version": 0,
+      "zip_sha256": "7253278cb7de9ce6a57dbac2335c268dcede3530b7102ed61fb0506a583596bc"
+    },
+    "counts": {
+      "representative_products": 38,
+      "sale_codes": 52,
+      "official_manuals": 25,
+      "knowledge_records": 1659,
+      "new_source_facts": 0,
+      "new_models": 0,
+      "applicability_update_targets": 45,
+      "procedure_supplements": 19,
+      "current_QA_reviews": 46,
+      "QA_rows_with_present_field_changes": 7,
+      "source_conflicts": 10,
+      "part_compatibility_rows": 11,
+      "remaining_collection_tasks": 0
+    },
+    "release_scope": {
+      "from": "2024-01",
+      "through": "2026-06",
+      "period_representatives": 37,
+      "period_sale_codes": 51,
+      "one_time_outside_period_exception": {
+        "model": "RD21ESE",
+        "release_month": "2023-01"
+      }
+    },
+    "entrypoints": {
+      "products": "products_B30.json",
+      "representatives": "representatives_B30.json",
+      "sale_code_lookup": "model_code_lookup_B30.json",
+      "knowledge": "knowledge_effective_B30.jsonl",
+      "model_information_index": "model_information_index_B30.json",
+      "manuals": "manuals_B30.json",
+      "reviews_and_constraints": "review_links_B30.json",
+      "validation": "validation_B30.json",
+      "offline_query_script": "query_B30.py",
+      "usage": "README_B30.md"
+    },
+    "source_snapshot_directory": "snapshot_B29",
+    "current_QA_overlay_rule": "only present review fields supplement original record; missing fields never erase source safety data",
+    "applicability_rule": "effective_model_lists replace only corresponding model-list fields; preserve full review scope and original branch/hardware/diagram conditions",
+    "supplement_rule": "follow documented preferred links; supplements do not erase original conditions or authorize every branch",
+    "registration_rule": "preserve original input; outer trim and uppercase; exact full sale-code match only",
+    "same_family_parts_rule": "retrieve parts by exact sale code and full verified revision; color reuse does not prove parts fit",
+    "candidate_index_is_not_action_approval": true,
+    "standalone_execution_allowed": false,
+    "database_or_application_integration_implemented": false,
+    "new_model_collection_enabled": false,
+    "next_collection_batch": null,
+    "snapshot_historical_file_references_are_not_current_entrypoints": true
+  },
+  "costSha256": "fafdf54cf9ef0139121a5eb48c251662f696a53b994f15c4a6e04204e68e8f18",
+  "unavailable": [
+    "REFERENCE 후기 원문: 미제공, VALIDATION 추정 유입 금지",
+    "모델별 조치 실행 승인: candidate만으로 승인 금지",
+    "부품보유기간 구조화 값: B30 원본(knowledge_effective_B30.jsonl, checksums_B30.json) 미확보로 제공하지 않음"
+  ],
+  "scopeFilter": {
+    "supportedCategories": [
+      "WASHER",
+      "DRYER",
+      "REFRIGERATOR",
+      "DISHWASHER"
+    ],
+    "excludedFactIds": [
+      "B20-QA-20153004133823"
+    ],
+    "reason": "현재 지원 품목 이외의 내용이 포함된 원문 후보는 변형하지 않고 검색 대상에서 제외",
+    "knowledgeSha256": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d"
+  },
+  "costSource": {
+    "file": "한국기준_예상수리비_표_v3.csv",
+    "sha256": "fafdf54cf9ef0139121a5eb48c251662f696a53b994f15c4a6e04204e68e8f18",
+    "rows": 33,
+    "excluded": [
+      {
+        "part_code": "D02",
+        "part_name": "히터(미국 전기식)",
+        "reason": "제외(미국형 전기식 건조기 전용 부품)"
+      }
+    ],
+    "basis": "평일 출장비 28,000원 포함 유상 수리 예상 총액(중앙·80% 범위)",
+    "surcharge_rule": "평일 0원, 야간·휴일 = 야간·휴일 가산, 6~8월 평일 = 6~8월 가산 앞 값, 6~8월 야간·휴일 = 6~8월 가산 뒤 값(야간·휴일 가산과 중복 합산하지 않음). 출장비 고정 가산이므로 중앙·하한·상한에 같은 금액을 더한다.",
+    "validation": {
+      "cases": 20,
+      "median_absolute_error_percent": 11.2,
+      "range_hit_percent": 80,
+      "note": "등급·축소 강도·범위 폭을 같은 20건으로 골랐으므로 새 사례에서는 오차가 더 클 수 있음"
+    }
+  },
+  "files": {
+    "homecare/knowledge.json": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d",
+    "homecare/models.json": "2ce393c119cf15b98b064eb9c0e6fd3125447e66e904c2df2c4fcd49b8af2e8c",
+    "homecare/parts.json": "df4f4bec34a3ede439fbd031b3c20b3c0b3b3ad50252a943f2d8f828ab3fdc51",
+    "homecare/centers.json": "ffedeee1e920217cb984c68534c7b447acf02ef630330ac3aed837b763b1294a",
+    "homecare/route.json": "be9bb0ef8ac6b96d92f1fb652640127c2825e0b980521d2e8a1b3dc0ded61d16",
+    "homecare/approved-plans.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+    "homecare/repair-cases.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+    "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f"
+  }
+}

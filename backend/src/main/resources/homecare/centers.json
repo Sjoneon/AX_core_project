@@ -1,0 +1,5 @@
+[
+ {"id":252,"name":"대치서비스센터","sido":"서울","sigungu":"강남구","address":"서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층","phone":null,"hours":"평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인","detail_url":"https://www.lge.co.kr/support/find-service-center-252","base_date":"2026-10-13"},
+ {"id":143,"name":"분당서비스센터","sido":"경기","sigungu":"성남시 분당구","address":"경기도 성남시 분당구 수내로 39 분당지웰푸르지오 2층 216호","phone":null,"hours":"평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인","detail_url":"https://www.lge.co.kr/support/find-service-center-143","base_date":"2026-10-13"},
+ {"id":145,"name":"북수원서비스센터","sido":"경기","sigungu":"수원시 장안구","address":"경기도 수원시 장안구 장안로 72 LG BEST SHOP 정자사거리점 대교빌딩 3층","phone":null,"hours":"평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인","detail_url":"https://www.lge.co.kr/support/find-service-center-145","base_date":"2026-10-13"}
+]

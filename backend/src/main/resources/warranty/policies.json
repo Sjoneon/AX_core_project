@@ -1,0 +1,221 @@
+{
+  "version": "LG-KR-2026-10-13-v2",
+  "sourceUrl": "https://www.lge.co.kr/support/rates-warranty-guide",
+  "verifiedOn": "2026-10-13",
+  "policies": [
+    {
+      "id": "REFRIGERATOR_PRODUCT",
+      "category": "REFRIGERATOR",
+      "scope": "PRODUCT",
+      "name": "제품 전체 보증",
+      "variant": null,
+      "periodMonths": 12,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+      ]
+    },
+    {
+      "id": "WASHER_PRODUCT",
+      "category": "WASHER",
+      "scope": "PRODUCT",
+      "name": "제품 전체 보증",
+      "variant": null,
+      "periodMonths": 12,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+      ]
+    },
+    {
+      "id": "DRYER_PRODUCT",
+      "category": "DRYER",
+      "scope": "PRODUCT",
+      "name": "제품 전체 보증",
+      "variant": null,
+      "periodMonths": 12,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+      ]
+    },
+    {
+      "id": "DISHWASHER_PRODUCT",
+      "category": "DISHWASHER",
+      "scope": "PRODUCT",
+      "name": "제품 전체 보증",
+      "variant": null,
+      "periodMonths": 12,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+      ]
+    },
+    {
+      "id": "REFRIGERATOR_STANDARD_COMPRESSOR",
+      "category": "REFRIGERATOR",
+      "scope": "CORE_PART",
+      "name": "일반 컴프레서",
+      "variant": "STANDARD_COMPRESSOR",
+      "periodMonths": 36,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요"
+      ]
+    },
+    {
+      "id": "REFRIGERATOR_INVERTER_COMPRESSOR",
+      "category": "REFRIGERATOR",
+      "scope": "CORE_PART",
+      "name": "인버터 컴프레서",
+      "variant": "INVERTER_COMPRESSOR",
+      "periodMonths": 120,
+      "producedFrom": "2021-10-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2021-10-01 이후인지 확인 필요"
+      ]
+    },
+    {
+      "id": "REFRIGERATOR_LINEAR_COMPRESSOR",
+      "category": "REFRIGERATOR",
+      "scope": "CORE_PART",
+      "name": "리니어 컴프레서",
+      "variant": "LINEAR_COMPRESSOR",
+      "periodMonths": 120,
+      "producedFrom": "2009-10-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2009-10-01 이후인지 확인 필요"
+      ]
+    },
+    {
+      "id": "WASHER_STANDARD_MOTOR",
+      "category": "WASHER",
+      "scope": "CORE_PART",
+      "name": "일반 모터",
+      "variant": "STANDARD_MOTOR",
+      "periodMonths": 36,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요"
+      ]
+    },
+    {
+      "id": "WASHER_DD_MOTOR",
+      "category": "WASHER",
+      "scope": "CORE_PART",
+      "name": "DD모터",
+      "variant": "DD_MOTOR",
+      "periodMonths": 120,
+      "producedFrom": "2008-08-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2008-08-01 이후인지 확인 필요"
+      ]
+    },
+    {
+      "id": "DRYER_INVERTER_COMPRESSOR",
+      "category": "DRYER",
+      "scope": "CORE_PART",
+      "name": "인버터 컴프레서",
+      "variant": "INVERTER_COMPRESSOR",
+      "periodMonths": 120,
+      "producedFrom": "2016-05-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2016-05-01 이후인지 확인 필요"
+      ]
+    },
+    {
+      "id": "DRYER_INVERTER_MOTOR",
+      "category": "DRYER",
+      "scope": "CORE_PART",
+      "name": "인버터 모터",
+      "variant": "INVERTER_MOTOR",
+      "periodMonths": 120,
+      "producedFrom": "2016-05-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2016-05-01 이후인지 확인 필요"
+      ]
+    },
+    {
+      "id": "DISHWASHER_STANDARD_MOTOR",
+      "category": "DISHWASHER",
+      "scope": "CORE_PART",
+      "name": "일반 모터",
+      "variant": "STANDARD_MOTOR",
+      "periodMonths": 12,
+      "producedFrom": null,
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요"
+      ]
+    },
+    {
+      "id": "DISHWASHER_DD_MOTOR",
+      "category": "DISHWASHER",
+      "scope": "CORE_PART",
+      "name": "DD모터",
+      "variant": "DD_MOTOR",
+      "periodMonths": 120,
+      "producedFrom": "2010-01-01",
+      "requiredProductType": null,
+      "freePart": true,
+      "freeLabor": true,
+      "freeVisit": null,
+      "conditions": [
+        "해당 부품을 사용하는 모델인지 확인 필요",
+        "생산일이 2010-01-01 이후인지 확인 필요"
+      ]
+    }
+  ]
+}
