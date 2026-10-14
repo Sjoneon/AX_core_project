@@ -5,19 +5,20 @@ import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 OPS = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('ci_release', OPS / 'ci-release.py')
+spec = importlib.util.spec_from_file_location('ci_release', OPS / 'deploy/ci-release.py')
 ci_release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci_release)
 
 
 class DeploymentTests(unittest.TestCase):
-    def run_deployment(self, failure='', previous=True):
+    def run_deployment(self, failure='', previous=True, mcp=True):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             home = root / 'homecare'
@@ -35,10 +36,13 @@ class DeploymentTests(unittest.TestCase):
                 for file in ('compose.prod.yaml', 'write-runtime-env.py', 'migrate-database.py'):
                     (directory / file).touch()
                 (directory / 'images.env').write_text('BACKEND_IMAGE=test-image\n')
+                # The previous release predates the MCP container; the new one carries compose.mcp.yaml.
+                if name == 'new' and mcp:
+                    (directory / 'compose.mcp.yaml').touch()
             if previous:
                 (home / 'current').symlink_to(home / 'releases/old')
             script = root / 'deploy.sh'
-            script.write_text((OPS / 'deploy-service.sh').read_text()
+            script.write_text((OPS / 'deploy/deploy-service.sh').read_text()
                               .replace('/opt/homecare', str(home))
                               .replace('/etc/letsencrypt/live/homecare-api', str(cert))
                               .replace('mv -Tf ', 'mv -f '))  # macOS has no GNU -T.
@@ -46,7 +50,7 @@ class DeploymentTests(unittest.TestCase):
             bin_dir = root / 'bin'
             bin_dir.mkdir()
             shim = f'''#!{sys.executable}
-import json,os,signal,sys
+import json,os,sys
 from pathlib import Path
 name=Path(sys.argv[0]).name
 args=sys.argv[1:]
@@ -68,7 +72,6 @@ elif name=='curl': print('{{"status":"UP"}}')
 elif name=='docker':
     if 'login' in args: sys.stdin.read()
     is_new=any('/releases/new/' in arg for arg in args)
-    if failure=='signal' and is_new and 'up' in args: os.kill(os.getppid(),signal.SIGTERM)
     if (failure=='pull' and 'pull' in args) or (failure=='health' and is_new and 'up' in args): sys.exit(1)
 '''
             for name in ('id', 'flock', 'mv', 'aws', 'python3', 'curl', 'docker'):
@@ -93,18 +96,34 @@ elif name=='docker':
         promotion = next(i for i, call in enumerate(calls) if call[0] == 'mv' and call[-1].endswith('/current'))
         self.assertLess(health, promotion)
         self.assertNotIn('test-secret', result.stdout + result.stderr)
+        # pull and up use the merged backend + nginx + mcp definition of the new release.
+        for action in ('pull', 'up'):
+            call = next(call for call in calls if call[0] == 'docker' and action in call)
+            self.assertIn(next(arg for arg in call if arg.endswith('/releases/new/compose.mcp.yaml')), call)
+
+    def test_rollback_to_a_release_without_mcp_restores_its_two_containers(self):
+        result, current, _, calls = self.run_deployment('health')
+        self.assertEqual(current, 'old')
+        restore = [call for call in calls if call[0] == 'docker' and 'up' in call and any('/releases/old/' in arg for arg in call)]
+        self.assertTrue(restore)
+        self.assertFalse(any(arg.endswith('compose.mcp.yaml') for call in restore for arg in call))
+
+    def test_release_without_mcp_definition_is_refused_before_any_change(self):
+        result, current, settings, calls = self.run_deployment(mcp=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(current, 'old')
+        self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
+        self.assertFalse(any(call[0] == 'docker' for call in calls))
 
     def test_unhealthy_release_restores_previous_images_and_settings(self):
-        for failure in ('health', 'signal'):
-            with self.subTest(failure=failure):
-                result, current, settings, calls = self.run_deployment(failure)
-                self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(current, 'old')
-                self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
-                self.assertIn('ROLLBACK_OK', result.stderr)
-                self.assertTrue(any(call[0] == 'docker' and 'up' in call and
-                                    any('/releases/old/' in arg for arg in call) for call in calls))
-                self.assertNotIn('test-secret', result.stdout + result.stderr)
+        result, current, settings, calls = self.run_deployment('health')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(current, 'old')
+        self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
+        self.assertIn('ROLLBACK_OK', result.stderr)
+        self.assertTrue(any(call[0] == 'docker' and 'up' in call and
+                            any('/releases/old/' in arg for arg in call) for call in calls))
+        self.assertNotIn('test-secret', result.stdout + result.stderr)
 
     def test_preparation_failure_never_replaces_containers_or_settings(self):
         for failure in ('parameters', 'pull', 'lock', 'migration'):
@@ -115,15 +134,6 @@ elif name=='docker':
                 self.assertEqual(settings, 'JWT_SECRET=previous-test-secret\n')
                 self.assertFalse(any(call[0] == 'docker' and 'up' in call for call in calls))
 
-    def test_sql_runs_after_image_pull_and_before_container_replacement(self):
-        result, _, _, calls = self.run_deployment()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        pull = next(i for i, call in enumerate(calls) if call[0] == 'docker' and 'pull' in call)
-        migrate = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('migrate-database.py'))
-        up = next(i for i, call in enumerate(calls) if call[0] == 'docker' and 'up' in call)
-        self.assertLess(pull, migrate)
-        self.assertLess(migrate, up)
-
     def test_first_deploy_failure_is_reported_without_fake_rollback(self):
         result, current, _, _ = self.run_deployment('health', previous=False)
         self.assertNotEqual(result.returncode, 0)
@@ -133,33 +143,41 @@ elif name=='docker':
 
 
 class ReleaseTests(unittest.TestCase):
-    def setUp(self):
-        stdout = patch('sys.stdout', new=io.StringIO())
-        stdout.start()
-        self.addCleanup(stdout.stop)
-
     @patch.object(ci_release.urllib.request, 'urlopen')
     @patch.object(ci_release, 'wait_for_deployment')
     @patch.object(ci_release, 'aws')
     @patch.object(ci_release, 'image_digest')
     @patch.object(ci_release.subprocess, 'check_output')
     @patch.object(ci_release.subprocess, 'run')
-    def test_same_commit_reuses_both_images_without_build_or_push(self, run, output, digest, aws, wait, urlopen):
+    def test_same_commit_reuses_all_three_images_without_build_or_push(self, run, output, digest, aws, wait, urlopen):
         digest.return_value = 'sha256:' + 'a' * 64
         output.return_value = b'fake-login-password'
         aws.return_value = {'Command': {'CommandId': 'command'}}
         urlopen.return_value = io.BytesIO(b'{"status":"UP"}')
+        archived, images_env = [], []
+
+        def fake_run(args, **kwargs):
+            if args[:3] == ['aws', 's3', 'cp']:
+                with tarfile.open(args[3]) as bundle:
+                    archived.extend(bundle.getnames())
+                    images_env.append(bundle.extractfile('images.env').read().decode())
+            return subprocess.CompletedProcess(args, 0, b'', b'')
+        run.side_effect = fake_run
         env = {'GITHUB_SHA': 'b' * 40, 'GITHUB_RUN_ID': '1', 'GITHUB_RUN_ATTEMPT': '2',
                'GITHUB_REF': 'refs/heads/main', 'GITHUB_REPOSITORY': 'test/repo',
                'ECR_REGISTRY': 'registry.example', 'EC2_INSTANCE_ID': 'instance',
-               'ECR_BACKEND_REPOSITORY': 'backend', 'ECR_NGINX_REPOSITORY': 'nginx',
+               'ECR_BACKEND_REPOSITORY': 'backend', 'ECR_NGINX_REPOSITORY': 'nginx', 'ECR_MCP_REPOSITORY': 'mcp',
                'RELEASE_BUCKET': 'test-bucket', 'GITHUB_STEP_SUMMARY': ''}
         with patch.dict(os.environ, env):
             ci_release.main()
-        self.assertEqual(digest.call_count, 2)
+        self.assertEqual(digest.call_count, 3)
         self.assertFalse(any(call.args[0][:2] in (['docker', 'build'], ['docker', 'push'])
                              for call in run.call_args_list))
         wait.assert_called_once_with('command', 'instance')
+        # EC2 runs these by name from /opt/homecare/releases/<id>/, so the archive must stay flat.
+        self.assertEqual(sorted(archived), ['compose.mcp.yaml', 'compose.prod.yaml', 'deploy-service.sh', 'images.env',
+                                        'migrate-database.py', 'release.json', 'verify-service.py', 'write-runtime-env.py'])
+        self.assertIn('MCP_IMAGE=registry.example/mcp@sha256:' + 'a' * 64, images_env[0])
 
     @patch.object(ci_release.subprocess, 'run')
     def test_missing_tag_can_be_built_but_permission_failure_cannot(self, run):

@@ -10,7 +10,25 @@ CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태
 6단계에서 IP 인증서 기반 HTTPS·정확한 Vercel origin CORS·인증서 자동 갱신을 적용했습니다.
 [HTTPS·CORS 안내](HTTPS_CORS.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
 7단계 워크플로와 릴리스·복원 정책은 [CI/CD 안내](CI_CD.md)를 참고합니다.
-8단계 Vercel Git 배포·대시보드·백업 복구는 [운영 안내](OPERATIONS.md)를 참고합니다.
+
+## 폴더 구조
+
+| 폴더 | 내용 | 실행 시점 |
+|---|---|---|
+| `compose/` | `compose.prod.yaml`(운영), `compose.mcp.yaml`(MCP 추가), `compose.acme.yaml`(첫 인증서 발급용) | 배포마다 |
+| `deploy/` | `ci-release.py`(CI), `deploy-service.sh`·`write-runtime-env.py`(EC2), `start-service.sh`(수동 시작) | 배포마다 |
+| `checks/` | `test-proxy.py`(CI 프록시 검사), `verify-service.py`(배포 후 수동 점검) | CI·수동 |
+| `setup/` | `bootstrap-ec2.sh`, `register-parameters.py`, `setup-https.sh`, `renew-nginx.sh`(인증서 갱신 훅) | 서버 최초 구축 |
+| `rds/` | `prepare-rds-tls.sh`, `run-rds-initialization.py`, `initialize-rds.py`, `verify-rds.py`, `sql/` | DB 최초 구축·스키마 |
+| `records/` | `STAGE5_RELEASE.json`, `STAGE6_RELEASE.json` 수동 배포 기록 | 실행과 무관 |
+| 루트의 `*.md` | 기존 운영 문서 | — |
+| `tests/` | 위 스크립트의 단위 테스트 | CI |
+
+`ci-release.py`는 `compose.prod.yaml`, `deploy-service.sh`, `write-runtime-env.py`, `verify-service.py`를
+폴더 구분 없이 릴리스 묶음 최상위에 담습니다. 그래서 EC2의 `/opt/homecare/releases/<id>/`와
+`/usr/local/lib/homecare/` 경로는 저장소 폴더 구조와 관계없이 그대로입니다.
+
+기존 GitHub Actions가 사용하는 루트 실행 파일은 유지합니다. `deploy/`, `compose/`, `checks/`의 MCP 배포 경로는 별도로 호출할 수 있으며, MCP 이미지를 배포하려면 `ECR_MCP_REPOSITORY` 설정이 필요합니다. 이번 브랜치에는 워크플로 변경을 포함하지 않습니다.
 
 ## 권한과 자격증명
 
@@ -37,7 +55,6 @@ Terraform이 `/homecare/prod/` 아래에 일반 String 파라미터 7개를 관�
 
 DB 앱 계정·스키마와 RDS CA truststore는 4단계에서 준비·검증했습니다.
 [RDS 초기화 안내](RDS_INITIALIZATION.md)에 초기 SQL·권한·TLS와 재실행 절차를 기록했습니다.
-후속 스키마 변경 자동화는 [DB 마이그레이션 안내](DATABASE_MIGRATIONS.md)를 따릅니다.
 truststore 비밀번호 `changeit`은 공개 CA 인증서를 담은 파일의 설정이며 DB 비밀번호가 아닙니다.
 검증 컨테이너에 호스트의 공개 CA truststore를 `/app/config/rds-truststore.p12`에
 읽기 전용으로 연결했습니다. 5단계 상시 앱 배포에서도 같은 경로를 사용합니다.
@@ -57,7 +74,7 @@ truststore 비밀번호 `changeit`은 공개 CA 인증서를 담은 파일의 �
 로컬 등록 명령(현재 재실행하면 기존 값을 보존):
 
 ```bash
-python3 ops/register-parameters.py
+python3 ops/setup/register-parameters.py
 ```
 
 이 스크립트는 계정을 검사하고, 존재하는 SecureString을 덮어쓰지 않습니다.
@@ -100,7 +117,7 @@ SSM 명령에는 이 스크립트 코드만 전달하며 키·비밀번호를 �
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s ops/tests -v
-bash -n ops/bootstrap-ec2.sh
+bash -n ops/setup/bootstrap-ec2.sh
 terraform -chdir=terraform-aws-ec2 test
 ```
 

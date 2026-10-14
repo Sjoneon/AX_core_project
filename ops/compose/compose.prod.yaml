@@ -1,0 +1,72 @@
+name: homecare
+
+services:
+  backend:
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE to the ECR backend digest}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1g
+    env_file:
+      - path: /opt/homecare/config/runtime.env
+        format: raw
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      HOMECARE_AGENT_ENABLED: ${HOMECARE_AGENT_ENABLED:-false}
+    volumes:
+      - /opt/homecare/config/rds-truststore.p12:/app/config/rds-truststore.p12:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test: [CMD, curl, -fsS, --max-time, "3", -o, /dev/null, "http://127.0.0.1:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 6
+    stop_grace_period: 30s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /homecare/prod/backend
+        awslogs-stream: ${RELEASE_ID:?Set RELEASE_ID}/backend
+        mode: non-blocking
+        max-buffer-size: 4m
+        cache-max-size: 10m
+        cache-max-file: "3"
+
+  nginx:
+    image: ${NGINX_IMAGE:?Set NGINX_IMAGE to the ECR nginx digest}
+    restart: unless-stopped
+    read_only: true
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/homecare/acme:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    tmpfs:
+      - /var/cache/nginx:size=16m
+      - /var/run:size=1m
+    healthcheck:
+      test: [CMD, wget, -q, -T, "3", -O, /dev/null, "http://127.0.0.1/internal-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /homecare/prod/nginx
+        awslogs-stream: ${RELEASE_ID}/nginx
+        mode: non-blocking
+        max-buffer-size: 4m
+        cache-max-size: 10m
+        cache-max-file: "3"

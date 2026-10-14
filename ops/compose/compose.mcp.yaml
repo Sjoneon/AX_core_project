@@ -1,0 +1,43 @@
+# Merged with compose.prod.yaml by deploy-service.sh when a release contains this file.
+# Requires V002..V005 on RDS and the MCP image in ECR. The agent stays off until HOMECARE_AGENT_ENABLED=true is
+# set deliberately; deploying this file alone only starts the internal MCP container.
+services:
+  backend:
+    environment:
+      HOMECARE_AGENT_ENABLED: ${HOMECARE_AGENT_ENABLED:-false}
+      HOMECARE_MCP_URL: http://mcp:8000
+    depends_on:
+      mcp:
+        condition: service_healthy
+  mcp:
+    image: ${MCP_IMAGE:?Set MCP_IMAGE to the verified MCP image digest}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    # Internal network only: no published port and no Nginx route.
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    environment:
+      HOMECARE_MCP_TRANSPORT: http
+      HOMECARE_MCP_HOST: 0.0.0.0
+      HOMECARE_MCP_ALLOWED_HOSTS: mcp
+      HOMECARE_BACKEND_URL: http://backend:8080
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 6
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ap-northeast-2
+        awslogs-group: /homecare/prod/mcp
+        awslogs-stream: ${RELEASE_ID:?Set RELEASE_ID}/mcp
+        mode: non-blocking
+        max-buffer-size: 4m
+        cache-max-size: 10m
+        cache-max-file: "3"
