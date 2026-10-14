@@ -11,15 +11,23 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.user.AppUserRepository;
+import com.project.backend.conversation.ConversationRepository;
+import com.project.backend.mcp.consultation.ConsultationService;
+import com.project.backend.mcp.consultation.ConsultationState;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class ProductService {
     private final UserProductRepository productRepository;
     private final AppUserRepository userRepository;
+    private final ConversationRepository conversationRepository;
+    private static final JsonMapper JSON = JsonMapper.builder().build();
 
-    public ProductService(UserProductRepository productRepository, AppUserRepository userRepository) {
+    public ProductService(UserProductRepository productRepository, AppUserRepository userRepository,
+            ConversationRepository conversationRepository) {
         this.productRepository = productRepository;
         this.userRepository = userRepository;
+        this.conversationRepository = conversationRepository;
     }
 
     @Transactional(readOnly = true)
@@ -42,7 +50,10 @@ public class ProductService {
     public ProductResponse update(Long id, ProductRequest request, String email) {
         var product = productRepository.findByIdAndUserEmail(id, email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
-        product.update(request, validate(request));
+        var purchaseDate = validate(request);
+        boolean sameCategory = product.getCategory() == request.category();
+        product.update(request, purchaseDate);
+        refreshConsultations(id, email, sameCategory ? id : null);
         return product.response();
     }
 
@@ -50,7 +61,17 @@ public class ProductService {
     public void delete(Long id, String email) {
         var product = productRepository.findByIdAndUserEmail(id, email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
+        refreshConsultations(id, email, null);
         productRepository.delete(product);
+    }
+
+    private void refreshConsultations(Long id, String email, Long selectedProductId) {
+        for (var conversation : conversationRepository.findByProductIdAndUserEmail(id, email)) {
+            var old = ConsultationService.state(conversation);
+            var state = new ConsultationState(old.riskStatus(), old.riskCase(), old.riskQuestionNo(),
+                    old.errorCode(), null, List.of(), 0, old.closed());
+            conversation.setConsultation(selectedProductId, conversation.getLatestInput(), JSON.writeValueAsString(state));
+        }
     }
 
     private LocalDate validate(ProductRequest request) {

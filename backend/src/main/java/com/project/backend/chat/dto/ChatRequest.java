@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 import com.project.backend.conversation.ProductCategory;
+import com.project.backend.warranty.WarrantyModels;
+import jakarta.validation.Valid;
 
 public record ChatRequest(
         @NotBlank(message = "message는 필수입니다.")
@@ -12,6 +14,8 @@ public record ChatRequest(
         String message,
         @Positive(message = "conversationId는 양수여야 합니다.")
         Long conversationId,
-        ProductCategory category
+        ProductCategory category,
+        @Valid WarrantyModels.Request warranty,
+        @Positive Long productId
 ) {
 }

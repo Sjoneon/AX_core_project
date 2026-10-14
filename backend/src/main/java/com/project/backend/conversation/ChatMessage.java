@@ -15,6 +15,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import com.project.backend.rag.RagSource;
+import com.project.backend.warranty.WarrantyModels;
+import com.project.backend.warranty.WarrantyResultConverter;
 
 @Entity
 @Table(name = "chat_messages")
@@ -38,6 +40,14 @@ public class ChatMessage {
     @Column(columnDefinition = "LONGTEXT")
     private List<RagSource> sources = List.of();
 
+    @Convert(converter = WarrantyResultConverter.class)
+    @Column(columnDefinition = "LONGTEXT")
+    private WarrantyModels.Result warranty;
+
+    @Convert(converter=com.project.backend.mcp.tool.ToolResultsConverter.class)
+    @Column(name="tool_results",columnDefinition="LONGTEXT")
+    private java.util.Map<String,com.project.backend.mcp.tool.ToolEnvelope> tools=java.util.Map.of();
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -58,6 +68,11 @@ public class ChatMessage {
     public List<RagSource> getSources() {
         return sources == null ? List.of() : sources;
     }
+
+    public void setWarranty(WarrantyModels.Result result) { this.warranty = result; }
+    public WarrantyModels.Result getWarranty() { return warranty; }
+    public void setTools(java.util.Map<String,com.project.backend.mcp.tool.ToolEnvelope> value){this.tools=java.util.Map.copyOf(value);}
+    public java.util.Map<String,com.project.backend.mcp.tool.ToolEnvelope> getTools(){return tools==null?java.util.Map.of():tools;}
 
     public Long getId() {
         return id;

@@ -9,4 +9,5 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findByUserEmailOrderByUpdatedAtDescIdDesc(String email);
     Optional<Conversation> findByIdAndUserEmail(Long id, String email);
     void deleteAllByUserId(Long userId);
+    List<Conversation> findByProductIdAndUserEmail(Long productId, String email);
 }

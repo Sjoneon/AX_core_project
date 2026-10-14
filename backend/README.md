@@ -1,12 +1,34 @@
 # HomeCare AI 백엔드
 
+2026-10-14에 [원본 저장소](https://github.com/gwonu1/core_project/commit/d3e9c214fcc5ee431c6dfb290a6ddb4591a653be)의 백엔드 변경을 기존 MCP·보증 기능과 병합했습니다.
+`application.properties`, `.env` 계열 파일과 Compose의 기존 DB 접속 설정은 유지합니다.
+
+- `GET /api/auth/me`: 인증된 이메일을 확인합니다. 토큰을 갱신하지 않습니다.
+- `DELETE /api/auth/me`: 본인 계정, 등록 제품, 상담, 메시지와 도구 호출 기록을 삭제합니다. 탈퇴 전 토큰은 같은 이메일로 재가입해도 사용할 수 없습니다.
+- `GET/POST /api/products`, `PUT/DELETE /api/products/{id}`: 제품 목록·등록·수정·삭제입니다.
+- 기존 `/api/me/products`와 새 제품 API는 같은 제품을 사용합니다. 제품 수정은 MCP 보증 입력에 반영되고, 제품 삭제 또는 품목 변경 시 상담의 제품 선택과 진단 진행 상태를 정리합니다. 위험 확인 상태와 과거 상담 기록은 유지합니다.
+- 에어컨은 새 상담과 등록에서 제외하며, 기존 상담 기록은 조회·삭제할 수 있습니다.
+
+JWT는 이메일과 회원 ID를 함께 검증합니다. 업데이트 전에 발급된 회원 ID 없는 토큰은 재로그인해야 합니다.
+
+제품 프로필의 우편번호·주소·등록/수정 시각은 `src/main/resources/db/migration/V006__product_profile.sql`에서 추가합니다.
+기존 `ops/rds/sql`의 V001~V005는 변경하지 않았으며, 빌드 시 V006과 함께 `db/migration`에 포함합니다.
+현재 로컬 `ddl-auto=update` 설정은 그대로입니다. `ddl-auto=validate`로 실행하는 DB에는 V006 적용이 필요합니다.
+이번 코드 업데이트에서 실제 DB 마이그레이션은 실행하지 않았습니다. `migrateDatabase`는 명시적으로 실행하는 별도 진입점이며, 이미 수동으로 V002~V005를 적용한 DB는 기존 이력 확인 없이 자동 baseline하지 않습니다.
+
+MCP 도구 9개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
+`GET /api/warranty/policies`, `POST /api/warranty/check`는 기존 JWT 인증을 사용하며,
+4개 품목의 확인된 정책으로 날짜·비용 항목을 분리합니다.
+상담에서도 `check_warranty` 도구를 사용할 수 있고 구조화 결과를 메시지 이력에 저장합니다.
+[MCP 실행과 테스트](../mcp_server/README.md)를 참고하세요.
+기존 운영 DB에는 배포 전에 V002 → V003 → V004 → V005를 한 번 적용해야 합니다. 실제 migration과 배포는 실행하지 않았습니다.
+
 사용자 계정과 대화 내역은 MySQL에 저장하고, 로그인 시 발급한 JWT로 API를 인증합니다.
-Spring AI로 가상 수리 매뉴얼을 검색하고, 검색 근거와 고객 문의를 OpenAI에 전달해 답변합니다.
+새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정하면 실제 MCP 프로세스 연동 검사도 실행합니다. 설정이 없으면 이 연동 검사만 건너뜁니다.
 
 ## 실행
 
 프로젝트 루트에서 실행합니다.
-빈 DB에는 먼저 [마이그레이션 SQL](../ops/DATABASE_MIGRATIONS.md)을 적용해야 합니다.
 
 ```bash
 cd backend
@@ -55,12 +77,9 @@ spring.datasource.password=spring1234
 다른 환경에서는 실행 환경변수 또는 `.env`의 `SPRING_DATASOURCE_URL`,
 `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`로 변경할 수 있습니다.
 설정 예시는 `.env.example`에 있으며, 실제 비밀값은 Git에 저장하지 않습니다.
-로컬도 `ddl-auto=validate`로 스키마를 검사합니다. 테이블은 앱이 자동 생성하지 않습니다.
-`ops/sql`의 버전별 SQL을 Flyway로 적용한 뒤 실행합니다.
-로컬 명령·기존 DB 전환·CI/RDS 자동 적용은 [DB 마이그레이션 안내](../ops/DATABASE_MIGRATIONS.md)를 참조합니다.
+로컬 개발용 `ddl-auto=update` 설정으로 기동 시 필요한 테이블을 생성합니다.
 `app_users`는 계정, `chat_conversations`는 사용자별 대화 제목과 생성·갱신 시간,
 `chat_messages`는 대화에 속한 질문·답변과 작성 시간을 저장합니다.
-`user_products`는 사용자별 등록 가전의 품목·이름·모델명·구매일·설치 주소를 저장합니다.
 `chat_conversations.category`는 제품 카테고리를 저장합니다. 기존 기록은 `null`로 유지합니다.
 `chat_messages.sources`에는 답변 생성에 전달한 검색 근거를 JSON 문자열로 저장합니다.
 기존 메시지의 근거는 비어 있으며, 가상 매뉴얼이 나중에 바뀌어도 저장된 근거 본문은 유지됩니다.
@@ -87,24 +106,6 @@ curl -X POST http://127.0.0.1:8080/api/auth/login \
 이메일은 소문자로 저장하고 비교합니다. 이미 가입된 이메일은 409,
 잘못된 로그인 정보는 401, 유효하지 않은 입력은 400을 반환합니다.
 가입 비밀번호는 8자 이상이며, BCrypt 제한에 따라 UTF-8 기준 72바이트 이하여야 합니다.
-
-### 로그인 상태 확인
-
-`GET /api/auth/me`에 로그인 토큰을 전달하면 JWT와 계정 존재 여부를 검증하고
-200과 `{"email":"인증된 회원 이메일"}`을 반환합니다. 토큰이나 비밀번호는 반환하지 않습니다.
-토큰을 갱신하거나 만료 시각을 연장하지 않으며, 인증 실패는 401을 반환합니다.
-프론트엔드는 같은 탭에 저장된 토큰으로 이 API를 호출해 새로고침 후 로그인 상태를 복원합니다.
-
-### 회원 탈퇴
-
-`DELETE /api/auth/me`에 로그인 토큰을 전달하면 인증된 본인 계정을 탈퇴합니다.
-이메일이나 사용자 ID를 요청으로 받지 않으며, 성공 시 204와 빈 본문을 반환합니다.
-계정과 등록 제품, 모든 상담의 질문·답변·검색 근거를 하나의 트랜잭션에서 삭제합니다.
-다른 회원의 데이터는 유지하며, 삭제된 데이터는 복구할 수 없습니다.
-
-JWT에는 이메일과 계정 ID(`userId`)를 포함하고 요청마다 해당 계정이 존재하는지 검증합니다.
-탈퇴 후 기존 토큰은 401로 거부되며, 같은 이메일로 재가입해도 이전 토큰을 사용할 수 없습니다.
-`userId`가 없는 이전 버전의 토큰도 거부되므로 이 버전 반영 후에는 다시 로그인해야 합니다.
 
 ### 서버 상태
 
@@ -155,8 +156,6 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 기존 대화에 질문을 추가하려면 `{"message":"추가 질문","conversationId":1}`처럼 전달합니다.
 새 상담에는 `{"message":"탈수할 때 소리가 커요","category":"WASHER"}`처럼 제품 카테고리를 지정할 수 있습니다.
 지원 값은 `REFRIGERATOR`, `WASHER`, `DRYER`, `DISHWASHER`입니다.
-`AIR_CONDITIONER` 요청과 기존 에어컨 상담의 추가 질문은 400을 반환하며 AI를 호출하거나 기록을 변경하지 않습니다.
-기존 에어컨 상담·검색 근거는 조회와 삭제가 가능합니다. 다른 품목으로 에어컨 질문을 보내면 AI 호출 없이 지원 종료를 안내합니다.
 카테고리는 대화에 저장되며 목록·상세 응답의 `category` 필드로 반환합니다.
 후속 요청에서 카테고리를 생략하면 저장된 값을 사용하며, 다른 카테고리로 변경하려 하면 400을 반환합니다.
 선택한 제품 카테고리를 LLM 질문에 함께 전달하되 DB의 질문 본문은 고객이 입력한 원문으로 저장합니다.
@@ -164,46 +163,11 @@ curl -X POST http://127.0.0.1:8080/api/chat \
 첫 질문의 앞 50자를 대화 제목으로 사용합니다. 성공한 질문·답변은 하나의 트랜잭션으로 저장하며,
 AI 호출이 실패하거나 답변이 비어 있으면 대화 내역을 변경하지 않습니다.
 
-### 내 제품 조회·등록·수정
-
-아래 API는 모두 JWT 인증이 필요합니다. 사용자 ID는 요청으로 받지 않고 인증된 계정에서 결정합니다.
-
-| API | 동작 | 성공 응답 |
-| --- | --- | --- |
-| `GET /api/products` | 내 제품 목록, 등록 최신순 | 200, 제품 배열 (없으면 `[]`) |
-| `POST /api/products` | 제품 등록 | 201, 저장된 제품 |
-| `PUT /api/products/{id}` | 내 제품 전체 정보 수정 | 200, 수정된 제품 |
-| `DELETE /api/products/{id}` | 내가 등록한 제품 삭제 | 204, 본문 없음 |
-
-요청 예시:
-
-```json
-{
-  "category": "REFRIGERATOR",
-  "name": "주방 냉장고",
-  "model": "RF-1",
-  "purchaseDate": "2025-03-15",
-  "postcode": "01234",
-  "address": "서울시 예시 주소",
-  "addressDetail": "101호"
-}
-```
-
-품목만 필수이며 냉장고·세탁기·건조기·식기세척기를 지원합니다. 이름은 40자, 모델명은 80자,
-기본 주소는 160자, 상세 주소는 100자까지 입력할 수 있습니다. 구매일은 한국 시간 기준 오늘 이하의 실제 날짜,
-우편번호는 숫자 5자리입니다. 상세 주소가 있으면 기본 주소가 필요합니다.
-문자열의 앞뒤 공백은 제거하며 빈 값은 `null`로 저장합니다. PUT에서 생략하거나 `null`로 보낸 선택 항목은 지워집니다.
-같은 품목을 여러 개 등록하거나 품목을 수정할 수 있습니다.
-응답은 요청 필드와 `id`, `createdAt`, `updatedAt`을 포함합니다.
-유효하지 않은 입력은 400, 인증 실패는 401, 존재하지 않거나 다른 계정의 제품 수정은 동일하게 404입니다.
-제품 삭제는 인증된 사용자 소유의 제품만 허용하며, 타인 소유·없는 제품·이미 삭제한 제품은 404를 반환합니다.
-`user_products` 생성에는 새 V002 마이그레이션을 적용해야 합니다.
-
 ### RAG 동작
 
-1. `rag-test-data/manuals/*.md`를 `## HC-...` 단위로 나누어 16개 문서를 읽습니다. Gradle 빌드 시 매뉴얼을 JAR에 포함하므로 실행 위치와 관계없이 읽을 수 있습니다.
+1. `rag-test-data/manuals/*.md`를 `## HC-...` 단위로 나누어 20개 문서를 읽습니다. Gradle 빌드 시 매뉴얼을 JAR에 포함하므로 실행 위치와 관계없이 읽을 수 있습니다.
 2. 선택한 카테고리와 오류 코드를 확인합니다. 카테고리가 질문 속 제품과 다르면 확인 질문을 반환하며, 해당 제품 자료에 없는 `HC-E...` 코드는 의미를 만들어 답하지 않습니다.
-3. 최초 검색 시 `text-embedding-3-small`로 16개 문서를 배치 임베딩해 Spring AI `SimpleVectorStore`에 보관합니다. 이후에는 질문만 임베딩합니다.
+3. 최초 검색 시 `text-embedding-3-small`로 20개 문서를 배치 임베딩해 Spring AI `SimpleVectorStore`에 보관합니다. 이후에는 질문만 임베딩합니다.
 4. 제품명을 포함한 질문으로 검색하고 카테고리 메타데이터로 범위를 제한합니다. 유사도 0.30 이상인 상위 2개 문서를 찾습니다. 명시한 오류 코드가 있으면 그 코드의 문서를 우선 포함하며, 중복을 제거해 최대 3개 항목을 전달합니다.
 5. 검색한 매뉴얼과 질문을 `ChatClient`에 전달합니다. 근거에 없는 원인·수리비·보증 정책을 만들지 않도록 요청합니다. 검색 결과가 없으면 LLM 호출 없이 정보 부족 안내를 반환합니다.
 6. 답변과 검색 근거를 함께 저장하고 `sources`로 반환합니다. `GET /api/conversations/{id}`의 각 메시지에도 `sources`가 포함됩니다.
@@ -303,7 +267,6 @@ src/main/java/com/project/backend/
 ├── BackendApplication.java        # .env 로딩과 서버 기동
 ├── auth/                         # 회원가입·로그인 Controller, Service, DTO
 ├── user/                         # 사용자 엔티티, Repository, UserDetailsService
-├── product/                      # 사용자별 제품 조회·등록·수정 API와 저장
 ├── config/                       # Spring Security, JWT 서명·검증 설정
 ├── security/                     # JWT 발급
 ├── conversation/                 # 대화·메시지 엔티티, Repository, 조회·저장 API와 DTO
@@ -365,19 +328,8 @@ docker build -t core-backend:local .
 ```
 
 Docker 빌드에는 `build/libs/app.jar`만 전달하며 `.env`와 소스·캐시는 제외합니다.
-로컬 Docker 서버에 API 변경을 반영하려면 `backend` 디렉터리에서 JAR와 이미지를 모두 다시 빌드합니다.
-
-```bash
-./gradlew test bootJar
-docker compose up -d --build backend
-curl http://127.0.0.1:8080/actuator/health
-```
-
-`docker compose restart`는 기존 이미지의 JAR를 다시 실행하므로 소스 변경을 반영하지 않습니다.
-`docker compose up --build`도 JAR를 컴파일하지 않으므로 먼저 `bootJar`를 실행해야 합니다.
-예를 들어 제품 삭제 버튼에서 405(Method Not Allowed)가 발생하면 실행 중인 JAR에 `DELETE /api/products/{id}`가 포함되어 있는지 확인합니다.
 `compose.yaml`은 `backend` 서비스의 로컬 단독 실행용입니다. EC2에서는
-`../ops/compose.prod.yaml`의 `backend`, `nginx` 두 서비스를 사용하며
+`../ops/compose/compose.prod.yaml`의 `backend`, `nginx` 두 서비스를 사용하며
 앱 포트는 호스트에 공개하지 않습니다. [운영 배포 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
 
 공식 문서: [Spring AI 시작하기](https://docs.spring.io/spring-ai/reference/getting-started.html),

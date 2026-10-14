@@ -34,6 +34,11 @@ public class ConversationController {
         return conversationService.detail(id, principal.getName());
     }
 
+    @GetMapping("/{id}/tool-calls")
+    public List<ConversationService.ToolCallView> toolCalls(@PathVariable Long id, Principal principal) {
+        return conversationService.toolCalls(id, principal.getName());
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, Principal principal) {

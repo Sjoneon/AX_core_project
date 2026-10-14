@@ -15,3 +15,18 @@ services:
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL}
+      HOMECARE_AGENT_ENABLED: "true"
+      HOMECARE_MCP_URL: http://mcp:8000
+    depends_on:
+      mcp:
+        condition: service_healthy
+  mcp:
+    build: ../mcp_server
+    image: homecare-mcp:local
+    environment:
+      HOMECARE_MCP_TRANSPORT: http
+      HOMECARE_MCP_HOST: 0.0.0.0
+      # Strict Host/Origin validation accepts the service name the backend uses (http://mcp:8000).
+      HOMECARE_MCP_ALLOWED_HOSTS: mcp
+      HOMECARE_BACKEND_URL: http://backend:8080
+    # Only the backend service calls MCP; no public port or shared user token.

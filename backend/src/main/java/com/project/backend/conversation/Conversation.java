@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import com.project.backend.user.AppUser;
 
@@ -35,6 +36,13 @@ public class Conversation {
     @Column(length = 30)
     private ProductCategory category;
 
+    @Column(name="product_id") private Long productId;
+    @Column(name="latest_input",columnDefinition="LONGTEXT") private String latestInput;
+    @Column(name="consultation_context",columnDefinition="LONGTEXT") private String consultationContext;
+    @Column(name="context_revision",nullable=false) private long contextRevision;
+    @Version private long revision;
+    @Column(name="manual_warranty",columnDefinition="LONGTEXT") private String manualWarranty;
+
     @Column(nullable = false)
     private Instant createdAt;
 
@@ -56,6 +64,16 @@ public class Conversation {
 
     public void touch() {
         updatedAt = Instant.now();
+    }
+
+    public Long getProductId(){return productId;}
+    public String getLatestInput(){return latestInput;}
+    public String getConsultationContext(){return consultationContext;}
+    public long getContextRevision(){return contextRevision;}
+    public String getManualWarranty(){return manualWarranty;}
+    public void setManualWarranty(String value){this.manualWarranty=value;this.contextRevision++;touch();}
+    public void setConsultation(Long productId,String latestInput,String context){
+        this.productId=productId;this.latestInput=latestInput;this.consultationContext=context;this.contextRevision++;touch();
     }
 
     public Long getId() {

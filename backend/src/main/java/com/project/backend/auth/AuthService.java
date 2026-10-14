@@ -19,6 +19,7 @@ import com.project.backend.auth.dto.SignupResponse;
 import com.project.backend.conversation.ChatMessageRepository;
 import com.project.backend.conversation.ConversationRepository;
 import com.project.backend.product.UserProductRepository;
+import com.project.backend.mcp.audit.ToolCallLogRepository;
 import com.project.backend.security.JwtTokenProvider;
 import com.project.backend.user.AppUser;
 import com.project.backend.user.AppUserRepository;
@@ -33,11 +34,12 @@ public class AuthService {
     private final UserProductRepository productRepository;
     private final ChatMessageRepository messageRepository;
     private final ConversationRepository conversationRepository;
+    private final ToolCallLogRepository toolCallRepository;
 
     public AuthService(AppUserRepository appUserRepository, PasswordEncoder passwordEncoder,
             AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
             UserProductRepository productRepository, ChatMessageRepository messageRepository,
-            ConversationRepository conversationRepository) {
+            ConversationRepository conversationRepository, ToolCallLogRepository toolCallRepository) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
@@ -45,6 +47,7 @@ public class AuthService {
         this.productRepository = productRepository;
         this.messageRepository = messageRepository;
         this.conversationRepository = conversationRepository;
+        this.toolCallRepository = toolCallRepository;
     }
 
     @Transactional
@@ -76,6 +79,7 @@ public class AuthService {
         var user = appUserRepository.findByEmail(email).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
         productRepository.deleteAllByUserId(user.getId());
+        toolCallRepository.deleteByUser(user.getId());
         messageRepository.deleteAllByConversationUserId(user.getId());
         conversationRepository.deleteAllByUserId(user.getId());
         appUserRepository.delete(user);

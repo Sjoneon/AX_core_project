@@ -2,6 +2,10 @@ package com.project.backend.chat;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -13,6 +17,9 @@ import com.project.backend.conversation.ConversationService;
 import com.project.backend.conversation.ProductCategory;
 import com.project.backend.rag.ManualRetriever;
 import com.project.backend.rag.RagSource;
+import com.project.backend.warranty.WarrantyModels;
+import com.project.backend.warranty.WarrantyService;
+import com.project.backend.warranty.WarrantyTools;
 
 @Service
 public class ChatService {
@@ -23,6 +30,9 @@ public class ChatService {
             제품의 원인, 오류 코드, 점검 절차, 수치, 회사 정책은 아래 매뉴얼 근거에서만 답하세요.
             근거가 없는 질문은 자료에 정보가 없다고 알리고, 증상을 확인하거나 수리 상담을 제안하세요.
             수리비, 보증 기간, 실제 예약 접수, 연락처를 만들어 내지 마세요.
+            보증·무상 문의에는 check_warranty 도구를 사용하고 제품 전체 보증과 주요 부품별 별도 보증을 구분하세요.
+            check_warranty 결과는 공식 보증 정책 근거입니다. 가상 매뉴얼의 보증 정보를 사용하지 마세요.
+            구체적인 구매일·배송일·생산일과 적용 조건을 문장에서 추측해 만들지 마세요. 확인된 입력이 없으면 보증 확인 폼으로 확인하도록 안내하세요.
             카테고리가 없으면 제품 카테고리를 먼저 질문하고 구체적인 수리 절차는 안내하지 마세요.
             코드와 증상을 확인하고, 고객이 안전하게 할 수 있는 점검만 안내하세요.
             누수, 젖은 전원부, 타는 냄새, 연기가 있으면 일반 점검과 재가동보다 사용 중단 안내를 우선하세요.
@@ -36,31 +46,65 @@ public class ChatService {
     private final ChatClient chatClient;
     private final ConversationService conversationService;
     private final ManualRetriever retriever;
+    private final WarrantyTools warrantyTools;
+    private final WarrantyService warrantyService;
 
-    public ChatService(ChatClient.Builder builder, ConversationService conversationService, ManualRetriever retriever) {
+    public ChatService(ChatClient.Builder builder, ConversationService conversationService, ManualRetriever retriever,
+            WarrantyTools warrantyTools, WarrantyService warrantyService) {
         this.conversationService = conversationService;
         this.retriever = retriever;
+        this.warrantyTools = warrantyTools;
+        this.warrantyService = warrantyService;
         this.chatClient = builder.build();
     }
 
     public ChatResponse chat(ChatRequest request, String email) {
         ProductCategory category = conversationService.resolveCategory(request.conversationId(), email, request.category());
+        if (request.warranty() != null && request.warranty().category() != category) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "상담 품목과 보증 조회 품목이 다릅니다.");
+        }
+        // Validate dates before contacting the model. Never let a tool invent missing dates.
+        if (request.warranty() != null) warrantyService.check(request.warranty());
+        var warrantyCapture = new AtomicReference<WarrantyModels.Result>();
 
         String reply;
         List<RagSource> sources;
         try {
-            var result = retriever.retrieve(request.message(), category);
+            String safetyText = request.message().replaceAll("(?:연기|타는\\s*냄새)(?:는|가)?\\s*(?:없(?:어요|습니다|어|다)?|안\\s*(?:나요|나|남))", "");
+            boolean safetySignal = safetyText.matches("(?s).*(불꽃|스파크|연기|타는\\s*냄새|감전|찌릿|사람.*갇|아이.*안.*문).*");
+            boolean warrantyQuestion = category != null && (request.warranty() != null
+                    || request.message().matches("(?s).*(보증|무상).*"));
+            var result = safetySignal ? new ManualRetriever.Result("안전을 위해 제품 사용을 멈춰 주세요. 불꽃·감전·연기 등의 위험이 있으면 제품이나 전원부를 만지지 말고 안전한 곳에서 긴급 도움 또는 공식 상담을 요청하세요. 보증 확인보다 안전 확인이 먼저입니다.", List.of())
+                    : warrantyQuestion ? new ManualRetriever.Result(null, List.of())
+                    : retriever.retrieve(request.message(), category);
             sources = result.documents().stream().map(RagSource::from).toList();
             if (result.directReply() != null) {
                 reply = result.directReply();
             } else {
-                String context = result.documents().stream().map(document -> document.getText())
+                String manualContext = result.documents().stream().map(document -> document.getText())
                         .collect(Collectors.joining("\n\n---\n\n"));
-                reply = chatClient.prompt()
-                        .system(SYSTEM_PROMPT + "\n<manual_context>\n" + context + "\n</manual_context>")
+                var prompt = chatClient.prompt()
+                        .system(SYSTEM_PROMPT + "\n<manual_context>\n" + manualContext + "\n</manual_context>")
                         .user("상담 제품 카테고리: " + (category == null ? "미선택" : category.getLabel())
-                                + "\n고객 문의: " + request.message())
-                        .call().content();
+                                + "\n고객 문의: " + request.message());
+                if (category != null) {
+                    var context = new HashMap<String, Object>();
+                    context.put("category", category);
+                    context.put("warrantyResult", warrantyCapture);
+                    if (request.warranty() != null) context.put("warrantyRequest", request.warranty());
+                    prompt.tools(warrantyTools).toolContext(context);
+                }
+                reply = prompt.call().content();
+                if (warrantyCapture.get() != null) reply = warrantyService.explain(warrantyCapture.get());
+                // A missing tool call must not expose model-invented warranty periods.
+                else if (warrantyQuestion) {
+                    var context = new HashMap<String, Object>();
+                    context.put("caller", "POLICY_FALLBACK");
+                    context.put("category", category);
+                    context.put("warrantyResult", warrantyCapture);
+                    if (request.warranty() != null) context.put("warrantyRequest", request.warranty());
+                    reply = warrantyTools.checkWarranty(new org.springframework.ai.chat.model.ToolContext(context));
+                }
             }
         } catch (RuntimeException exception) {
             throw new ChatUnavailableException(exception);
@@ -71,7 +115,7 @@ public class ChatService {
         }
 
         Long conversationId = conversationService.saveExchange(
-                request.conversationId(), email, request.message(), reply, category, sources);
-        return new ChatResponse(reply, conversationId, sources);
+                request.conversationId(), email, request.message(), reply, category, sources, warrantyCapture.get());
+        return new ChatResponse(reply, conversationId, sources, warrantyCapture.get());
     }
 }

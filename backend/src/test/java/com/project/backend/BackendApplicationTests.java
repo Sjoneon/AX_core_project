@@ -1,5 +1,6 @@
 package com.project.backend;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -17,11 +18,6 @@ import com.project.backend.security.JwtTokenProvider;
 import com.project.backend.conversation.ChatMessageRepository;
 import com.project.backend.conversation.ConversationRepository;
 import com.project.backend.conversation.ProductCategory;
-import com.project.backend.conversation.Conversation;
-import com.project.backend.conversation.ChatMessage;
-import com.project.backend.product.UserProductRepository;
-import com.project.backend.rag.ManualCatalog;
-import com.project.backend.rag.RagSource;
 import com.project.backend.user.AppUser;
 import com.project.backend.user.AppUserRepository;
 
@@ -50,241 +46,862 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(useMainMethod = SpringBootTest.UseMainMethod.ALWAYS, properties = {
+import com.project.backend.conversation.Conversation;
+
+import com.project.backend.conversation.ChatMessage;
+
+import com.project.backend.product.UserProductRepository;
+
+import com.project.backend.rag.ManualCatalog;
+
+import com.project.backend.rag.RagSource;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+
+@SpringBootTest(
+		useMainMethod = SpringBootTest.UseMainMethod.ALWAYS,
+		properties = {
+                "homecare.agent.enabled=false",
                 "spring.ai.openai.api-key=test-key",
                 "spring.ai.openai.chat.model=gpt-4o-mini",
                 "spring.datasource.url=${test.datasource.url:jdbc:h2:mem:backend_auth_tests;MODE=MySQL;DB_CLOSE_DELAY=-1}",
                 "spring.datasource.driver-class-name=${test.datasource.driver-class-name:org.h2.Driver}",
                 "spring.datasource.username=${test.datasource.username:sa}",
                 "spring.datasource.password=${test.datasource.password:}",
-                "spring.jpa.hibernate.ddl-auto=${test.ddl-auto:create-drop}",
-                "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="
-})
+                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
+                // One user sends every request in this class; ChatRateLimiterTests covers the real limits.
+                "homecare.rate-limit.chat.burst=1000",
+                "homecare.rate-limit.chat.per-minute=1000",
+                "homecare.rate-limit.chat.per-day=100000"
+        })
 @AutoConfigureMockMvc
 class BackendApplicationTests {
 
-        private static final AtomicInteger upstreamStatus = new AtomicInteger(200);
-        private static final AtomicReference<String> upstreamBody = new AtomicReference<>();
-        private static final AtomicReference<String> requestBody = new AtomicReference<>();
-        private static final AtomicReference<String> authorization = new AtomicReference<>();
-        private static final AtomicInteger embeddingStatus = new AtomicInteger(200);
-        private static final AtomicReference<String> embeddingRequest = new AtomicReference<>();
-        private static HttpServer upstream;
+	private static final AtomicInteger upstreamStatus = new AtomicInteger(200);
+	private static final AtomicReference<String> upstreamBody = new AtomicReference<>();
+	private static final AtomicReference<String> requestBody = new AtomicReference<>();
+	private static final AtomicReference<String> authorization = new AtomicReference<>();
+    private static final AtomicInteger embeddingStatus = new AtomicInteger(200);
+    private static final AtomicReference<String> embeddingRequest = new AtomicReference<>();
+	private static HttpServer upstream;
 
-        @Autowired
-        private MockMvc mockMvc;
+	@Autowired
+	private MockMvc mockMvc;
 
-        @Autowired
-        private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
-        @Autowired
-        private AppUserRepository appUserRepository;
+    @Autowired
+    private AppUserRepository appUserRepository;
 
-        @Autowired
-        private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-        @Autowired
-        private JwtDecoder jwtDecoder;
+    @Autowired
+    private JwtDecoder jwtDecoder;
 
-        @Autowired
-        private JwtEncoder jwtEncoder;
+    @Autowired
+    private JwtEncoder jwtEncoder;
 
-        @Autowired
-        private ConversationRepository conversationRepository;
+    @Autowired
+    private ConversationRepository conversationRepository;
 
-        @Autowired
-        private ChatMessageRepository messageRepository;
+    @Autowired
+    private ChatMessageRepository messageRepository;
 
-        @Autowired
-        private UserProductRepository productRepository;
+    @Autowired private UserProductRepository productRepository;
+    @Autowired private ManualCatalog manualCatalog;
+    @Autowired private com.project.backend.mcp.audit.ToolCallLogRepository toolCallRepository;
+    @Autowired private com.project.backend.mcp.consultation.ConsultationService consultations;
 
-        @Autowired
-        private ManualCatalog manualCatalog;
+    private String accessToken;
 
-        private String accessToken;
+	@DynamicPropertySource
+	static void configureUpstream(DynamicPropertyRegistry registry) throws IOException {
+		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+			authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+			byte[] body = upstreamBody.get().getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(upstreamStatus.get(), body.length);
+			try (var output = exchange.getResponseBody()) {
+				output.write(body);
+			}
+		});
 
-        @DynamicPropertySource
-        static void configureUpstream(DynamicPropertyRegistry registry) throws Exception {
-                if ("com.mysql.cj.jdbc.Driver".equals(System.getProperty("test.datasource.driver-class-name"))) {
-                        com.project.backend.migration.DatabaseMigration.migrate(
-                                        System.getProperty("test.datasource.url"),
-                                        System.getProperty("test.datasource.username"),
-                                        System.getProperty("test.datasource.password"), "classpath:db/migration");
-                }
-                upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-                upstream.createContext("/v1/chat/completions", exchange -> {
-                        requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
-                        authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-                        byte[] body = upstreamBody.get().getBytes(StandardCharsets.UTF_8);
-                        exchange.getResponseHeaders().set("Content-Type", "application/json");
-                        exchange.sendResponseHeaders(upstreamStatus.get(), body.length);
-                        try (var output = exchange.getResponseBody()) {
-                                output.write(body);
-                        }
-                });
+        upstream.createContext("/v1/embeddings", exchange -> {
+            String input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+            embeddingRequest.set(input);
+            List<String> texts = JsonPath.read(input, "$.input");
+            var data = new ArrayList<String>();
+            for (int i = 0; i < texts.size(); i++) {
+                data.add("{\"object\":\"embedding\",\"index\":" + i + ",\"embedding\":"
+                        + Arrays.toString(testEmbedding(texts.get(i))) + "}");
+            }
+            String response = embeddingStatus.get() == 200
+                    ? "{\"object\":\"list\",\"data\":[" + String.join(",", data)
+                            + "],\"model\":\"text-embedding-3-small\",\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}"
+                    : "{\"error\":{\"message\":\"embedding upstream secret\"}}";
+            byte[] body = response.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(embeddingStatus.get(), body.length);
+            try (var output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+		upstream.start();
+		registry.add("spring.ai.openai.base-url",
+				() -> "http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1");
+	}
 
-                upstream.createContext("/v1/embeddings", exchange -> {
-                        String input = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-                        embeddingRequest.set(input);
-                        List<String> texts = JsonPath.read(input, "$.input");
-                        var data = new ArrayList<String>();
-                        for (int i = 0; i < texts.size(); i++) {
-                                data.add("{\"object\":\"embedding\",\"index\":" + i + ",\"embedding\":"
-                                                + Arrays.toString(testEmbedding(texts.get(i))) + "}");
-                        }
-                        String response = embeddingStatus.get() == 200
-                                        ? "{\"object\":\"list\",\"data\":[" + String.join(",", data)
-                                                        + "],\"model\":\"text-embedding-3-small\",\"usage\":{\"prompt_tokens\":1,\"total_tokens\":1}}"
-                                        : "{\"error\":{\"message\":\"embedding upstream secret\"}}";
-                        byte[] body = response.getBytes(StandardCharsets.UTF_8);
-                        exchange.getResponseHeaders().set("Content-Type", "application/json");
-                        exchange.sendResponseHeaders(embeddingStatus.get(), body.length);
-                        try (var output = exchange.getResponseBody()) {
-                                output.write(body);
-                        }
-                });
-                upstream.start();
-                registry.add("spring.ai.openai.base-url",
-                                () -> "http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1");
+	@BeforeEach
+	void resetUpstream() {
+        toolCallRepository.deleteAll();
+        productRepository.deleteAll();
+        messageRepository.deleteAll();
+        conversationRepository.deleteAll();
+        appUserRepository.deleteAll();
+        appUserRepository.save(new AppUser("chat-test@example.com", "unused-test-hash", "USER"));
+        accessToken = jwtTokenProvider.createToken("chat-test@example.com");
+		upstreamStatus.set(200);
+		upstreamBody.set(completion("안녕하세요!"));
+		requestBody.set(null);
+		authorization.set(null);
+        embeddingStatus.set(200);
+        embeddingRequest.set(null);
+	}
+
+	@AfterAll
+	static void stopUpstream() {
+		if (upstream != null) {
+			upstream.stop(0);
+		}
+	}
+
+	@Test
+	void chatReturnsReplyFromSpringAi() throws Exception {
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"message\":\"안녕하세요 {name}\",\"category\":\"WASHER\"}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.reply").value("안녕하세요!"));
+
+		assertThat(requestBody.get()).contains("gpt-4o-mini", "안녕하세요 {name}", "\"system\"", "\"user\"");
+		assertThat(authorization.get()).isEqualTo("Bearer test-key");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"{}", "{\"message\":null}", "{\"message\":\"\"}", "{\"message\":\"   \"}"})
+	void invalidMessageDoesNotCallLlm(String body) throws Exception {
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken).contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("message는 필수입니다."));
+
+		assertThat(requestBody.get()).isNull();
+	}
+
+	@Test
+	void tooLongMessageDoesNotCallLlm() throws Exception {
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"message\":\"" + "a".repeat(4001) + "\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("message는 4000자 이하여야 합니다."));
+
+		assertThat(requestBody.get()).isNull();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"{", ""})
+	void invalidJsonDoesNotCallLlm(String body) throws Exception {
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken).contentType(MediaType.APPLICATION_JSON).content(body))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("올바른 JSON 요청 본문이 필요합니다."));
+
+		assertThat(requestBody.get()).isNull();
+	}
+
+	@Test
+	void upstreamFailureReturnsSafeError() throws Exception {
+		upstreamStatus.set(401);
+		upstreamBody.set("{\"error\":{\"message\":\"sensitive upstream detail\",\"type\":\"invalid_request_error\"}}");
+
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
+				.andExpect(status().isBadGateway())
+				.andExpect(jsonPath("$.message").value("AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요."));
+	}
+
+	@Test
+	void emptyReplyReturnsBadGateway() throws Exception {
+		upstreamBody.set(completion(""));
+
+		mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
+				.andExpect(status().isBadGateway());
+	}
+
+	@Test
+	void healthDoesNotCallLlm() throws Exception {
+		mockMvc.perform(get("/actuator/health"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("UP"));
+
+		assertThat(requestBody.get()).isNull();
+	}
+
+
+    @Test
+    void signupPersistsHashedPasswordAndLoginTokenAllowsChat() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"USER@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.email").value("user@example.com"))
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+
+        var saved = appUserRepository.findByEmail("user@example.com").orElseThrow();
+        assertThat(saved.getPassword()).isNotEqualTo("password123");
+        assertThat(passwordEncoder.matches("password123", saved.getPassword())).isTrue();
+
+        var login = mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"USER@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("user@example.com"))
+                .andReturn();
+        String token = JsonPath.read(login.getResponse().getContentAsString(), "$.accessToken");
+        var jwt = jwtDecoder.decode(token);
+        assertThat(jwt.getSubject()).isEqualTo("user@example.com");
+        assertThat(jwt.getExpiresAt()).isEqualTo(jwt.getIssuedAt().plusSeconds(3600));
+
+        mockMvc.perform(post("/api/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value("안녕하세요!"));
+    }
+
+    @Test
+    void duplicateEmailReturnsConflict() throws Exception {
+        String body = "{\"email\":\"user@example.com\",\"password\":\"password123\"}";
+        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"USER@example.com\",\"password\":\"password456\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("이미 가입된 이메일입니다."));
+        assertThat(appUserRepository.count()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "{\"email\":\"bad-email\",\"password\":\"password123\"}",
+            "{\"email\":\"user@example.com\",\"password\":\"short\"}",
+            "{\"email\":\"user@example.com\",\"password\":\"        \"}",
+            "{}"
+    })
+    void invalidSignupDoesNotPersistUser(String body) throws Exception {
+        mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").isString());
+        assertThat(appUserRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void multibytePasswordOverBcryptLimitIsRejected() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"user@example.com\",\"password\":\"" + "가".repeat(25) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("비밀번호는 72바이트 이하여야 합니다."));
+        assertThat(appUserRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    void incorrectAndUnknownCredentialsReturnSameError() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"user@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isCreated());
+        for (String email : new String[] { "user@example.com", "unknown@example.com" }) {
+            mockMvc.perform(post("/api/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"" + email + "\",\"password\":\"wrong-password\"}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
         }
+    }
 
-        @BeforeEach
-        void resetUpstream() {
-                productRepository.deleteAll();
-                messageRepository.deleteAll();
-                conversationRepository.deleteAll();
-                appUserRepository.deleteAll();
-                appUserRepository.save(new AppUser("chat-test@example.com", "unused-test-hash", "USER"));
-                accessToken = jwtTokenProvider.createToken("chat-test@example.com");
-                upstreamStatus.set(200);
-                upstreamBody.set(completion("안녕하세요!"));
-                requestBody.set(null);
-                authorization.set(null);
-                embeddingStatus.set(200);
-                embeddingRequest.set(null);
+    @Test
+    void anonymousChatDoesNotCallLlm() throws Exception {
+        mockMvc.perform(post("/api/chat")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"안녕\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").isString());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void invalidAndTamperedTokenDoNotCallLlm() throws Exception {
+        String[] parts = accessToken.split("\\.");
+        parts[2] = (parts[2].startsWith("A") ? "B" : "A") + parts[2].substring(1);
+        for (String token : new String[] { "invalid", String.join(".", parts) }) {
+            mockMvc.perform(post("/api/chat")
+                    .header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"message\":\"안녕\"}"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").isString());
         }
+        assertThat(requestBody.get()).isNull();
+    }
 
-        @AfterAll
-        static void stopUpstream() {
-                if (upstream != null) {
-                        upstream.stop(0);
-                }
+    @Test
+    void expiredTokenDoesNotCallLlm() throws Exception {
+        Instant now = Instant.now();
+        var claims = JwtClaimsSet.builder().subject("user@example.com")
+                .issuedAt(now.minusSeconds(600)).expiresAt(now.minusSeconds(300)).build();
+        String token = jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+        mockMvc.perform(post("/api/chat")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"안녕\"}"))
+                .andExpect(status().isUnauthorized());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void chatPersistsOrderedMessagesAndCanBeReadWithANewLoginToken() throws Exception {
+        long id = sendChat("{\"message\":\"첫 질문\",\"category\":\"WASHER\"}", accessToken);
+        String newToken = jwtTokenProvider.createToken("chat-test@example.com");
+
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + newToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(jsonPath("$[0].title").value("첫 질문"))
+                .andExpect(jsonPath("$[0].createdAt").isString())
+                .andExpect(jsonPath("$[0].updatedAt").isString())
+                .andExpect(jsonPath("$[0].messages").doesNotExist());
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + newToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.messages.length()").value(2))
+                .andExpect(jsonPath("$.messages[0].role").value("user"))
+                .andExpect(jsonPath("$.messages[0].content").value("첫 질문"))
+                .andExpect(jsonPath("$.messages[1].role").value("assistant"))
+                .andExpect(jsonPath("$.messages[1].content").value("안녕하세요!"));
+    }
+
+    @Test
+    void continuationAppendsMessagesAndMovesConversationToTop() throws Exception {
+        long first = sendChat("{\"message\":\"첫 대화\",\"category\":\"WASHER\"}", accessToken);
+        long second = sendChat("{\"message\":\"새 대화\"}", accessToken);
+        assertThat(sendChat("{\"message\":\"추가 질문\",\"conversationId\":" + first + "}", accessToken))
+                .isEqualTo(first);
+
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value(first))
+                .andExpect(jsonPath("$[1].id").value(second));
+        mockMvc.perform(get("/api/conversations/{id}", first).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages.length()").value(4))
+                .andExpect(jsonPath("$.messages[2].content").value("추가 질문"))
+                .andExpect(jsonPath("$.messages[3].role").value("assistant"));
+        // Preserve the existing independent-question behavior.
+        assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
+        assertThat(requestBody.get()).doesNotContain("첫 대화");
+    }
+
+    @Test
+    void otherUserCannotListReadOrAppendToConversation() throws Exception {
+        long id = sendChat("{\"message\":\"나의 비공개 질문\"}", accessToken);
+        appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
+        String otherToken = jwtTokenProvider.createToken("other@example.com");
+        requestBody.set(null);
+
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + otherToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"침입 시도\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void missingConversationDoesNotCallLlm() throws Exception {
+        mockMvc.perform(get("/api/conversations/999999").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"conversationId\":999999}"))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+        assertThat(conversationRepository.count()).isZero();
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0, -1})
+    void nonPositiveConversationIdIsRejected(long id) throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isBadRequest());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void anonymousHistoryRequestsAreRejected() throws Exception {
+        mockMvc.perform(get("/api/conversations")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/conversations/1")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void failedAndEmptyRepliesDoNotPersistNewHistory() throws Exception {
+        upstreamStatus.set(500);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"실패할 질문\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isBadGateway());
+        upstreamStatus.set(200);
+        upstreamBody.set(completion(""));
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"빈 답변 질문\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isBadGateway());
+        assertThat(conversationRepository.count()).isZero();
+        assertThat(messageRepository.count()).isZero();
+    }
+
+    @Test
+    void failedContinuationKeepsExistingHistoryUnchanged() throws Exception {
+        long id = sendChat("{\"message\":\"성공한 질문\",\"category\":\"WASHER\"}", accessToken);
+        var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+        upstreamBody.set(completion(""));
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"실패할 질문\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isBadGateway());
+        assertThat(messageRepository.count()).isEqualTo(2);
+        assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
+    }
+
+    @Test
+    void longReplyAndUnicodeTitleAreStoredWithoutTruncatingMessages() throws Exception {
+        String message = "😀".repeat(60);
+        String reply = "가".repeat(20000);
+        upstreamBody.set(completion(reply));
+        long id = sendChat("{\"message\":\"" + message + "\",\"category\":\"WASHER\"}", accessToken);
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("😀".repeat(50)))
+                .andExpect(jsonPath("$.messages[0].content").value(message))
+                .andExpect(jsonPath("$.messages[1].content").value(reply));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
+    void categoryIsPersistedReturnedAndReusedForFollowUpQuestions(ProductCategory category) throws Exception {
+        long id = sendChat("{\"message\":\"작동하지 않아요\",\"category\":\"" + category.name() + "\"}", accessToken);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(category);
+        assertThat(requestBody.get()).contains(category.getLabel());
+
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].category").value(category.name()));
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.category").value(category.name()))
+                .andExpect(jsonPath("$.messages[0].content").value("작동하지 않아요"));
+
+        sendChat("{\"message\":\"추가로 확인할 내용이 있나요\",\"conversationId\":" + id + "}", accessToken);
+        assertThat(requestBody.get()).contains(category.getLabel());
+        assertThat(messageRepository.count()).isEqualTo(4);
+    }
+
+    @Test
+    void changingExistingCategoryDoesNotCallLlmOrAlterHistory() throws Exception {
+        long id = sendChat("{\"message\":\"질문\",\"category\":\"WASHER\"}", accessToken);
+        requestBody.set(null);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"category\":\"DRYER\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("기존 상담의 카테고리는 변경할 수 없습니다."));
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(2);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(ProductCategory.WASHER);
+    }
+
+    @Test
+    void unknownCategoryIsRejectedBeforeCallingLlm() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"질문\",\"category\":\"UNKNOWN\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(requestBody.get()).isNull();
+        assertThat(conversationRepository.count()).isZero();
+    }
+
+    @Test
+    void legacyConversationWithoutCategoryRemainsReadableAndCanContinue() throws Exception {
+        long id = sendChat("{\"message\":\"이전 일반 질문\"}", accessToken);
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.category").isEmpty());
+        sendChat("{\"message\":\"추가 질문\",\"category\":null,\"conversationId\":" + id + "}", accessToken);
+        assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(4);
+    }
+
+    @Test
+    void deleteRemovesOnlySelectedConversationAndItsMessages() throws Exception {
+        long removed = sendChat("{\"message\":\"삭제할 상담\",\"category\":\"WASHER\"}", accessToken);
+        long retained = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
+        requestBody.set(null);
+
+        mockMvc.perform(delete("/api/conversations/{id}", removed).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+
+        assertThat(conversationRepository.existsById(removed)).isFalse();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(removed)).isEmpty();
+        assertThat(conversationRepository.existsById(retained)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(retained)).hasSize(2);
+        assertThat(appUserRepository.existsByEmail("chat-test@example.com")).isTrue();
+        mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(retained));
+        mockMvc.perform(get("/api/conversations/{id}", removed).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void otherUserCannotDeleteConversation() throws Exception {
+        long id = sendChat("{\"message\":\"비공개 상담\"}", accessToken);
+        appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
+        String otherToken = jwtTokenProvider.createToken("other@example.com");
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
+        assertThat(conversationRepository.existsById(id)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+    }
+
+    @Test
+    void missingOrAlreadyDeletedConversationReturnsNotFound() throws Exception {
+        mockMvc.perform(delete("/api/conversations/999999").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        long id = sendChat("{\"message\":\"삭제할 상담\"}", accessToken);
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNotFound());
+        requestBody.set(null);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"후속 질문\",\"conversationId\":" + id + "}"))
+                .andExpect(status().isNotFound());
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isZero();
+    }
+
+    @Test
+    void anonymousAndInvalidTokenCannotDeleteHistory() throws Exception {
+        long id = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
+        mockMvc.perform(delete("/api/conversations/{id}", id)).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer invalid"))
+                .andExpect(status().isUnauthorized());
+        assertThat(conversationRepository.existsById(id)).isTrue();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+    }
+
+    @Test
+    void toolApiIsHiddenBehindTheProxyAndToolCallsAreOwnerOnly() throws Exception {
+        long id = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
+        // Nginx always adds X-Forwarded-For; only the internal MCP container may call /api/tools.
+        mockMvc.perform(post("/api/tools/get_product_context").header("Authorization", "Bearer " + accessToken)
+                .header("X-Forwarded-For", "203.0.113.7").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"conversation_id\":" + id + "}"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/conversations/{id}/tool-calls", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$").isArray());
+        appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
+        String otherToken = jwtTokenProvider.createToken("other@example.com");
+        mockMvc.perform(get("/api/conversations/{id}/tool-calls", id).header("Authorization", "Bearer " + otherToken))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/conversations/{id}/tool-calls", id)).andExpect(status().isUnauthorized());
+    }
+
+    private long sendChat(String body, String token) throws Exception {
+        var result = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andReturn();
+        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.conversationId")).longValue();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
+    void ragErrorCodeUsesOnlySelectedCategoryAndPersistsEvidence(ProductCategory category) throws Exception {
+        String prefix = switch (category) {
+            case REFRIGERATOR -> "RF";
+            case AIR_CONDITIONER -> throw new IllegalArgumentException("Unsupported category");
+            case WASHER -> "WS";
+            case DRYER -> "DR";
+            case DISHWASHER -> "DW";
+        };
+        String expectedId = "HC-" + prefix + "-001";
+        var response = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"" + category.getLabel() + " HC-E01이 떠요\",\"category\":\"" + category.name() + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sources[0].documentId").value(expectedId))
+                .andExpect(jsonPath("$.sources[0].version").value("1.0"))
+                .andReturn();
+        List<String> categories = JsonPath.read(response.getResponse().getContentAsString(), "$.sources[*].category");
+        assertThat(categories).isNotEmpty().allMatch(value -> value.equals(category.name()));
+        String system = JsonPath.read(requestBody.get(), "$.messages[0].content");
+        assertThat(system).contains("자료에 정보가 없다고", "사용 중단 안내를 우선", "<manual_context>", expectedId);
+        String context = system.substring(system.indexOf("<manual_context>"));
+        assertThat(context).contains("카테고리: `" + category.name() + "`");
+        for (ProductCategory other : ProductCategory.values()) {
+            if (other != category) assertThat(context).doesNotContain("카테고리: `" + other.name() + "`");
         }
+        long id = ((Number) JsonPath.read(response.getResponse().getContentAsString(), "$.conversationId")).longValue();
+        mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages[0].sources.length()").value(0))
+                .andExpect(jsonPath("$.messages[1].sources[0].documentId").value(expectedId))
+                .andExpect(jsonPath("$.messages[1].sources[0].content").value(
+                        (String) JsonPath.read(response.getResponse().getContentAsString(), "$.sources[0].content")));
+    }
 
-        @Test
-        void chatReturnsReplyFromSpringAi() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕하세요 {name}\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply").value("안녕하세요!"));
+    @Test
+    void semanticSearchFindsManualWithoutErrorCode() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"냉장고 문에 물방울이 맺혀요\",\"category\":\"REFRIGERATOR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sources.length()").value(1))
+                .andExpect(jsonPath("$.sources[0].documentId").value("HC-RF-003"));
+        assertThat(embeddingRequest.get()).contains("물방울", "text-embedding-3-small");
+        assertThat(requestBody.get()).contains("마른 천", "결로", "HC-RF-003");
+    }
 
-                assertThat(requestBody.get()).contains("gpt-4o-mini", "안녕하세요 {name}", "\"system\"", "\"user\"");
-                assertThat(authorization.get()).isEqualTo("Bearer test-key");
+    @Test
+    void unknownCodeDoesNotGenerateAnInventedDiagnosis() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"세탁기 HC-E99가 떠요\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("HC-E99의 의미가 없습니다")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+        assertThat(messageRepository.count()).isEqualTo(2);
+    }
+
+    @Test
+    void mismatchedProductAsksForClarification() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"냉장고 HC-E01이 떠요\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("어떤 제품")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @Test
+    void missingCategoryAsksForProductWithoutCallingAi() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"HC-E01이 떠요\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("제품 카테고리")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @Test
+    void unsupportedProductWithoutCategoryDoesNotInventInstructions() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"TV 화면이 안 나와요\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("TV 상담 자료가 없습니다")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @Test
+    void noSearchResultDoesNotFallBackToGeneralKnowledge() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"아침 메뉴 추천해주세요\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("근거를 찾지 못했습니다")))
+                .andExpect(jsonPath("$.sources.length()").value(0));
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void embeddingFailureDoesNotCallLlmOrSaveHistory() throws Exception {
+        embeddingStatus.set(401);
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"세탁기 HC-E01이 떠요\",\"category\":\"WASHER\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.message").value("AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요."));
+        assertThat(requestBody.get()).isNull();
+        assertThat(messageRepository.count()).isZero();
+        assertThat(conversationRepository.count()).isZero();
+        embeddingStatus.set(200);
+        sendChat("{\"message\":\"세탁기 HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+    }
+
+    @Test
+    void warrantyApiRequiresAuthenticationAndDoesNotCallOpenAi() throws Exception {
+        mockMvc.perform(post("/api/warranty/check").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"category\":\"WASHER\"}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/warranty/check").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productWarranty.scope").value("PRODUCT"))
+                .andExpect(jsonPath("$.productWarranty.periodStatus").value("UNKNOWN"))
+                .andExpect(jsonPath("$.partWarranties[0].scope").value("CORE_PART"));
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"TV", "HEATER"})
+    void unsupportedCategoryIsRejectedBeforeModelOrWarrantyCalls(String category) throws Exception {
+        for (String path : List.of("/api/chat", "/api/warranty/check")) {
+            mockMvc.perform(post(path).header("Authorization", "Bearer " + accessToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"category\":\"" + category + "\",\"message\":\"제품 문의\"}"))
+                    .andExpect(status().isBadRequest());
         }
+        assertThat(requestBody.get()).isNull();
+        assertThat(embeddingRequest.get()).isNull();
+        assertThat(conversationRepository.count()).isZero();
+    }
 
-        @ParameterizedTest
-        @ValueSource(strings = { "{}", "{\"message\":null}", "{\"message\":\"\"}", "{\"message\":\"   \"}" })
-        void invalidMessageDoesNotCallLlm(String body) throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON).content(body))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("message는 필수입니다."));
+    @Test
+    void warrantyCatalogContainsOnlyTheFourSupportedCategories() throws Exception {
+        var response = mockMvc.perform(get("/api/warranty/policies")
+                .header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andReturn();
+        List<String> categories = JsonPath.read(response.getResponse().getContentAsString(), "$.policies[*].category");
+        assertThat(categories).isNotEmpty();
+        assertThat(new java.util.HashSet<>(categories))
+                .containsExactlyInAnyOrder("WASHER", "DRYER", "REFRIGERATOR", "DISHWASHER");
+        assertThat(requestBody.get()).isNull();
+    }
 
-                assertThat(requestBody.get()).isNull();
+    @Test
+    void warrantyApiRejectsFutureDates() throws Exception {
+        mockMvc.perform(post("/api/warranty/check").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"category\":\"WASHER\",\"purchaseDate\":\"2099-01-01\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    @Test
+    void agentCallsWarrantyToolAndPersistsSeparatedResults() throws Exception {
+        upstreamBody.set("""
+            {"id":"chatcmpl-warranty","object":"chat.completion","created":1,"model":"gpt-4o-mini",
+             "choices":[{"index":0,"message":{"role":"assistant","content":null,
+             "tool_calls":[{"id":"call-warranty","type":"function","function":{"name":"check_warranty","arguments":"{}"}}]},"finish_reason":"tool_calls"}],
+             "usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}
+            """);
+        var response = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"category\":\"WASHER\",\"message\":\"제품 보증과 모터 보증이 다른가요?\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warranty.productWarranty.periodMonths").value(12))
+                .andExpect(jsonPath("$.warranty.partWarranties[0].scope").value("CORE_PART"))
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("주요 부품 보증")))
+                .andReturn().getResponse().getContentAsString();
+        Number conversationId = JsonPath.read(response, "$.conversationId");
+        mockMvc.perform(get("/api/conversations/" + conversationId).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.messages[1].warranty.productWarranty.scope").value("PRODUCT"));
+        assertThat(embeddingRequest.get()).isNull();
+        assertThat(requestBody.get()).contains("check_warranty").doesNotContain("warrantyResult", "AtomicReference");
+    }
+
+    @Test
+    void inventedWarrantyAnswerIsReplacedByServerPolicy() throws Exception {
+        upstreamBody.set(completion("모든 제품은 100년 무상입니다."));
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\",\"message\":\"무상 보증 안내\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("100년"))))
+                .andExpect(jsonPath("$.warranty.productWarranty.periodMonths").value(12));
+    }
+
+    @Test
+    void warrantyQuestionWithSmokeShowsSafetyBeforeCalculation() throws Exception {
+        mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"category\":\"WASHER\",\"message\":\"연기가 나는데 무상 수리인가요?\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("안전 확인이 먼저")))
+                .andExpect(jsonPath("$.warranty").isEmpty());
+        assertThat(requestBody.get()).isNull();
+    }
+
+    // Deterministic vectors test the real VectorStore/filter/prompt pipeline without paid API calls.
+    private static float[] testEmbedding(String text) {
+        float[] vector = new float[18];
+        var document = Pattern.compile("^HC-(RF|WS|DR|DW)-(00[1-4])").matcher(text);
+        if (document.find()) {
+            int group = List.of("RF", "WS", "DR", "DW").indexOf(document.group(1));
+            vector[group * 4 + Integer.parseInt(document.group(2)) - 1] = 1;
+            vector[16] = 1;
+        } else if (text.contains("물방울")) {
+            vector[2] = 1;
+        } else if (text.contains("아침 메뉴")) {
+            vector[17] = 1;
+        } else {
+            vector[16] = 1;
         }
+        return vector;
+    }
 
-        @Test
-        void tooLongMessageDoesNotCallLlm() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"" + "a".repeat(4001) + "\"}"))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("message는 4000자 이하여야 합니다."));
+	private static String completion(String reply) {
+		return """
+				{"id":"chatcmpl-test","object":"chat.completion","created":1,"model":"gpt-4o-mini",
+				"choices":[{"index":0,"message":{"role":"assistant","content":"%s"},"finish_reason":"stop"}],
+				"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}
+				""".formatted(reply);
+	}
 
-                assertThat(requestBody.get()).isNull();
-        }
 
-        @ParameterizedTest
-        @ValueSource(strings = { "{", "" })
-        void invalidJsonDoesNotCallLlm(String body) throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON).content(body))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("올바른 JSON 요청 본문이 필요합니다."));
-
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void upstreamFailureReturnsSafeError() throws Exception {
-                upstreamStatus.set(401);
-                upstreamBody.set(
-                                "{\"error\":{\"message\":\"sensitive upstream detail\",\"type\":\"invalid_request_error\"}}");
-
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isBadGateway())
-                                .andExpect(jsonPath("$.message").value("AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요."));
-        }
-
-        @Test
-        void emptyReplyReturnsBadGateway() throws Exception {
-                upstreamBody.set(completion(""));
-
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isBadGateway());
-        }
-
-        @Test
-        void healthDoesNotCallLlm() throws Exception {
-                mockMvc.perform(get("/actuator/health"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.status").value("UP"));
-
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void signupPersistsHashedPasswordAndLoginTokenAllowsChat() throws Exception {
-                mockMvc.perform(post("/api/auth/signup")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"USER@example.com\",\"password\":\"password123\"}"))
-                                .andExpect(status().isCreated())
-                                .andExpect(jsonPath("$.email").value("user@example.com"))
-                                .andExpect(jsonPath("$.role").value("USER"))
-                                .andExpect(jsonPath("$.password").doesNotExist());
-
-                var saved = appUserRepository.findByEmail("user@example.com").orElseThrow();
-                assertThat(saved.getPassword()).isNotEqualTo("password123");
-                assertThat(passwordEncoder.matches("password123", saved.getPassword())).isTrue();
-
-                var login = mockMvc.perform(post("/api/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"USER@example.com\",\"password\":\"password123\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.email").value("user@example.com"))
-                                .andReturn();
-                String token = JsonPath.read(login.getResponse().getContentAsString(), "$.accessToken");
-                var jwt = jwtDecoder.decode(token);
-                assertThat(jwt.getSubject()).isEqualTo("user@example.com");
-                assertThat(jwt.getExpiresAt()).isEqualTo(jwt.getIssuedAt().plusSeconds(3600));
-
-                mockMvc.perform(post("/api/chat")
-                                .header("Authorization", "Bearer " + token)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply").value("안녕하세요!"));
-        }
 
         @Test
         void accountCheckReturnsOnlyAuthenticatedEmailWithoutRenewingToken() throws Exception {
@@ -414,491 +1031,6 @@ class BackendApplicationTests {
                 }
                 assertThat(appUserRepository.count()).isEqualTo(1);
                 assertThat(productRepository.existsById(product)).isTrue();
-        }
-
-        @Test
-        void duplicateEmailReturnsConflict() throws Exception {
-                String body = "{\"email\":\"user@example.com\",\"password\":\"password123\"}";
-                mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
-                                .andExpect(status().isCreated());
-                mockMvc.perform(post("/api/auth/signup")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"USER@example.com\",\"password\":\"password456\"}"))
-                                .andExpect(status().isConflict())
-                                .andExpect(jsonPath("$.message").value("이미 가입된 이메일입니다."));
-                assertThat(appUserRepository.count()).isEqualTo(2);
-        }
-
-        @ParameterizedTest
-        @ValueSource(strings = {
-                        "{\"email\":\"bad-email\",\"password\":\"password123\"}",
-                        "{\"email\":\"user@example.com\",\"password\":\"short\"}",
-                        "{\"email\":\"user@example.com\",\"password\":\"        \"}",
-                        "{}"
-        })
-        void invalidSignupDoesNotPersistUser(String body) throws Exception {
-                mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").isString());
-                assertThat(appUserRepository.count()).isEqualTo(1);
-        }
-
-        @Test
-        void multibytePasswordOverBcryptLimitIsRejected() throws Exception {
-                mockMvc.perform(post("/api/auth/signup")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"user@example.com\",\"password\":\"" + "가".repeat(25) + "\"}"))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("비밀번호는 72바이트 이하여야 합니다."));
-                assertThat(appUserRepository.count()).isEqualTo(1);
-        }
-
-        @Test
-        void incorrectAndUnknownCredentialsReturnSameError() throws Exception {
-                mockMvc.perform(post("/api/auth/signup")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"user@example.com\",\"password\":\"password123\"}"))
-                                .andExpect(status().isCreated());
-                for (String email : new String[] { "user@example.com", "unknown@example.com" }) {
-                        mockMvc.perform(post("/api/auth/login")
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"email\":\"" + email + "\",\"password\":\"wrong-password\"}"))
-                                        .andExpect(status().isUnauthorized())
-                                        .andExpect(jsonPath("$.message").value("이메일 또는 비밀번호가 올바르지 않습니다."));
-                }
-        }
-
-        @Test
-        void anonymousChatDoesNotCallLlm() throws Exception {
-                mockMvc.perform(post("/api/chat")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕\"}"))
-                                .andExpect(status().isUnauthorized())
-                                .andExpect(jsonPath("$.message").isString());
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void invalidAndTamperedTokenDoNotCallLlm() throws Exception {
-                String[] parts = accessToken.split("\\.");
-                parts[2] = (parts[2].startsWith("A") ? "B" : "A") + parts[2].substring(1);
-                for (String token : new String[] { "invalid", String.join(".", parts) }) {
-                        mockMvc.perform(post("/api/chat")
-                                        .header("Authorization", "Bearer " + token)
-                                        .contentType(MediaType.APPLICATION_JSON)
-                                        .content("{\"message\":\"안녕\"}"))
-                                        .andExpect(status().isUnauthorized())
-                                        .andExpect(jsonPath("$.message").isString());
-                }
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void expiredTokenDoesNotCallLlm() throws Exception {
-                Instant now = Instant.now();
-                var claims = JwtClaimsSet.builder().subject("user@example.com")
-                                .issuedAt(now.minusSeconds(600)).expiresAt(now.minusSeconds(300)).build();
-                String token = jwtEncoder.encode(JwtEncoderParameters.from(
-                                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
-                mockMvc.perform(post("/api/chat")
-                                .header("Authorization", "Bearer " + token)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"안녕\"}"))
-                                .andExpect(status().isUnauthorized());
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void chatPersistsOrderedMessagesAndCanBeReadWithANewLoginToken() throws Exception {
-                long id = sendChat("{\"message\":\"첫 질문\",\"category\":\"WASHER\"}", accessToken);
-                String newToken = jwtTokenProvider.createToken("chat-test@example.com");
-
-                mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + newToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(1))
-                                .andExpect(jsonPath("$[0].id").value(id))
-                                .andExpect(jsonPath("$[0].title").value("첫 질문"))
-                                .andExpect(jsonPath("$[0].createdAt").isString())
-                                .andExpect(jsonPath("$[0].updatedAt").isString())
-                                .andExpect(jsonPath("$[0].messages").doesNotExist());
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + newToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.id").value(id))
-                                .andExpect(jsonPath("$.messages.length()").value(2))
-                                .andExpect(jsonPath("$.messages[0].role").value("user"))
-                                .andExpect(jsonPath("$.messages[0].content").value("첫 질문"))
-                                .andExpect(jsonPath("$.messages[1].role").value("assistant"))
-                                .andExpect(jsonPath("$.messages[1].content").value("안녕하세요!"));
-        }
-
-        @Test
-        void continuationAppendsMessagesAndMovesConversationToTop() throws Exception {
-                long first = sendChat("{\"message\":\"첫 대화\",\"category\":\"WASHER\"}", accessToken);
-                long second = sendChat("{\"message\":\"새 대화\"}", accessToken);
-                assertThat(sendChat("{\"message\":\"추가 질문\",\"conversationId\":" + first + "}", accessToken))
-                                .isEqualTo(first);
-
-                mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(2))
-                                .andExpect(jsonPath("$[0].id").value(first))
-                                .andExpect(jsonPath("$[1].id").value(second));
-                mockMvc.perform(get("/api/conversations/{id}", first).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.messages.length()").value(4))
-                                .andExpect(jsonPath("$.messages[2].content").value("추가 질문"))
-                                .andExpect(jsonPath("$.messages[3].role").value("assistant"));
-                // Preserve the existing independent-question behavior.
-                assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
-                assertThat(requestBody.get()).doesNotContain("첫 대화");
-        }
-
-        @Test
-        void otherUserCannotListReadOrAppendToConversation() throws Exception {
-                long id = sendChat("{\"message\":\"나의 비공개 질문\"}", accessToken);
-                appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
-                String otherToken = jwtTokenProvider.createToken("other@example.com");
-                requestBody.set(null);
-
-                mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + otherToken))
-                                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + otherToken))
-                                .andExpect(status().isNotFound())
-                                .andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + otherToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"침입 시도\",\"conversationId\":" + id + "}"))
-                                .andExpect(status().isNotFound());
-                assertThat(requestBody.get()).isNull();
-                assertThat(messageRepository.count()).isEqualTo(2);
-        }
-
-        @Test
-        void missingConversationDoesNotCallLlm() throws Exception {
-                mockMvc.perform(get("/api/conversations/999999").header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isNotFound());
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"질문\",\"conversationId\":999999}"))
-                                .andExpect(status().isNotFound());
-                assertThat(requestBody.get()).isNull();
-                assertThat(conversationRepository.count()).isZero();
-        }
-
-        @ParameterizedTest
-        @ValueSource(longs = { 0, -1 })
-        void nonPositiveConversationIdIsRejected(long id) throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"질문\",\"conversationId\":" + id + "}"))
-                                .andExpect(status().isBadRequest());
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void anonymousHistoryRequestsAreRejected() throws Exception {
-                mockMvc.perform(get("/api/conversations")).andExpect(status().isUnauthorized());
-                mockMvc.perform(get("/api/conversations/1")).andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        void failedAndEmptyRepliesDoNotPersistNewHistory() throws Exception {
-                upstreamStatus.set(500);
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"실패할 질문\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isBadGateway());
-                upstreamStatus.set(200);
-                upstreamBody.set(completion(""));
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"빈 답변 질문\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isBadGateway());
-                assertThat(conversationRepository.count()).isZero();
-                assertThat(messageRepository.count()).isZero();
-        }
-
-        @Test
-        void failedContinuationKeepsExistingHistoryUnchanged() throws Exception {
-                long id = sendChat("{\"message\":\"성공한 질문\",\"category\":\"WASHER\"}", accessToken);
-                var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
-                upstreamBody.set(completion(""));
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"실패할 질문\",\"conversationId\":" + id + "}"))
-                                .andExpect(status().isBadGateway());
-                assertThat(messageRepository.count()).isEqualTo(2);
-                assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
-        }
-
-        @Test
-        void longReplyAndUnicodeTitleAreStoredWithoutTruncatingMessages() throws Exception {
-                String message = "😀".repeat(60);
-                String reply = "가".repeat(20000);
-                upstreamBody.set(completion(reply));
-                long id = sendChat("{\"message\":\"" + message + "\",\"category\":\"WASHER\"}", accessToken);
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.title").value("😀".repeat(50)))
-                                .andExpect(jsonPath("$.messages[0].content").value(message))
-                                .andExpect(jsonPath("$.messages[1].content").value(reply));
-        }
-
-        @ParameterizedTest
-        @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
-        void categoryIsPersistedReturnedAndReusedForFollowUpQuestions(ProductCategory category) throws Exception {
-                long id = sendChat("{\"message\":\"작동하지 않아요\",\"category\":\"" + category.name() + "\"}", accessToken);
-                assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isEqualTo(category);
-                assertThat(requestBody.get()).contains(category.getLabel());
-
-                mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$[0].category").value(category.name()));
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.category").value(category.name()))
-                                .andExpect(jsonPath("$.messages[0].content").value("작동하지 않아요"));
-
-                sendChat("{\"message\":\"추가로 확인할 내용이 있나요\",\"conversationId\":" + id + "}", accessToken);
-                assertThat(requestBody.get()).contains(category.getLabel());
-                assertThat(messageRepository.count()).isEqualTo(4);
-        }
-
-        @Test
-        void changingExistingCategoryDoesNotCallLlmOrAlterHistory() throws Exception {
-                long id = sendChat("{\"message\":\"질문\",\"category\":\"WASHER\"}", accessToken);
-                requestBody.set(null);
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"질문\",\"category\":\"DRYER\",\"conversationId\":" + id + "}"))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("기존 상담의 카테고리는 변경할 수 없습니다."));
-                assertThat(requestBody.get()).isNull();
-                assertThat(messageRepository.count()).isEqualTo(2);
-                assertThat(conversationRepository.findById(id).orElseThrow().getCategory())
-                                .isEqualTo(ProductCategory.WASHER);
-        }
-
-        @Test
-        void unknownCategoryIsRejectedBeforeCallingLlm() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"질문\",\"category\":\"UNKNOWN\"}"))
-                                .andExpect(status().isBadRequest());
-                assertThat(requestBody.get()).isNull();
-                assertThat(conversationRepository.count()).isZero();
-        }
-
-        @Test
-        void legacyConversationWithoutCategoryRemainsReadableAndCanContinue() throws Exception {
-                long id = sendChat("{\"message\":\"이전 일반 질문\"}", accessToken);
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk()).andExpect(jsonPath("$.category").isEmpty());
-                sendChat("{\"message\":\"추가 질문\",\"category\":null,\"conversationId\":" + id + "}", accessToken);
-                assertThat(conversationRepository.findById(id).orElseThrow().getCategory()).isNull();
-                assertThat(messageRepository.count()).isEqualTo(4);
-        }
-
-        @Test
-        void deleteRemovesOnlySelectedConversationAndItsMessages() throws Exception {
-                long removed = sendChat("{\"message\":\"삭제할 상담\",\"category\":\"WASHER\"}", accessToken);
-                long retained = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
-                requestBody.set(null);
-
-                mockMvc.perform(delete("/api/conversations/{id}", removed).header("Authorization",
-                                "Bearer " + accessToken))
-                                .andExpect(status().isNoContent());
-
-                assertThat(conversationRepository.existsById(removed)).isFalse();
-                assertThat(messageRepository.findByConversationIdOrderByIdAsc(removed)).isEmpty();
-                assertThat(conversationRepository.existsById(retained)).isTrue();
-                assertThat(messageRepository.findByConversationIdOrderByIdAsc(retained)).hasSize(2);
-                assertThat(appUserRepository.existsByEmail("chat-test@example.com")).isTrue();
-                mockMvc.perform(get("/api/conversations").header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.length()").value(1))
-                                .andExpect(jsonPath("$[0].id").value(retained));
-                mockMvc.perform(get("/api/conversations/{id}", removed).header("Authorization",
-                                "Bearer " + accessToken))
-                                .andExpect(status().isNotFound());
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void otherUserCannotDeleteConversation() throws Exception {
-                long id = sendChat("{\"message\":\"비공개 상담\"}", accessToken);
-                appUserRepository.save(new AppUser("other@example.com", "unused-test-hash", "USER"));
-                String otherToken = jwtTokenProvider.createToken("other@example.com");
-                mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + otherToken))
-                                .andExpect(status().isNotFound())
-                                .andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
-                assertThat(conversationRepository.existsById(id)).isTrue();
-                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
-        }
-
-        @Test
-        void missingOrAlreadyDeletedConversationReturnsNotFound() throws Exception {
-                mockMvc.perform(delete("/api/conversations/999999").header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isNotFound());
-                long id = sendChat("{\"message\":\"삭제할 상담\"}", accessToken);
-                mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isNoContent());
-                mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isNotFound());
-                requestBody.set(null);
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"후속 질문\",\"conversationId\":" + id + "}"))
-                                .andExpect(status().isNotFound());
-                assertThat(requestBody.get()).isNull();
-                assertThat(messageRepository.count()).isZero();
-        }
-
-        @Test
-        void anonymousAndInvalidTokenCannotDeleteHistory() throws Exception {
-                long id = sendChat("{\"message\":\"유지할 상담\"}", accessToken);
-                mockMvc.perform(delete("/api/conversations/{id}", id)).andExpect(status().isUnauthorized());
-                mockMvc.perform(delete("/api/conversations/{id}", id).header("Authorization", "Bearer invalid"))
-                                .andExpect(status().isUnauthorized());
-                assertThat(conversationRepository.existsById(id)).isTrue();
-                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
-        }
-
-        private long sendChat(String body, String token) throws Exception {
-                var result = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + token)
-                                .contentType(MediaType.APPLICATION_JSON).content(body))
-                                .andExpect(status().isOk()).andReturn();
-                return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.conversationId"))
-                                .longValue();
-        }
-
-        @ParameterizedTest
-        @EnumSource(value = ProductCategory.class, names = "AIR_CONDITIONER", mode = EnumSource.Mode.EXCLUDE)
-        void ragErrorCodeUsesOnlySelectedCategoryAndPersistsEvidence(ProductCategory category) throws Exception {
-                String prefix = switch (category) {
-                        case AIR_CONDITIONER -> "AC";
-                        case REFRIGERATOR -> "RF";
-                        case WASHER -> "WS";
-                        case DRYER -> "DR";
-                        case DISHWASHER -> "DW";
-                };
-                String expectedId = "HC-" + prefix + "-001";
-                var response = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"" + category.getLabel() + " HC-E01이 떠요\",\"category\":\""
-                                                + category.name() + "\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.sources[0].documentId").value(expectedId))
-                                .andExpect(jsonPath("$.sources[0].version").value("1.0"))
-                                .andReturn();
-                List<String> categories = JsonPath.read(response.getResponse().getContentAsString(),
-                                "$.sources[*].category");
-                assertThat(categories).isNotEmpty().allMatch(value -> value.equals(category.name()));
-                String system = JsonPath.read(requestBody.get(), "$.messages[0].content");
-                assertThat(system).contains("자료에 정보가 없다고", "사용 중단 안내를 우선", "<manual_context>", expectedId);
-                String context = system.substring(system.indexOf("<manual_context>"));
-                assertThat(context).contains("카테고리: `" + category.name() + "`");
-                for (ProductCategory other : ProductCategory.values()) {
-                        if (other != category)
-                                assertThat(context).doesNotContain("카테고리: `" + other.name() + "`");
-                }
-                long id = ((Number) JsonPath.read(response.getResponse().getContentAsString(), "$.conversationId"))
-                                .longValue();
-                mockMvc.perform(get("/api/conversations/{id}", id).header("Authorization", "Bearer " + accessToken))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.messages[0].sources.length()").value(0))
-                                .andExpect(jsonPath("$.messages[1].sources[0].documentId").value(expectedId))
-                                .andExpect(jsonPath("$.messages[1].sources[0].content").value(
-                                                (String) JsonPath.read(response.getResponse().getContentAsString(),
-                                                                "$.sources[0].content")));
-        }
-
-        @Test
-        void semanticSearchFindsManualWithoutErrorCode() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"세탁기가 탈수할 때 크게 흔들려요\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.sources.length()").value(1))
-                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-003"));
-                assertThat(embeddingRequest.get()).contains("크게 흔들려요", "text-embedding-3-small");
-                assertThat(requestBody.get()).contains("문 잠금", "HC-WS-003");
-        }
-
-        @Test
-        void unknownCodeDoesNotGenerateAnInventedDiagnosis() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"세탁기 HC-E99가 떠요\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply")
-                                                .value(org.hamcrest.Matchers.containsString("HC-E99의 의미가 없습니다")))
-                                .andExpect(jsonPath("$.sources.length()").value(0));
-                assertThat(requestBody.get()).isNull();
-                assertThat(embeddingRequest.get()).isNull();
-                assertThat(messageRepository.count()).isEqualTo(2);
-        }
-
-        @Test
-        void mismatchedProductAsksForClarification() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"냉장고 HC-E01이 떠요\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("어떤 제품")))
-                                .andExpect(jsonPath("$.sources.length()").value(0));
-                assertThat(requestBody.get()).isNull();
-                assertThat(embeddingRequest.get()).isNull();
-        }
-
-        @Test
-        void missingCategoryAsksForProductWithoutCallingAi() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"HC-E01이 떠요\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("제품 카테고리")))
-                                .andExpect(jsonPath("$.sources.length()").value(0));
-                assertThat(requestBody.get()).isNull();
-                assertThat(embeddingRequest.get()).isNull();
-        }
-
-        @Test
-        void unsupportedProductWithoutCategoryDoesNotInventInstructions() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON).content("{\"message\":\"TV 화면이 안 나와요\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply")
-                                                .value(org.hamcrest.Matchers.containsString("TV 상담 자료가 없습니다")))
-                                .andExpect(jsonPath("$.sources.length()").value(0));
-                assertThat(requestBody.get()).isNull();
-                assertThat(embeddingRequest.get()).isNull();
-        }
-
-        @Test
-        void noSearchResultDoesNotFallBackToGeneralKnowledge() throws Exception {
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"아침 메뉴 추천해주세요\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.reply")
-                                                .value(org.hamcrest.Matchers.containsString("근거를 찾지 못했습니다")))
-                                .andExpect(jsonPath("$.sources.length()").value(0));
-                assertThat(requestBody.get()).isNull();
-        }
-
-        @Test
-        void embeddingFailureDoesNotCallLlmOrSaveHistory() throws Exception {
-                embeddingStatus.set(401);
-                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"message\":\"세탁기 HC-E01이 떠요\",\"category\":\"WASHER\"}"))
-                                .andExpect(status().isBadGateway())
-                                .andExpect(jsonPath("$.message").value("AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요."));
-                assertThat(requestBody.get()).isNull();
-                assertThat(messageRepository.count()).isZero();
-                assertThat(conversationRepository.count()).isZero();
-                embeddingStatus.set(200);
-                sendChat("{\"message\":\"세탁기 HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
         }
 
         @Test
@@ -1177,33 +1309,72 @@ class BackendApplicationTests {
                 assertThat(manualCatalog.documents()).hasSize(16).allMatch(
                                 document -> !document.getMetadata().get("category").equals("AIR_CONDITIONER"));
         }
+    @Test
+    void profileApiUpdatesTheSameProductUsedByMcpWithoutLosingDeliveryRegion() throws Exception {
+        var created = mockMvc.perform(post("/api/me/products").header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"displayName":"우리 세탁기","warranty":{"category":"WASHER","modelName":"F21VDSK",
+                        "purchaseDate":"2023-01-01","coreVariant":"STANDARD_MOTOR","productType":"GENERAL",
+                        "proofAvailable":true,"domesticNewHousehold":true},"deliverySido":"서울","deliverySigungu":"강남구"}
+                        """))
+                .andExpect(status().isCreated()).andReturn();
+        long id = ((Number) JsonPath.read(created.getResponse().getContentAsString(), "$.id")).longValue();
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(jsonPath("$[0].model").value("F21VDSK"));
+        mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"category":"WASHER","name":"수정한 세탁기","model":"F24VDSK","purchaseDate":"2024-01-01",
+                        "postcode":"01234","address":"서울시 강남구"}
+                        """))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/me/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(jsonPath("$[0].displayName").value("수정한 세탁기"))
+                .andExpect(jsonPath("$[0].warranty.modelName").value("F24VDSK"))
+                .andExpect(jsonPath("$[0].warranty.purchaseDate").value("2024-01-01"))
+                .andExpect(jsonPath("$[0].warranty.proofAvailable").isEmpty())
+                .andExpect(jsonPath("$[0].deliverySido").value("서울"))
+                .andExpect(jsonPath("$[0].deliverySigungu").value("강남구"));
+        assertThat(productRepository.count()).isEqualTo(1);
+    }
 
-        // Deterministic vectors test the real VectorStore/filter/prompt pipeline
-        // without paid API calls.
-        private static float[] testEmbedding(String text) {
-                float[] vector = new float[22];
-                var document = Pattern.compile("^HC-(AC|RF|WS|DR|DW)-(00[1-4])").matcher(text);
-                if (document.find()) {
-                        int group = List.of("AC", "RF", "WS", "DR", "DW").indexOf(document.group(1));
-                        vector[group * 4 + Integer.parseInt(document.group(2)) - 1] = 1;
-                        vector[20] = 1;
-                } else if (text.contains("크게 흔들려요")) {
-                        vector[10] = 1;
-                } else if (text.contains("아침 메뉴")) {
-                        vector[21] = 1;
-                } else {
-                        vector[20] = 1;
-                }
-                return vector;
-        }
+    @Test
+    void deletingSelectedProductPreservesHistoryAndSafetyButResetsDiagnostics() throws Exception {
+        long id = createProduct("{\"category\":\"WASHER\"}");
+        var state = consultations.begin("chat-test@example.com", null, ProductCategory.WASHER, "가스 냄새가 나요", id);
+        var conversation = conversationRepository.findById(state.id()).orElseThrow();
+        conversation.setConsultation(id, conversation.getLatestInput(), """
+                {"riskStatus":"CONFIRMED","riskCase":"RC11","riskQuestionNo":1,"errorCode":"OE",
+                 "symptomCode":"DRAIN","doneSteps":["STEP1"],"currentStep":1,"closed":false}
+                """);
+        conversationRepository.save(conversation);
+        messageRepository.save(new ChatMessage(conversation, "assistant", "안전 안내"));
+        var before = consultations.snapshot("chat-test@example.com", state.id());
+        mockMvc.perform(delete("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        var after = consultations.snapshot("chat-test@example.com", state.id());
+        assertThat(after.productId()).isNull();
+        assertThat(after.version()).isGreaterThan(before.version());
+        assertThat(after.state().riskStatus()).isEqualTo("CONFIRMED");
+        assertThat(after.state().doneSteps()).isEmpty();
+        assertThat(after.state().symptomCode()).isNull();
+        assertThat(messageRepository.findByConversationIdOrderByIdAsc(state.id())).hasSize(1);
+    }
 
-        private static String completion(String reply) {
-                return """
-                                {"id":"chatcmpl-test","object":"chat.completion","created":1,"model":"gpt-4o-mini",
-                                "choices":[{"index":0,"message":{"role":"assistant","content":"%s"},"finish_reason":"stop"}],
-                                "usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}
-                                """
-                                .formatted(reply);
-        }
-
+    @Test
+    void withdrawalDeletesOnlyOwnersMcpAuditRecords() throws Exception {
+        var owner = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+        var other = appUserRepository.save(new AppUser("other@example.com", "unused", "USER"));
+        var ownedConversation = conversationRepository.save(new Conversation(owner, "내 상담", ProductCategory.WASHER));
+        var otherConversation = conversationRepository.save(new Conversation(other, "다른 상담", ProductCategory.WASHER));
+        var call = com.project.backend.mcp.audit.ToolCallRecord.failure("check_warranty", java.util.Map.of(), "MODEL", "UNAVAILABLE", 1);
+        toolCallRepository.save(new com.project.backend.mcp.audit.ToolCallLog(ownedConversation.getId(), null, 1, call, "{}", "{}"));
+        toolCallRepository.save(new com.project.backend.mcp.audit.ToolCallLog(otherConversation.getId(), null, 1, call, "{}", "{}"));
+        mockMvc.perform(delete("/api/auth/me").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isNoContent());
+        assertThat(toolCallRepository.findByConversationIdOrderByIdAsc(ownedConversation.getId())).isEmpty();
+        assertThat(toolCallRepository.findByConversationIdOrderByIdAsc(otherConversation.getId())).hasSize(1);
+        assertThat(appUserRepository.existsById(other.getId())).isTrue();
+    }
 }

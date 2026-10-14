@@ -21,6 +21,7 @@ dependencies {
 	implementation platform('org.springframework.ai:spring-ai-bom:2.0.1')
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 	implementation 'org.springframework.ai:spring-ai-vector-store'
+	implementation 'org.springframework.ai:spring-ai-mcp'
 	implementation 'io.github.cdimascio:dotenv-java:3.2.0'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -38,7 +39,9 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'mysql-schema'
+	}
 }
 
 tasks.named('bootJar') {
@@ -50,13 +53,28 @@ tasks.register('mysqlTest', Test) {
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'mysql-schema'
+	}
 	systemProperty 'test.datasource.url', 'jdbc:mysql://127.0.0.1:3307/backend_test'
 	systemProperty 'test.datasource.driver-class-name', 'com.mysql.cj.jdbc.Driver'
 	systemProperty 'test.datasource.username', 'backend_test'
 	systemProperty 'test.datasource.password', 'test-password'
-	systemProperty 'test.ddl-auto', 'validate'
 	exclude '**/DatabaseMigrationTests.class'
+	outputs.upToDateWhen { false }
+}
+
+tasks.register('mysqlSchemaTest', Test) {
+	description = 'Applies ops/rds/sql V001..V005 and backend V006 to disposable MySQL and starts the app with ddl-auto=validate.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'mysql-schema'
+	}
+	systemProperty 'test.datasource.url', 'jdbc:mysql://127.0.0.1:3307/backend_test'
+	systemProperty 'test.datasource.username', 'backend_test'
+	systemProperty 'test.datasource.password', 'test-password'
 	outputs.upToDateWhen { false }
 }
 
@@ -83,7 +101,7 @@ tasks.named('mysqlTest') {
 }
 
 tasks.named('processResources') {
-	from('../ops/sql') {
+	from('../ops/rds/sql') {
 		into 'db/migration'
 	}
 	from('rag-test-data/manuals') {

@@ -10,21 +10,30 @@ import org.springframework.web.server.ResponseStatusException;
 import com.project.backend.conversation.dto.ConversationDetail;
 import com.project.backend.conversation.dto.ConversationSummary;
 import com.project.backend.conversation.dto.MessageResponse;
+import com.project.backend.mcp.audit.ToolCallLog;
+import com.project.backend.mcp.audit.ToolCallLogRepository;
+import com.project.backend.mcp.audit.ToolCallRecord;
 import com.project.backend.user.AppUserRepository;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import com.project.backend.rag.RagSource;
+import com.project.backend.warranty.WarrantyModels;
 
 @Service
 public class ConversationService {
 
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository messageRepository;
     private final AppUserRepository userRepository;
+    private final ToolCallLogRepository toolCallRepository;
 
     public ConversationService(ConversationRepository conversationRepository,
-            ChatMessageRepository messageRepository, AppUserRepository userRepository) {
+            ChatMessageRepository messageRepository, AppUserRepository userRepository, ToolCallLogRepository toolCallRepository) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
+        this.toolCallRepository = toolCallRepository;
     }
 
     @Transactional(readOnly = true)
@@ -66,7 +75,20 @@ public class ConversationService {
 
     // Keep the external AI call outside this transaction; save both messages together.
     @Transactional
-    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category, List<RagSource> sources) {
+    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category, List<RagSource> sources, WarrantyModels.Result warranty) {
+        return saveExchange(id,email,message,reply,category,sources,warranty,java.util.Map.of());
+    }
+
+    @Transactional
+    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category, List<RagSource> sources, WarrantyModels.Result warranty,
+            java.util.Map<String,com.project.backend.mcp.tool.ToolEnvelope> tools) {
+        return saveExchange(id, email, message, reply, category, sources, warranty, tools, List.of());
+    }
+
+    // Tool call rows are stored with the assistant message in the same transaction.
+    @Transactional
+    public Long saveExchange(Long id, String email, String message, String reply, ProductCategory category, List<RagSource> sources, WarrantyModels.Result warranty,
+            java.util.Map<String,com.project.backend.mcp.tool.ToolEnvelope> tools, List<ToolCallRecord> calls) {
         Conversation conversation;
         if (id == null) {
             var user = userRepository.findByEmail(email).orElseThrow(() ->
@@ -74,19 +96,53 @@ public class ConversationService {
             conversation = conversationRepository.save(new Conversation(user, message, category));
         } else {
             conversation = findOwned(id, email);
+            for(var result:tools.values()){
+                if(result.meta()!=null&&result.meta().get("context_version") instanceof Number version&&version.longValue()!=conversation.getContextRevision())
+                    throw new ResponseStatusException(HttpStatus.CONFLICT,"상담 상태가 변경됐습니다. 다시 확인해 주세요.");
+            }
             conversation.touch();
         }
         var answer = new ChatMessage(conversation, "assistant", reply);
         answer.setSources(sources);
+        answer.setWarranty(warranty);
+        answer.setTools(tools);
         messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", message), answer));
+        for (int order = 0; order < calls.size(); order++) {
+            var call = calls.get(order);
+            toolCallRepository.save(new ToolCallLog(conversation.getId(), answer.getId(), order + 1, call,
+                    JSON.writeValueAsString(call.arguments()), JSON.writeValueAsString(call.summary())));
+        }
         return conversation.getId();
+    }
+
+    /** Tool call records of the caller's own conversation only. */
+    @Transactional(readOnly = true)
+    public List<ToolCallView> toolCalls(Long id, String email) {
+        findOwned(id, email);
+        return toolCallRepository.findByConversationIdOrderByIdAsc(id).stream().map(ToolCallView::from).toList();
     }
 
     @Transactional
     public void delete(Long id, String email) {
         Conversation conversation = findOwned(id, email);
+        // V005 also cascades in MySQL; deleting here keeps H2 tests and older schemas consistent.
+        toolCallRepository.deleteByConversation(id);
         messageRepository.deleteAllByConversationId(id);
         conversationRepository.delete(conversation);
+    }
+
+    public record ToolCallView(int callOrder, Long messageId, String toolName, java.util.Map<String, Object> arguments,
+            List<String> injectedFields, String selectionSource, String status, String errorCode,
+            java.util.Map<String, Object> resultSummary, long elapsedMs, String traceId, java.time.Instant createdAt) {
+        static ToolCallView from(ToolCallLog log) {
+            return new ToolCallView(log.getCallOrder(), log.getMessageId(), log.getToolName(), json(log.getArguments()),
+                    log.getInjectedFields() == null || log.getInjectedFields().isBlank() ? List.of() : List.of(log.getInjectedFields().split(",")),
+                    log.getSelectionSource(), log.getStatus(), log.getErrorCode(), json(log.getResultSummary()),
+                    log.getElapsedMs(), log.getTraceId(), log.getCreatedAt());
+        }
+        private static java.util.Map<String, Object> json(String value) {
+            return value == null ? java.util.Map.of() : JSON.readValue(value, new TypeReference<java.util.Map<String, Object>>() { });
+        }
     }
 
     private Conversation findOwned(Long id, String email) {
