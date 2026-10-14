@@ -55,8 +55,13 @@ Temporary Items
 
 temp_project/
 .env
+__pycache__/
+*.py[cod]
+.venv/
 # terraform-aws-ec2/
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode
+
 .vercel
+
 .env.local

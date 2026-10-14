@@ -1,0 +1,9 @@
+# Spring verifies these files byte-for-byte against homecare/source-manifest.json.
+# Line-ending conversion would change their SHA-256 on Windows or Linux checkouts.
+backend/src/main/resources/homecare/*.json -text
+backend/src/main/resources/warranty/*.json -text
+
+# Migration checksums and Linux shell execution need consistent LF line endings.
+ops/rds/sql/*.sql text eol=lf
+backend/src/main/resources/db/migration/*.sql text eol=lf
+ops/**/*.sh text eol=lf
