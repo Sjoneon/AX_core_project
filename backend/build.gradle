@@ -85,6 +85,13 @@ tasks.register('migrateDatabase', JavaExec) {
 	mainClass = 'com.project.backend.migration.DatabaseMigration'
 }
 
+tasks.register('evaluateManufacturerRetrieval', JavaExec) {
+    description = 'Builds/loads manufacturer embeddings and evaluates predefined cases; no DB or chat model.'
+    group = 'verification'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.project.backend.mcp.retrieval.KnowledgeRetrievalEvaluation'
+}
+
 tasks.register('migrationTest', Test) {
 	description = 'Verifies SQL upgrades, data preservation and failed migrations on disposable MySQL.'
 	group = 'verification'

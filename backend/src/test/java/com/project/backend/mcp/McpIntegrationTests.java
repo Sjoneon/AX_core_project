@@ -38,6 +38,7 @@ import tools.jackson.databind.json.JsonMapper;
 /** Real FastMCP process + Spring tool API + scripted fake OpenAI. No real OpenAI key is used. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT, properties={
     "homecare.agent.enabled=true", "spring.ai.openai.api-key=test-key",
+    "homecare.knowledge.vector.enabled=false",
     "spring.datasource.url=jdbc:h2:mem:mcp_integration;MODE=MySQL;DB_CLOSE_DELAY=-1",
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
     "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
@@ -297,6 +298,25 @@ class McpIntegrationTests {
         assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"FX24ENER 세탁기가 흔들려요",null).productId()).isNull();
         assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"F21VDSK.AKOR 세탁기가 흔들려요",null).productId()).isNull();
         assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"f21vdsk. 세탁기가 흔들려요",null).productId()).isEqualTo(productId);
+    }
+    @Test void registeredVibrationSearchUsesManufacturerEvidenceAcrossRealMcpTransport(){
+        String email="retrieval-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
+        var product=products.create(email,new UserProductService.Create("진동 검증 세탁기",input,"서울","강남구"));
+        String query="탈수할때 세탁기 본체가 많이 흔들리면서 원 위치에서 크게 벗어나요.";
+        var state=consultations.begin(email,null,ProductCategory.WASHER,query,null);
+        assertThat(state.productId()).isEqualTo(product.id());assertThat(state.state().riskStatus()).isEqualTo("CLEAR");
+        try(var session=gateway.open(token(email),state)){
+            var result=session.invoke("search_knowledge",map("query",query));
+            assertThat(result.status()).isEqualTo("OK");assertThat(result.data()).containsEntry("retrieval_algorithm","manufacturer-hybrid-v1");
+            assertThat((List<?>)result.data().get("safety_notices")).isEmpty();
+            assertThat((List<?>)result.data().get("documents")).anySatisfy(value->
+                assertThat(((Map<?,?>)value).get("document_id")).isEqualTo("B17-MFL71792818-topic_66-009"));
+            assertThat(result.data().toString()).doesNotContain("T4-016","T4-036","B16-MFL71792818-topic_65-008","current_QA_review");
+            var plan=session.invoke("get_diagnostic_plan",Map.of());
+            assertThat(plan.status()).isEqualTo("NOT_VERIFIED");assertThat((List<?>)plan.data().get("steps")).isEmpty();
+            assertThat(plan.independent_action_allowed()).isFalse();
+        }
     }
     @Test void multipleOwnedProductsRequireAnUnambiguousNameOrFullModel(){
         String email="multiple-"+UUID.randomUUID()+"@example.com";

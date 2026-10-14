@@ -1,0 +1,377 @@
+{
+  "version": "manufacturer-retrieval-eval-v1",
+  "defined_before_embedding_run": true,
+  "cases": [
+    {
+      "id": "vibration-reproduction",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수할때 세탁기 본체가 많이 흔들리면서 원 위치에서 크게 벗어나요.",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "forbidden_prefixes": [
+        "T4-",
+        "B16-"
+      ],
+      "forbidden_subjects": [
+        "침수",
+        "급수",
+        "배수",
+        "거름망"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "vibration-synonym",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "세탁기 진동이 심해요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "forbidden_prefixes": [
+        "T4-",
+        "B16-"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "vibration-moving",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수 중 세탁기가 원래 자리에서 움직여요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "forbidden_prefixes": [
+        "T4-",
+        "B16-"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "vibration-paraphrase",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수할 때 세탁기가 춤을 춰요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "other-washer-model",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX25WSQR",
+      "query": "탈수할 때 세탁기가 흔들려요",
+      "expected_any": [
+        "B17-MFL71792815-topic_67-009"
+      ],
+      "forbidden_ids": [
+        "B17-MFL71792818-topic_66-009"
+      ]
+    },
+    {
+      "id": "legacy-washer-vibration",
+      "split": "development",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "탈수 중 진동이 심해요",
+      "expected_any": [
+        "T3-137",
+        "B17-MFL71964311-topic_58-009"
+      ],
+      "forbidden_ids": [
+        "T2-010",
+        "B17-MFL71792818-topic_66-009"
+      ]
+    },
+    {
+      "id": "flood-matching-model",
+      "split": "development",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "세탁실에 물이 찼고 세탁기 밑면이 물에 잠겼어요",
+      "expected_safety_any": [
+        "T4-016"
+      ],
+      "forbidden_ids": [
+        "T4-036"
+      ]
+    },
+    {
+      "id": "flood-other-model",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "세탁기가 침수됐어요",
+      "forbidden_ids": [
+        "T4-016",
+        "T4-036"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "exact-oe",
+      "split": "development",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "OE",
+      "expected_any": [
+        "T2-003"
+      ],
+      "expect_match": "EXACT_ERROR_CODE"
+    },
+    {
+      "id": "spaced-oe",
+      "split": "development",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "O E 표시가 떠요",
+      "expected_any": [
+        "T2-003"
+      ],
+      "expect_match": "EXACT_ERROR_CODE"
+    },
+    {
+      "id": "display-label",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "화면에 진동 센서 이상이라고 표시돼요",
+      "expected_any": [
+        "B16-MFL71792818-topic_65-008"
+      ],
+      "expect_match": "EXACT_DISPLAY_LABEL"
+    },
+    {
+      "id": "natural-drain",
+      "split": "development",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "세탁기 물이 안 빠져요",
+      "expected_any": [
+        "T3-001",
+        "B17-MFL71964311-topic_58-012"
+      ],
+      "forbidden_ids": [
+        "T4-016"
+      ]
+    },
+    {
+      "id": "broad-only",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "세탁기",
+      "expect_empty": true
+    },
+    {
+      "id": "unknown-subject",
+      "split": "development",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "세탁기에서 홀로그램 레이저를 출력하고 싶어요",
+      "expect_empty": true
+    },
+    {
+      "id": "unknown-model",
+      "split": "development",
+      "category": "WASHER",
+      "model": "UNKNOWN999",
+      "query": "세탁기가 흔들려요",
+      "expect_empty": true
+    },
+    {
+      "id": "missing-model",
+      "split": "development",
+      "category": "WASHER",
+      "model": null,
+      "query": "세탁기가 흔들려요",
+      "expect_empty": true
+    },
+    {
+      "id": "wrong-category",
+      "split": "development",
+      "category": "DRYER",
+      "model": "FX24ENER",
+      "query": "본체가 흔들려요",
+      "expect_empty": true
+    },
+    {
+      "id": "excluded-optional",
+      "split": "development",
+      "category": "REFRIGERATOR",
+      "model": "G646GBB021",
+      "query": "크래프트 아이스 정수 필터 교체",
+      "forbidden_ids": [
+        "B19-MFL05882501-topic_37-procedure"
+      ],
+      "expect_empty": true
+    },
+    {
+      "id": "vibration-heldout-position",
+      "split": "regression",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수를 시작하면 세탁기가 제자리에서 옆으로 밀려나요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "vibration-heldout-shaking",
+      "split": "regression",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수 때 본체가 덜컹거리며 자리에서 이탈해요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "vibration-heldout-representative",
+      "split": "regression",
+      "category": "WASHER",
+      "model": "FX24KNTR",
+      "query": "세탁 중 진동 때문에 제품이 이동해요",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "negative-no-vibration",
+      "split": "regression",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "진동은 없고 물이 안 빠져요",
+      "expected_any": [
+        "T3-001",
+        "B17-MFL71964311-topic_58-012"
+      ],
+      "forbidden_ids": [
+        "T2-010",
+        "T3-137",
+        "B17-MFL71964311-topic_58-009"
+      ]
+    },
+    {
+      "id": "heldout-de-code",
+      "split": "regression",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "dE1 오류",
+      "expected_any": [
+        "T2-004"
+      ],
+      "expect_match": "EXACT_ERROR_CODE"
+    },
+    {
+      "id": "heldout-no-model-code",
+      "split": "regression",
+      "category": "WASHER",
+      "model": null,
+      "query": "OE",
+      "expect_empty": true
+    },
+    {
+      "id": "heldout-no-data",
+      "split": "regression",
+      "category": "DISHWASHER",
+      "model": "DUE6BGL2",
+      "query": "제품으로 위성 통신을 연결할 수 있나요",
+      "expect_empty": true
+    },
+    {
+      "id": "validation-vibration-drift",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "탈수할 때 본체가 한쪽으로 밀려서 자리를 벗어납니다",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "validation-vibration-alias",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "FX24KNTR",
+      "query": "세탁기가 탈수 중 요동을 칩니다",
+      "expected_any": [
+        "B17-MFL71792818-topic_66-009"
+      ],
+      "no_safety": true
+    },
+    {
+      "id": "validation-wrong-model",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "UNKNOWN888",
+      "query": "탈수 때 본체가 좌우로 흔들립니다",
+      "expect_empty": true
+    },
+    {
+      "id": "validation-flood",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "TR15WV5",
+      "query": "세탁기 밑면이 물에 잠겨 있어요",
+      "expected_safety_any": [
+        "T4-036"
+      ],
+      "forbidden_ids": [
+        "T4-016"
+      ]
+    },
+    {
+      "id": "validation-exact-ie",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "F24WDWPR",
+      "query": "I E",
+      "expected_any": [
+        "T2-002"
+      ],
+      "expect_match": "EXACT_ERROR_CODE"
+    },
+    {
+      "id": "validation-no-data",
+      "split": "validation",
+      "category": "WASHER",
+      "model": "FX24ENER",
+      "query": "세탁기로 전자책을 읽고 싶어요",
+      "expect_empty": true
+    },
+    {
+      "id": "validation-no-model",
+      "split": "validation",
+      "category": "WASHER",
+      "model": null,
+      "query": "제품 밑면이 물에 잠겼어요",
+      "expect_empty": true
+    },
+    {
+      "id": "frost-paraphrase",
+      "split": "development",
+      "category": "REFRIGERATOR",
+      "model": "T876MEE1H1",
+      "query": "냉동고 벽에 하얀 얼음막이 붙었어요",
+      "expected_any": [
+        "T3-031",
+        "B23-MFL71401557-topic_51-block-4-summary"
+      ]
+    }
+  ],
+  "revision_note": "Initial heldout results were inspected and are now regression cases; validation cases below were added before the revised subject embeddings were run. Development frost wording uses the documented retrieval synonym 성에/얼음막; it is not a semantic-only success criterion."
+}

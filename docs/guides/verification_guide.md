@@ -33,6 +33,8 @@ Python은 실패 없는 `OK`, Java는 실패 0과 `BUILD SUCCESSFUL`을 확인�
 
 2026-10-14의 제조사 자료 1단계는 [구조화 기록](../mcp/manufacturer_data_structure.md)에 범위와 원문 대조 사례를 정리했다. 원본 1,542건과 구조화 1,542건의 ID·해시·조건·보완 관계를 검증하며, 구조화 통과와 실제 증상 검색 품질은 별도로 판정한다.
 
+2단계의 [검색 연결·평가 기록](../mcp/manufacturer_retrieval.md)은 제조사 자료의 실제 임베딩 평가 33개, 캐시/장애 검사와 실제 FastMCP 경로를 구분한다. 백엔드 폴더에서 `gradlew evaluateManufacturerRetrieval`를 실행하면 기존 API 키로 실제 임베딩을 사용하고 결과를 `docs/benchmarks/manufacturer_retrieval_20261014.json`에 저장한다. 캐시가 없으면 문서 임베딩 비용이 발생한다. 이 명령은 사용자 DB와 채팅 모델을 사용하지 않는다. 일반 JUnit은 외부 API 없는 가짜 임베딩과 모의 OpenAI를 사용한다.
+
 2026-10-13 기록은 Java 130개(MySQL 전용 `mysqlSchemaTest` 1개 제외)·Python MCP 20개다. 현재 실행의 테스트 수와 결과는 새 보고서에서 확인한다. Java 보고서는 `backend/build/reports/tests/test/index.html`에 생성된다. `--tests '*McpIntegrationTests'`로 실행하면 해당 클래스만 실행하므로 전체 검증으로 기록하지 않는다.
 
 화면 코드 검사:

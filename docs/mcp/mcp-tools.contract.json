@@ -81,7 +81,25 @@
       "QA review history",
       "fieldOrigins"
     ],
-    "retrieval": "Keyword scoring uses searchText from knowledge-structured.json; embedding retrieval is a later stage."
+    "retrieval": "Manufacturer-only hybrid retrieval: applicability prefilter, literal codes/display labels, symptom vocabulary and cached embeddings. No result padding.",
+    "retrieval_fields": [
+      "retrieval_algorithm",
+      "retrieval_mode",
+      "index_status",
+      "retrieval_elapsed_ms"
+    ],
+    "document_retrieval_fields": [
+      "retrieval_match",
+      "semantic_similarity",
+      "scope_basis"
+    ],
+    "modes": [
+      "HYBRID",
+      "LEXICAL_ONLY",
+      "LEXICAL_FALLBACK"
+    ],
+    "insufficient_evidence": "NO_DATA for known models; NEEDS_INPUT with missing model_code when the model is unconfirmed.",
+    "safety_scope": "Safety uses the same model/category exclusions as other facts. UNDETERMINED is eligible only for verified category-common scope."
   },
   "notes": [
     "tools are exported from actual FastMCP discovery; annotations are MCP standard fields.",
@@ -232,7 +250,7 @@
     },
     {
       "name": "search_knowledge",
-      "description": "상담 모델과 주제로 제조사 근거 후보를 찾는다. 안전 주의 문서를 먼저 돌려준다.\nmodel_code가 없으면 등록 제품 모델을 쓰고, 둘 다 없으면 모델별 문서는 판정하지 않는다.\n모델 목록이 없는 문서는 '적용 미판정'이며, 검색 후보는 조치·무상 보증 승인이 아니다.",
+      "description": "제조사 구조화 자료에서 증상·정확 오류 코드와 의미 검색으로 근거 후보를 찾는다.\n모델·품목·제외 조건을 먼저 검사하고, 관련 있는 안전 주의 문서를 먼저 돌려준다.\nmodel_code가 없으면 등록 제품 모델을 쓰고, 둘 다 없으면 모델별 문서는 판정하지 않는다.\n모델 목록이 없는 자료는 검증된 품목 공통 범위만 후보로 제공한다.\n근거가 부족하면 NO_DATA 또는 모델 확인을 위한 NEEDS_INPUT을 반환한다.\n검색 후보는 조치·무상 보증 승인이 아니다.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {

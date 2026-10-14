@@ -31,7 +31,7 @@ class MigrationSchemaTests {
         try(var context=new SpringApplicationBuilder(BackendApplication.class).properties(
                 "spring.datasource.url="+url,"spring.datasource.username="+user,"spring.datasource.password="+password,
                 "spring.jpa.hibernate.ddl-auto=validate","server.port=0","homecare.agent.enabled=false",
-                "spring.ai.openai.api-key=test-key","spring.ai.openai.chat.model=gpt-4o-mini",
+                "spring.ai.openai.api-key=test-key","spring.ai.openai.chat.model=gpt-4o-mini","homecare.knowledge.vector.enabled=false",
                 "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=").run()){
             assertThat(context.isRunning()).isTrue();
         }finally{

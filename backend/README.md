@@ -26,7 +26,9 @@ MCP 도구 8개와 제품 전체·주요 부품별 보증을 구현했습니다.
 사용자 계정과 대화 내역은 MySQL에 저장하고, 로그인 시 발급한 JWT로 API를 인증합니다.
 새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. 전체 JUnit 실행 전 `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정해야 합니다.
 
-제조사 지식 1,542건은 원본 `knowledge.json`과 검색·표시용 `knowledge-structured.json`으로 분리했습니다. `python -I backend/scripts/structure_knowledge.py`로 생성하고 `--check`로 재현성을 검사합니다. 원문·조건·출처의 구조와 검증 범위는 [제조사 자료 구조화 기록](../docs/mcp/manufacturer_data_structure.md)을 참고하세요. 조치 후보는 실행 승인이 아니며 RAG 검색 보완은 후속 단계입니다.
+제조사 지식 1,542건은 원본 `knowledge.json`과 검색·표시용 `knowledge-structured.json`으로 분리했습니다. `python -I backend/scripts/structure_knowledge.py`로 생성하고 `--check`로 재현성을 검사합니다. [자료 구조화 기록](../docs/mcp/manufacturer_data_structure.md)과 [제조사 검색 연결·평가 기록](../docs/mcp/manufacturer_retrieval.md)을 참고하세요. MCP 검색은 모델 필터·정확 코드·증상 표현·캐시 임베딩을 함께 사용하며 조치 후보는 실행 승인이 아닙니다.
+
+백엔드 폴더의 `gradlew evaluateManufacturerRetrieval`는 기존 API 키로 제조사 인덱스를 준비하고 실제 임베딩 검색을 평가합니다. 캐시는 `.homecare-cache/manufacturer/`에 저장하며 `HOMECARE_KNOWLEDGE_CACHE_DIR`로 변경합니다. `HOMECARE_KNOWLEDGE_VECTOR_ENABLED=false`이면 어휘 검색만 사용합니다. 최초 인덱스 준비와 장애 중에는 어휘 검색으로 대체하고 결과 모드에 표시합니다.
 
 ## 실행
 

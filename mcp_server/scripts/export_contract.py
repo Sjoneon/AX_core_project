@@ -19,7 +19,12 @@ KNOWLEDGE_RESULT_CONTRACT = {
     'supplements': 'Separate projected documents with relation PROCEDURE_SUPPLEMENT; original steps/conditions are retained.',
     'action_descriptions': 'Source candidates only. Execution approval comes exclusively from approved-plans.json.',
     'internal_only': ['B30 wrapper', 'source hashes', 'collection history', 'QA review history', 'fieldOrigins'],
-    'retrieval': 'Keyword scoring uses searchText from knowledge-structured.json; embedding retrieval is a later stage.'}
+    'retrieval': 'Manufacturer-only hybrid retrieval: applicability prefilter, literal codes/display labels, symptom vocabulary and cached embeddings. No result padding.',
+    'retrieval_fields': ['retrieval_algorithm', 'retrieval_mode', 'index_status', 'retrieval_elapsed_ms'],
+    'document_retrieval_fields': ['retrieval_match', 'semantic_similarity', 'scope_basis'],
+    'modes': ['HYBRID', 'LEXICAL_ONLY', 'LEXICAL_FALLBACK'],
+    'insufficient_evidence': 'NO_DATA for known models; NEEDS_INPUT with missing model_code when the model is unconfirmed.',
+    'safety_scope': 'Safety uses the same model/category exclusions as other facts. UNDETERMINED is eligible only for verified category-common scope.'}
 
 async def main():
     """실제 등록 도구의 JSON 계약 생성·저장"""
