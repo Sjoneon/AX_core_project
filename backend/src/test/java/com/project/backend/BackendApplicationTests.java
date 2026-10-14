@@ -548,9 +548,118 @@ class BackendApplicationTests {
                                 .andExpect(jsonPath("$.messages.length()").value(4))
                                 .andExpect(jsonPath("$.messages[2].content").value("추가 질문"))
                                 .andExpect(jsonPath("$.messages[3].role").value("assistant"));
-                // Preserve the existing independent-question behavior.
+                List<String> roles = JsonPath.read(requestBody.get(), "$.messages[*].role");
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(roles).containsExactly("system", "user", "assistant", "user");
+                assertThat(contents.subList(1, contents.size())).containsExactly(
+                                "첫 대화", "안녕하세요!", "상담 제품 카테고리: 세탁기\n고객 문의: 추가 질문");
+                assertThat(requestBody.get()).doesNotContain("새 대화");
+        }
+
+        @Test
+        void followUpReusesStoredHistoryWithANewTokenWithoutResendingOldSources() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "HC-E01이 떠요", ProductCategory.WASHER));
+                var answer = new ChatMessage(conversation, "assistant", "앞서 안내한 답변");
+                answer.setSources(List.of(new RagSource("OLD-SOURCE", "옛 근거", ProductCategory.WASHER,
+                                "0.1", "old.md", "재전송하면 안 되는 옛 근거 본문")));
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "HC-E01이 떠요"), answer));
+                String newToken = jwtTokenProvider.createToken("chat-test@example.com");
+
+                sendChat("{\"message\":\"그 오류는 어떻게 해결해?\",\"conversationId\":" + conversation.getId() + "}", newToken);
+
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents.subList(1, contents.size())).containsExactly("HC-E01이 떠요", "앞서 안내한 답변",
+                                "상담 제품 카테고리: 세탁기\n고객 문의: 그 오류는 어떻게 해결해?");
+                assertThat(contents.getFirst()).contains("이전 문답은 맥락", "최신 사용자", "HC-WS-001");
+                assertThat(requestBody.get()).doesNotContain("OLD-SOURCE", "재전송하면 안 되는 옛 근거 본문");
+                assertThat(embeddingRequest.get()).contains("HC-E01이 떠요", "그 오류는 어떻게 해결해?")
+                                .doesNotContain("앞서 안내한 답변");
+        }
+
+        @Test
+        void newAndOtherConversationsDoNotShareHistory() throws Exception {
+                long first = sendChat("{\"message\":\"비공개 첫 상담\",\"category\":\"WASHER\"}", accessToken);
+                long second = sendChat("{\"message\":\"별도의 둘째 상담\",\"category\":\"WASHER\"}", accessToken);
                 assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
-                assertThat(requestBody.get()).doesNotContain("첫 대화");
+                assertThat(requestBody.get()).doesNotContain("비공개 첫 상담");
+                assertThat(embeddingRequest.get()).doesNotContain("비공개 첫 상담");
+
+                sendChat("{\"message\":\"첫 상담의 후속 질문\",\"conversationId\":" + first + "}", accessToken);
+                assertThat(requestBody.get()).contains("비공개 첫 상담").doesNotContain("별도의 둘째 상담");
+                assertThat(embeddingRequest.get()).doesNotContain("별도의 둘째 상담");
+                assertThat(second).isNotEqualTo(first);
+        }
+
+        @Test
+        void historyKeepsOnlyTheLastTenExchangesAndSearchUsesOnlyThreeUserQuestions() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "긴 상담", ProductCategory.WASHER));
+                for (int i = 0; i < 11; i++) {
+                        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "이전 질문 " + i + " 끝"),
+                                        new ChatMessage(conversation, "assistant", "이전 답변 " + i + " 끝")));
+                }
+
+                sendChat("{\"message\":\"마지막 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                List<String> roles = JsonPath.read(requestBody.get(), "$.messages[*].role");
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents).hasSize(22);
+                for (int i = 0; i < 10; i++) {
+                        assertThat(roles.get(1 + i * 2)).isEqualTo("user");
+                        assertThat(roles.get(2 + i * 2)).isEqualTo("assistant");
+                        assertThat(contents.get(1 + i * 2)).isEqualTo("이전 질문 " + (i + 1) + " 끝");
+                        assertThat(contents.get(2 + i * 2)).isEqualTo("이전 답변 " + (i + 1) + " 끝");
+                }
+                assertThat(requestBody.get()).doesNotContain("이전 질문 0 끝", "이전 답변 0 끝");
+                assertThat(embeddingRequest.get()).contains("이전 질문 8 끝", "이전 질문 9 끝", "이전 질문 10 끝", "마지막 질문")
+                                .doesNotContain("이전 질문 7 끝", "이전 답변");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(conversation.getId())).hasSize(24);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { 23999, 24000, 24001 })
+        void historyCharacterLimitEvictsWholeExchangesWithoutChangingStoredMessages(int characters) throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "문자 수 경계", ProductCategory.WASHER));
+                String oldQuestion = "오래된 질문";
+                String oldReply = "가".repeat(characters - oldQuestion.length() - "최근 질문최근 답변".length());
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", oldQuestion),
+                                new ChatMessage(conversation, "assistant", oldReply),
+                                new ChatMessage(conversation, "user", "최근 질문"),
+                                new ChatMessage(conversation, "assistant", "최근 답변")));
+
+                sendChat("{\"message\":\"계속 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents).hasSize(characters <= 24000 ? 6 : 4);
+                assertThat(contents).contains("최근 질문", "최근 답변");
+                if (characters > 24000) {
+                        assertThat(contents).doesNotContain(oldQuestion, oldReply);
+                        assertThat(embeddingRequest.get()).doesNotContain(oldQuestion);
+                } else {
+                        assertThat(contents).contains(oldQuestion, oldReply);
+                }
+                var stored = messageRepository.findByConversationIdOrderByIdAsc(conversation.getId());
+                assertThat(stored).hasSize(6);
+                assertThat(stored.get(1).getContent()).isEqualTo(oldReply);
+        }
+
+        @Test
+        void oversizedLatestExchangeLeavesNoHistoryOrHistoricalSearchCandidates() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "긴 답변", ProductCategory.WASHER));
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "기억에서 제외할 HC-E02"),
+                                new ChatMessage(conversation, "assistant", "짧은 옛 답변"),
+                                new ChatMessage(conversation, "user", "기억에서 제외할 HC-E01"),
+                                new ChatMessage(conversation, "assistant", "가".repeat(24000))));
+
+                sendChat("{\"message\":\"새로운 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
+                assertThat(requestBody.get()).doesNotContain("기억에서 제외할");
+                assertThat(embeddingRequest.get()).doesNotContain("기억에서 제외할");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(conversation.getId())).hasSize(6);
         }
 
         @Test
@@ -618,10 +727,12 @@ class BackendApplicationTests {
                 assertThat(messageRepository.count()).isZero();
         }
 
-        @Test
-        void failedContinuationKeepsExistingHistoryUnchanged() throws Exception {
+        @ParameterizedTest
+        @ValueSource(ints = { 200, 500 })
+        void failedContinuationKeepsExistingHistoryUnchanged(int responseStatus) throws Exception {
                 long id = sendChat("{\"message\":\"성공한 질문\",\"category\":\"WASHER\"}", accessToken);
                 var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+                upstreamStatus.set(responseStatus);
                 upstreamBody.set(completion(""));
                 mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -823,6 +934,111 @@ class BackendApplicationTests {
                                 .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-003"));
                 assertThat(embeddingRequest.get()).contains("크게 흔들려요", "text-embedding-3-small");
                 assertThat(requestBody.get()).contains("문 잠금", "HC-WS-003");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "HC-E01이 아니라 HC-E04였어요", "HC-E04, HC-E01, 다시 HC-E04예요" })
+        void followUpUsesTheLastMentionedCodeWhenSimilaritySearchFindsNothing(String question) throws Exception {
+                long id = sendChat("{\"message\":\"" + question + "\",\"category\":\"WASHER\"}", accessToken);
+                var response = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류의 점검 절차를 다시 설명해주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(1))
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-002"))
+                                .andReturn();
+                assertThat(requestBody.get()).contains("HC-WS-002");
+                assertThat(embeddingRequest.get()).contains(question, "그 오류의 점검 절차");
+                assertThat(response.getResponse().getContentAsString()).doesNotContain("HC-WS-001");
+        }
+
+        @Test
+        void currentCodeTakesPriorityOverHistoricalCode() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"정정할게요. HC-E04예요. 그 오류의 점검 절차를 알려주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(1))
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-002"));
+        }
+
+        @Test
+        void newLeakSymptomsAreSearchedWithoutPreviousErrorCodeQuestions() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                sendChat("{\"message\":\"정정할게요. HC-E04예요\",\"conversationId\":" + id + "}", accessToken);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"이제 바닥에 물이 새고 콘센트 주변도 젖었어요. 어떻게 해요?\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-004"));
+                assertThat(embeddingRequest.get()).contains("콘센트 주변도 젖었어요").doesNotContain("HC-E01", "HC-E04");
+                assertThat(requestBody.get()).contains("HC-E01이 떠요", "정정할게요. HC-E04예요", "HC-WS-004");
+        }
+
+        @Test
+        void newSmokeSymptomsAreSearchedWithoutPreviousFilterQuestions() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"DRYER\"}", accessToken);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"지금은 타는 냄새와 연기가 나요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-DR-004"));
+                assertThat(embeddingRequest.get()).contains("타는 냄새와 연기").doesNotContain("HC-E01");
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "냉장고 HC-E01이 떠요", "에어컨이 고장났어요", "TV가 고장났어요", "HC-E99가 떠요" })
+        void historicalValidationFailuresDoNotBlockACorrectedQuestion(String previousQuestion) throws Exception {
+                long id = sendChat("{\"message\":\"" + previousQuestion + "\",\"category\":\"WASHER\"}", accessToken);
+                assertThat(requestBody.get()).isNull();
+                sendChat("{\"message\":\"세탁기가 탈수할 때 크게 흔들려요\",\"conversationId\":" + id + "}", accessToken);
+                assertThat(requestBody.get()).contains(previousQuestion, "HC-WS-003", "크게 흔들려요");
+                assertThat(messageRepository.count()).isEqualTo(4);
+        }
+
+        @Test
+        void historicalUnknownCodeDoesNotBecomeAFallbackOrReuseAnOlderCode() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                sendChat("{\"message\":\"HC-E99였어요\",\"conversationId\":" + id + "}", accessToken);
+                requestBody.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류의 점검 절차를 다시 설명해주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(0))
+                                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("근거를 찾지 못했습니다")));
+                assertThat(requestBody.get()).isNull();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "HC-E99가 떠요", "냉장고 HC-E01이 떠요", "에어컨이 고장났어요" })
+        void currentQuestionValidationStillRunsWithValidHistory(String question) throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                requestBody.set(null);
+                embeddingRequest.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"" + question + "\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(0));
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+        }
+
+        @Test
+        void embeddingFailureDuringContinuationKeepsExistingHistoryUnchanged() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+                embeddingStatus.set(401);
+                requestBody.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류는 어떻게 해결해?\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isBadGateway());
+                assertThat(requestBody.get()).isNull();
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+                assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
         }
 
         @Test
@@ -1187,9 +1403,14 @@ class BackendApplicationTests {
                         int group = List.of("AC", "RF", "WS", "DR", "DW").indexOf(document.group(1));
                         vector[group * 4 + Integer.parseInt(document.group(2)) - 1] = 1;
                         vector[20] = 1;
+                } else if (text.contains("콘센트 주변도 젖었어요") && !text.contains("HC-E01")) {
+                        vector[11] = 1;
+                } else if (text.contains("타는 냄새와 연기") && !text.contains("HC-E01")) {
+                        vector[15] = 1;
                 } else if (text.contains("크게 흔들려요")) {
                         vector[10] = 1;
-                } else if (text.contains("아침 메뉴")) {
+                } else if (text.contains("아침 메뉴") || text.contains("그 오류의 점검 절차")) {
+                        // Force an empty similarity result to test exact-code fallback independently.
                         vector[21] = 1;
                 } else {
                         vector[20] = 1;
