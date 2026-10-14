@@ -1,0 +1,5 @@
+*
+!Dockerfile
+!requirements.txt
+!homecare_mcp/
+**/__pycache__
