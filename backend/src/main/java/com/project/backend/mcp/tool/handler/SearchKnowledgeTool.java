@@ -23,7 +23,7 @@ public class SearchKnowledgeTool implements HomeCareTool {
     public String name(){return "search_knowledge";}
     public Set<String> arguments(){return Set.of("conversation_id","query","topic","top_k","model_code");}
     public ToolEnvelope execute(String email,ConsultationService.Snapshot s,Map<String,Object> args){
-        String query=Objects.toString(args.get("query"),Objects.toString(s.input(),""));
+        String query=Objects.toString(args.get("query"),s.state().searchQuery(s.input()));
         if(query.isBlank()||query.length()>300)bad("검색어는 1~300자입니다.");
         int top=args.get("top_k") instanceof Number n?n.intValue():3;if(top<1||top>5)bad("top_k는 1~5입니다.");
         String topic=Objects.toString(args.get("topic"),"MANUAL");if(!List.of("MANUAL","WARRANTY","SAFETY","SERVICE").contains(topic))bad("검색 주제를 확인해 주세요.");

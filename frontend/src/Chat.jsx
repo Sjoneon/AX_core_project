@@ -113,9 +113,9 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     setIsLoading(false)
   }
 
-  async function sendMessage(event) {
+  async function sendMessage(event, selectedMessage) {
     event.preventDefault()
-    const message = draft.trim()
+    const message = (selectedMessage ?? draft).trim()
     if (!message || isBusy || retired || sendingRef.current || (!started && !category)) return
 
     sendingRef.current = true
@@ -310,6 +310,9 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                       <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
                       <p className="message-bubble">{message.content}</p>
                       {message.role === 'assistant' && <RiskQuestion safety={message.tools?.safety} active={message === messages.at(-1)} disabled={isBusy} onAnswer={answerRisk} />}
+                      {message.role === 'assistant' && message.tools?.consultation?.data?.question && <div className="tool-actions" aria-label="증상 확인">
+                        {message.tools.consultation.data.question.options.map((option) => <button type="button" key={option} disabled={message !== messages.at(-1) || isBusy} onClick={(event) => sendMessage(event, option)}>{option}</button>)}
+                      </div>}
                       {message.role === 'assistant' && message.warranty && <WarrantyResult result={message.warranty} />}
                       {message.role === 'assistant' && <ToolResults tools={message.tools} conversationId={conversationId} request={request} active={message === messages.at(-1) && !isBusy} />}
                       {message.role === 'assistant' && message.sources?.length > 0 && (

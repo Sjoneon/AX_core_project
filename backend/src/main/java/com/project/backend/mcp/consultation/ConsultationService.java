@@ -40,7 +40,7 @@ public class ConsultationService {
         String error=old.errorCode();var matcher=Pattern.compile("(?i)(?<![A-Z0-9])(OE|UE|IE|FE|LE|PE|DE|CE|TE|SE|HC-E\\d+)(?![A-Z0-9])").matcher(input);
         if(matcher.find())error=matcher.group().toUpperCase(Locale.ROOT);
         var next=new ConsultationState(safety==null?old.riskStatus():safety.emergency()?"CONFIRMED":"SUSPECT",
-                safety==null?old.riskCase():safety.code(),safety==null?old.riskQuestionNo():0,error,old.symptomCode(),old.doneSteps(),old.currentStep(),false);
+                safety==null?old.riskCase():safety.code(),safety==null?old.riskQuestionNo():0,error,old.symptomCode(),old.doneSteps(),old.currentStep(),false,old.dialogue());
         if(!Objects.equals(selected,conversation.getProductId())||!Objects.equals(error,old.errorCode()))next=new ConsultationState(next.riskStatus(),next.riskCase(),next.riskQuestionNo(),error,null,List.of(),0,false);
         conversation.setConsultation(selected,input,JSON.writeValueAsString(next));return snapshot(conversation);
     }
@@ -80,13 +80,13 @@ public class ConsultationService {
         if(expectedVersion!=null&&c.getContextRevision()!=expectedVersion)throw new ResponseStatusException(HttpStatus.CONFLICT,"위험 확인 질문이 변경됐습니다. 최신 질문에 답해 주세요.");
         if(answer==null||!List.of("YES","NO","UNSURE").contains(answer))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"위험 응답을 확인해 주세요.");
         int next=s.riskQuestionNo()+1;String status="NO".equals(answer)?next>=RiskRules.questions(s.riskCase()).size()?"DISMISSED":"SUSPECT":"CONFIRMED";
-        var changed=new ConsultationState(status,s.riskCase(),next,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed());
+        var changed=new ConsultationState(status,s.riskCase(),next,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed(),s.dialogue());
         c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(changed));return snapshot(c);
     }
     @Transactional public Snapshot clearDetectedRisk(String email,Long id,long expectedVersion){
         var c=owned(email,id);var s=state(c);
         if(c.getContextRevision()!=expectedVersion||!"SUSPECT".equals(s.riskStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"상담 상태가 변경됐습니다.");
-        var changed=new ConsultationState("CLEAR",null,0,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed());
+        var changed=new ConsultationState("CLEAR",null,0,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed(),s.dialogue());
         c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(changed));return snapshot(c);
     }
     @Transactional public void discardEmpty(String email,Long id){var c=owned(email,id);conversations.delete(c);}
@@ -94,7 +94,7 @@ public class ConsultationService {
         var c=owned(email,id);if(c.getContextRevision()!=version)throw new ResponseStatusException(HttpStatus.CONFLICT,"CONTEXT_STALE");
         var s=state(c);if(s.closed()||List.of("SUSPECT","CONFIRMED").contains(s.riskStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"STEP_BLOCKED");
         var done=new ArrayList<>(s.doneSteps());if(done.contains(code))throw new ResponseStatusException(HttpStatus.CONFLICT,"STEP_ALREADY_DONE");done.add(code);
-        var changed=new ConsultationState(s.riskStatus(),s.riskCase(),s.riskQuestionNo(),s.errorCode(),s.symptomCode(),done,s.currentStep()+1,solved);
+        var changed=new ConsultationState(s.riskStatus(),s.riskCase(),s.riskQuestionNo(),s.errorCode(),s.symptomCode(),done,s.currentStep()+1,solved,s.dialogue());
         c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(changed));return snapshot(c);
     }
     @Transactional public Snapshot manualWarranty(String email,Long id,com.project.backend.warranty.WarrantyModels.Request input){
@@ -102,4 +102,12 @@ public class ConsultationService {
         c.setManualWarranty(JSON.writeValueAsString(input));return snapshot(c);
     }
     @Transactional(readOnly=true) public com.project.backend.warranty.WarrantyModels.Request manualWarranty(String email,Long id){var c=owned(email,id);return c.getManualWarranty()==null?null:JSON.readValue(c.getManualWarranty(),com.project.backend.warranty.WarrantyModels.Request.class);}
+    @Transactional public Snapshot applyDialogue(String email,Long id,long expectedVersion,ConsultationState next){
+        var c=owned(email,id);var old=state(c);
+        if(c.getContextRevision()!=expectedVersion)throw new ResponseStatusException(HttpStatus.CONFLICT,"CONTEXT_STALE");
+        if(old.closed()||List.of("SUSPECT","CONFIRMED").contains(old.riskStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"DIALOGUE_BLOCKED");
+        if(!Objects.equals(old.riskStatus(),next.riskStatus())||!Objects.equals(old.riskCase(),next.riskCase())||old.riskQuestionNo()!=next.riskQuestionNo()||!Objects.equals(old.errorCode(),next.errorCode()))throw new IllegalArgumentException("Interpretation cannot change safety or error state");
+        if(next.symptomCode()!=null&&!SymptomCatalog.allows(c.getCategory(),next.symptomCode()))throw new IllegalArgumentException("Invalid symptom");
+        c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(next));return snapshot(c);
+    }
 }

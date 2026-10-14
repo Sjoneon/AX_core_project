@@ -92,6 +92,13 @@ tasks.register('evaluateManufacturerRetrieval', JavaExec) {
     mainClass = 'com.project.backend.mcp.retrieval.KnowledgeRetrievalEvaluation'
 }
 
+tasks.register('evaluateMessageInterpretation', JavaExec) {
+    description = 'Evaluates predefined synthetic messages with the configured chat model; no DB or server.'
+    group = 'verification'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.project.backend.mcp.consultation.MessageInterpretationEvaluation'
+}
+
 tasks.register('migrationTest', Test) {
 	description = 'Verifies SQL upgrades, data preservation and failed migrations on disposable MySQL.'
 	group = 'verification'

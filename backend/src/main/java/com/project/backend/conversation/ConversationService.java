@@ -1,6 +1,7 @@
 package com.project.backend.conversation;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -148,5 +149,22 @@ public class ConversationService {
     private Conversation findOwned(Long id, String email) {
         return conversationRepository.findByIdAndUserEmail(id, email).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "대화를 찾을 수 없습니다."));
+    }
+
+    /** Bounded text and the last displayed step, without raw documents, credentials or customer profile. */
+    public record DialogueMessage(String role,String content,String displayedStep,Long contextVersion) { }
+    @Transactional(readOnly=true)
+    public List<DialogueMessage> dialogueHistory(Long id,String email){
+        findOwned(id,email);
+        var recent=new ArrayList<>(messageRepository.findTop12ByConversationIdOrderByIdDesc(id));
+        java.util.Collections.reverse(recent);
+        return recent.stream().map(message->{
+            String step=null;Long version=null;var plan=message.getTools().get("get_diagnostic_plan");
+            if(plan!=null&&"OK".equals(plan.status())&&plan.data()!=null&&plan.data().get("steps") instanceof List<?> steps&&!steps.isEmpty())
+                step=java.util.Objects.toString(((java.util.Map<?,?>)steps.getFirst()).get("step_code"),null);
+            if(plan!=null&&plan.meta()!=null&&plan.meta().get("context_version") instanceof Number value)version=value.longValue();
+            String content=message.getContent();
+            return new DialogueMessage(message.getRole(),content.substring(0,Math.min(1200,content.length())),step,version);
+        }).toList();
     }
 }

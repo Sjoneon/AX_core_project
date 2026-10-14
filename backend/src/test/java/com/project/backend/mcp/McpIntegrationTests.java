@@ -54,6 +54,8 @@ class McpIntegrationTests {
     static final List<String> modelRequests=Collections.synchronizedList(new ArrayList<>());
     /** Each fake model turn: request body -> assistant message. An empty script answers with invented numbers. */
     static final Deque<Function<String,String>> script=new ConcurrentLinkedDeque<>();
+    static final Deque<String> interpretations=new ConcurrentLinkedDeque<>();
+    static final List<String> interpretationRequests=Collections.synchronizedList(new ArrayList<>());
     static HttpServer modelServer;
     static int mcpPort;
     @LocalServerPort int backendPort;
@@ -80,8 +82,15 @@ class McpIntegrationTests {
         modelServer=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
         modelServer.createContext("/v1/chat/completions",exchange->{
             String input=new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8);
-            modelCalls.incrementAndGet();modelRequests.add(input);
-            var step=script.poll();String message=step==null?INVENTED:step.apply(input);
+            String message;
+            if(input.contains("HomeCare MessageInterpreter")){
+                interpretationRequests.add(input);
+                String decision=interpretations.poll();
+                message=JSON.writeValueAsString(map("role","assistant","content",decision==null?fixtureInterpretation(input):decision));
+            }else{
+                modelCalls.incrementAndGet();modelRequests.add(input);
+                var step=script.poll();message=step==null?INVENTED:step.apply(input);
+            }
             String body="{\"id\":\"test\",\"object\":\"chat.completion\",\"created\":1,\"model\":\"gpt-4o-mini\",\"choices\":[{\"index\":0,\"message\":"+message
                     +",\"finish_reason\":\""+(message.contains("tool_calls")?"tool_calls":"stop")+"\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":1,\"total_tokens\":2}}";
             byte[] bytes=body.getBytes(StandardCharsets.UTF_8);
@@ -115,7 +124,19 @@ class McpIntegrationTests {
         throw new AssertionError("MCP server did not start");
     }
     @AfterAll void stopServer(){if(python!=null)python.destroyForcibly();if(modelServer!=null)modelServer.stop(0);}
-    @BeforeEach void reset(){script.clear();modelCalls.set(0);modelRequests.clear();}
+    @BeforeEach void reset(){script.clear();interpretations.clear();interpretationRequests.clear();modelCalls.set(0);modelRequests.clear();}
+    /** Scripted classification fixture; transport tests do not measure model classification accuracy. */
+    static String fixtureInterpretation(String request){
+        var messages=JSON.readTree(request).get("messages");
+        var input=JSON.readTree(messages.get(messages.size()-1).get("content").asText());
+        String message=input.get("message").asText(),category=input.get("category").asText();
+        String code=message.contains("흔들")?category.equals("WASHER")?"VIBRATION":"NOISE":message.contains("배수")?"DRAIN":message.contains("문이 안")?"DOOR":null;
+        String intent=message.matches("(?s).*(보증|무상).*")?"WARRANTY":message.matches("(?s).*(수리비|비용|견적).*")?"COST":code==null?"PRODUCT_REPLY":"SYMPTOM";
+        return decision(intent,null,code==null?List.of():List.of(map("code",code,"confidence",0.95)),List.of(),null);
+    }
+    static String decision(String intent,String category,List<Map<String,Object>> candidates,List<String> steps,String reply){
+        return JSON.writeValueAsString(map("intent",intent,"mentionedCategory",category,"symptomCandidates",candidates,"doneSteps",steps,"selfCareReply",reply));
+    }
     ConsultationService.Snapshot start(){return consultations.begin(owner,null,ProductCategory.WASHER,"OE 배수 문제",productId);}
     String token(String email){return "Bearer "+jwt.createToken(email);}
     static Function<String,String> call(String name,Object args){
@@ -241,7 +262,8 @@ class McpIntegrationTests {
     @Test void quotedRiskWordsCanBeClearedByAiBeforeOrdinaryAgentTools(){
         script.add(riskDecision(false));script.add(call("get_product_context",Map.of()));
         var response=agent.chat(new ChatRequest("설명서에 타는 냄새를 주의하라고 써 있던데 현재 고장은 없어요",null,ProductCategory.WASHER,null,null),owner,token(owner));
-        assertThat(response.tools()).doesNotContainKey("safety").containsKey("get_product_context");
+        assertThat(response.tools()).doesNotContainKey("safety").containsKey("consultation");
+        assertThat(response.reply()).contains("현재 불편한 증상");
         assertThat(consultations.snapshot(owner,response.conversationId()).state().riskStatus()).isEqualTo("CLEAR");
     }
     @Test void invalidAiRiskOutputFallsBackToConfirmationAndEmergencyDoesNotWaitForAi(){
@@ -375,5 +397,87 @@ class McpIntegrationTests {
         assertThatThrownBy(()->history.toolCalls(response.conversationId(),other)).hasMessageContaining("찾을 수 없습니다");
         history.delete(response.conversationId(),owner);
         assertThat(toolCalls.findByConversationIdOrderByIdAsc(response.conversationId())).isEmpty();
+    }
+    @Test void naturalVibrationQuestionReplyAndHistoryStayConnectedAcrossMcp(){
+        var first=agent.chat(new ChatRequest("세탁기 본체가 심하게 흔들려요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        var state=consultations.snapshot(owner,first.conversationId());
+        assertThat(state.state().symptomCode()).isEqualTo("VIBRATION");assertThat(state.state().errorCode()).isNull();
+        assertThat(first.reply()).contains("언제");assertThat(state.state().dialogue().pendingQuestion().id()).isEqualTo("VIBRATION_WHEN");
+        assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(first.conversationId(),owner)).isEmpty();
+        script.add(call("search_knowledge",map("query","세탁기 본체가 심하게 흔들려요")));
+        var second=agent.chat(new ChatRequest("탈수할 때",first.conversationId(),null,null,null),owner,token(owner));
+        state=consultations.snapshot(owner,first.conversationId());
+        assertThat(state.productId()).isEqualTo(productId);assertThat(state.state().dialogue().answers()).containsEntry("VIBRATION_WHEN","SPIN");
+        assertThat(state.state().dialogue().pendingQuestion()).isNull();
+        assertThat(second.reply()).doesNotContain("언제 심하게","모델명을 알려");
+        assertThat(second.tools().get("get_diagnostic_plan").status()).isEqualTo("NOT_VERIFIED");
+        assertThat(modelRequests.getFirst()).contains("심하게 흔들려요","탈수할 때","SPIN","F21VDSK");
+        interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("INVENTED"),"NOT_RESOLVED"));
+        script.add(call("search_knowledge",map("query","세탁기 본체가 심하게 흔들려요")));
+        var third=agent.chat(new ChatRequest("그건 이미 확인했어요. 그래도 안 돼요",first.conversationId(),null,null,null),owner,token(owner));
+        state=consultations.snapshot(owner,first.conversationId());
+        assertThat(state.state().doneSteps()).isEmpty();assertThat(state.state().symptomCode()).isEqualTo("VIBRATION");
+        assertThat(state.state().dialogue().answers()).containsEntry("VIBRATION_WHEN","SPIN");
+        assertThat(third.reply()).doesNotContain("언제 심하게","모델명을 알려");
+        assertThat(history.detail(first.conversationId(),owner).messages()).hasSize(6);
+        assertThat(history.detail(first.conversationId(),owner).messages().get(1).tools().get("consultation").data().get("question")).isNotNull();
+        assertThat(interpretationRequests.getLast()).contains("탈수할 때","SPIN");
+    }
+    @Test void malformedInterpretationGivesChoicesAndUserSelectionPersists(){
+        interpretations.add("not JSON");
+        var first=agent.chat(new ChatRequest("뭔가 이상해요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(first.tools().get("consultation").meta()).containsEntry("interpretation_source","INVALID_OR_ERROR_FALLBACK");
+        assertThat(consultations.snapshot(owner,first.conversationId()).state().dialogue().pendingQuestion().options()).hasSize(6);
+        script.add(call("search_knowledge",map("query","물이 빠지지 않아요")));
+        var second=agent.chat(new ChatRequest("물이 빠지지 않아요",first.conversationId(),null,null,null),owner,token(owner));
+        assertThat(second.tools().get("consultation").meta()).containsEntry("interpretation_source","USER_SELECTION");
+        assertThat(consultations.snapshot(owner,first.conversationId()).state().symptomCode()).isEqualTo("DRAIN");
+        assertThat(interpretationRequests).hasSize(1);
+    }
+    @Test void unknownSymptomHasOneQuestionAndNoUnapprovedStepsOrAmounts(){
+        interpretations.add(decision("OTHER",null,List.of(),List.of(),null));
+        var first=agent.chat(new ChatRequest("고장 같아요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        var second=agent.chat(new ChatRequest("잘 모르겠어요",first.conversationId(),null,null,null),owner,token(owner));
+        assertThat(second.reply()).contains("증상을 특정하지 못했어요","공식 점검");
+        assertThat(second.tools()).containsOnlyKeys("consultation");assertThat(modelCalls.get()).isZero();
+        var state=consultations.snapshot(owner,first.conversationId()).state();
+        assertThat(state.dialogue().intent()).isEqualTo("UNCLASSIFIED");assertThat(state.dialogue().pendingQuestion()).isNull();
+        assertThat(state.dialogue().symptomQuestionCount()).isEqualTo(1);
+    }
+    @Test void naturalCategoryMismatchAndUnsupportedProductDoNotCallRepairTools(){
+        interpretations.add(decision("SYMPTOM","DRYER",List.of(),List.of(),null));
+        var mismatch=agent.chat(new ChatRequest("건조기 빨래가 안 말라요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(mismatch.reply()).contains("다른 품목");assertThat(consultations.snapshot(owner,mismatch.conversationId()).category()).isEqualTo(ProductCategory.WASHER);
+        interpretations.add(decision("OUT_OF_SCOPE","UNSUPPORTED",List.of(),List.of(),null));
+        var outside=agent.chat(new ChatRequest("TV 화면이 안 나와요",null,ProductCategory.REFRIGERATOR,null,null),owner,token(owner));
+        assertThat(consultations.snapshot(owner,outside.conversationId()).state().closed()).isTrue();assertThat(modelCalls.get()).isZero();
+        assertThatThrownBy(()->agent.chat(new ChatRequest("다시",outside.conversationId(),null,null,null),owner,token(owner))).hasMessageContaining("CLOSED");
+    }
+    @Test void dialogueWritesRejectOtherOwnersStaleVersionsAndSafetyChanges(){
+        var state=consultations.begin(owner,null,ProductCategory.WASHER,"흔들려요",null);
+        assertThatThrownBy(()->consultations.applyDialogue(other,state.id(),state.version(),state.state())).hasMessageContaining("찾을 수 없습니다");
+        var changed=consultations.applyDialogue(owner,state.id(),state.version(),state.state());
+        assertThatThrownBy(()->consultations.applyDialogue(owner,state.id(),state.version(),state.state())).hasMessageContaining("CONTEXT_STALE");
+        var forged=new ConsultationState("CLEAR","FORGED",0,null,null,List.of(),0,false);
+        assertThatThrownBy(()->consultations.applyDialogue(owner,state.id(),changed.version(),forged)).isInstanceOf(IllegalArgumentException.class);
+        var risk=consultations.begin(owner,null,ProductCategory.WASHER,"타는 냄새",null);
+        assertThatThrownBy(()->consultations.applyDialogue(owner,risk.id(),risk.version(),risk.state())).hasMessageContaining("DIALOGUE_BLOCKED");
+    }
+    @Test void approvedTestOnlyActionReplyPersistsCompletionAndClosedHistory(){
+        var state=consultations.begin(owner,null,ProductCategory.WASHER,"물이 빠지지 않아요",productId);
+        state=consultations.applyDialogue(owner,state.id(),state.version(),new ConsultationState("CLEAR",null,0,null,"DRAIN",List.of(),0,false));
+        var step=map("step_code","TEST-1","text","TEST_ONLY 필터 확인");
+        var shown=ToolEnvelope.policy("OK",map("steps",List.of(step)),map("context_version",state.version()),List.of());
+        history.saveExchange(state.id(),owner,"물이 빠지지 않아요","TEST_ONLY 필터 확인",ProductCategory.WASHER,List.of(),null,Map.of("get_diagnostic_plan",shown));
+        var plan=map("category","WASHER","modelCodes",List.of("F21VDSK"),"actionApproved",true,"symptomCode","DRAIN","errorCode",null,"steps",List.of(step));
+        var testCatalog=new ToolDataCatalog(List.of(),List.of(),List.of(),List.of(plan),List.of(),Map.of(),Map.of());
+        var testAgent=new AgentChatService(chatClient,gateway,consultations,history,warranty,tools,testCatalog,limits);
+        interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("TEST-1"),"RESOLVED"));
+        var response=testAgent.chat(new ChatRequest("이제 해결됐어요.",state.id(),null,null,null),owner,token(owner));
+        var saved=consultations.snapshot(owner,state.id()).state();
+        assertThat(saved.doneSteps()).containsExactly("TEST-1");assertThat(saved.currentStep()).isEqualTo(1);assertThat(saved.closed()).isTrue();
+        assertThat(history.detail(state.id(),owner).messages()).hasSize(4);
+        assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("consultation").data()).containsEntry("self_care_reply","RESOLVED");
+        assertThat(modelCalls.get()).isZero();
     }
 }

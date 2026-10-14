@@ -27,7 +27,7 @@ public class GetDiagnosticPlanTool implements HomeCareTool {
                         ||s.state().symptomCode()!=null&&Objects.equals(x.get("symptomCode"),s.state().symptomCode())).toList();
         var data=map("error_code",s.state().errorCode(),"symptom_code",s.state().symptomCode(),"steps",List.of(),"skipped_step_codes",s.state().doneSteps(),"has_self_care",false,"skip_reason","NO_SELF_CARE","current_step",s.state().currentStep());
         if(plans.isEmpty()){
-            var found=knowledge.execute(email,s,map("query",s.state().errorCode()==null?Objects.toString(s.input(),"증상").substring(0,Math.min(300,Objects.toString(s.input(),"증상").length())):s.state().errorCode(),"topic","MANUAL","top_k",3));
+            var found=knowledge.execute(email,s,map("query",s.state().searchQuery(s.input()),"topic","MANUAL","top_k",3));
             data.put("safety_notices",found.data().get("safety_notices"));data.put("references",found.data().get("documents"));data.put("skip_reason","NOT_VERIFIED");
             return support.result(s,"NOT_VERIFIED",data,found.evidence(),Basis.of("LOW",files,CAVEATS),"모델별 실행 승인과 선행 조건이 확인되지 않아 원문 후보만 제공합니다. 임의 조치 방법을 만들지 않습니다.");
         }
