@@ -16,7 +16,7 @@ JWT는 이메일과 회원 ID를 함께 검증합니다. 업데이트 전에 발
 현재 로컬 `ddl-auto=update` 설정은 그대로입니다. `ddl-auto=validate`로 실행하는 DB에는 V006 적용이 필요합니다.
 이번 코드 업데이트에서 실제 DB 마이그레이션은 실행하지 않았습니다. `migrateDatabase`는 명시적으로 실행하는 별도 진입점이며, 이미 수동으로 V002~V005를 적용한 DB는 기존 이력 확인 없이 자동 baseline하지 않습니다.
 
-MCP 도구 8개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
+MCP 도구 9개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
 `GET /api/warranty/policies`, `POST /api/warranty/check`는 기존 JWT 인증을 사용하며,
 4개 품목의 확인된 정책으로 날짜·비용 항목을 분리합니다.
 상담에서도 `check_warranty` 도구를 사용할 수 있고 구조화 결과를 메시지 이력에 저장합니다.
@@ -29,6 +29,8 @@ MCP 도구 8개와 제품 전체·주요 부품별 보증을 구현했습니다.
 제조사 지식 1,542건은 원본 `knowledge.json`과 검색·표시용 `knowledge-structured.json`으로 분리했습니다. `python -I backend/scripts/structure_knowledge.py`로 생성하고 `--check`로 재현성을 검사합니다. [자료 구조화 기록](../docs/mcp/manufacturer_data_structure.md)과 [제조사 검색 연결·평가 기록](../docs/mcp/manufacturer_retrieval.md)을 참고하세요. MCP 검색은 모델 필터·정확 코드·증상 표현·캐시 임베딩을 함께 사용하며 조치 후보는 실행 승인이 아닙니다.
 
 백엔드 폴더의 `gradlew evaluateManufacturerRetrieval`는 기존 API 키로 제조사 인덱스를 준비하고 실제 임베딩 검색을 평가합니다. 캐시는 `.homecare-cache/manufacturer/`에 저장하며 `HOMECARE_KNOWLEDGE_CACHE_DIR`로 변경합니다. `HOMECARE_KNOWLEDGE_VECTOR_ENABLED=false`이면 어휘 검색만 사용합니다. 최초 인덱스 준비와 장애 중에는 어휘 검색으로 대체하고 결과 모드에 표시합니다.
+
+5단계 자가조치: TR15WV5의 UE·세탁물 뭉침 조건부 계획 1건을 등록했습니다. 조건 6개 확인 후 단계 2개를 하나씩 안내하고 결과·다음 안내를 상담 이력에 함께 저장합니다. `POST /api/conversations/{id}/precondition-answer`와 `step-answer`는 `ChatResponse`를 반환합니다. [검토 범위·API·검증](../docs/mcp/approved_self_care.md)을 참고하세요.
 
 ## 실행
 

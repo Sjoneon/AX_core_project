@@ -43,11 +43,7 @@ public record AnswerContext(List<Fact> facts) {
             var diagnostic=outputs.get("get_diagnostic_plan");
             if(diagnostic!=null&&diagnostic.data()!=null&&diagnostic.data().get("steps") instanceof List<?> steps&&!steps.isEmpty()){
                 if(!"OK".equals(diagnostic.status())||s.productId()==null||model==null)throw new InvalidEvidence();
-                String confirmedModel=model;
-                var approved=catalog.approvedPlans.stream().filter(p->Boolean.TRUE.equals(p.get("actionApproved"))&&s.category().name().equals(p.get("category"))&&strings(p,"modelCodes").contains(confirmedModel))
-                        .filter(p->s.state().errorCode()!=null&&Objects.equals(p.get("errorCode"),s.state().errorCode())||s.state().symptomCode()!=null&&Objects.equals(p.get("symptomCode"),s.state().symptomCode()))
-                        .flatMap(p->((List<?>)p.getOrDefault("steps",List.of())).stream()).toList();
-                for(var step:steps)if(!approved.contains(step))throw new InvalidEvidence();
+                if(!steps.equals(DiagnosticPlans.pendingSteps(catalog,s,model)))throw new InvalidEvidence();
             }
             var seen=new HashSet<String>();
             for(String name:List.of("search_knowledge","get_diagnostic_plan")){

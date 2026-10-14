@@ -1,10 +1,15 @@
 package com.project.backend.mcp.consultation;
 import java.util.List;
 public record ConsultationState(String riskStatus,String riskCase,int riskQuestionNo,String errorCode,
-        String symptomCode,List<String> doneSteps,int currentStep,boolean closed,DialogueState dialogue) {
+        String symptomCode,List<String> doneSteps,int currentStep,boolean closed,DialogueState dialogue,SelfCareState selfCare) {
     public ConsultationState {
         doneSteps=doneSteps==null?List.of():List.copyOf(doneSteps);
         dialogue=dialogue==null?DialogueState.start():dialogue;
+        selfCare=selfCare==null?SelfCareState.start():selfCare;
+    }
+    public ConsultationState(String riskStatus,String riskCase,int riskQuestionNo,String errorCode,
+            String symptomCode,List<String> doneSteps,int currentStep,boolean closed,DialogueState dialogue){
+        this(riskStatus,riskCase,riskQuestionNo,errorCode,symptomCode,doneSteps,currentStep,closed,dialogue,SelfCareState.start());
     }
     public ConsultationState(String riskStatus,String riskCase,int riskQuestionNo,String errorCode,
             String symptomCode,List<String> doneSteps,int currentStep,boolean closed){

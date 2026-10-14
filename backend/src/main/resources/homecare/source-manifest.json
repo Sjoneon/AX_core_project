@@ -1,5 +1,5 @@
 {
-  "version": "B30-COST-V3-20261014-R4",
+  "version": "B30-COST-V3-20261014-R5",
   "knowledgeCount": 1542,
   "exactSalesCodes": 52,
   "costGroups": 32,
@@ -69,7 +69,7 @@
   "unavailable": [
     "REFERENCE 후기 원문: 미제공, VALIDATION 추정 유입 금지",
     "모델별 조치 실행 승인: candidate만으로 승인 금지",
-    "부품보유기간 구조화 값: B30 원본(knowledge_effective_B30.jsonl, checksums_B30.json) 미확보로 제공하지 않음"
+    "부품보유기간 구조화 값: B30 원본 확보, 제조일 기준 값·충돌 검토 및 구조화 미완료"
   ],
   "scopeFilter": {
     "supportedCategories": [
@@ -110,7 +110,7 @@
     "homecare/parts.json": "df4f4bec34a3ede439fbd031b3c20b3c0b3b3ad50252a943f2d8f828ab3fdc51",
     "homecare/centers.json": "ffedeee1e920217cb984c68534c7b447acf02ef630330ac3aed837b763b1294a",
     "homecare/route.json": "be9bb0ef8ac6b96d92f1fb652640127c2825e0b980521d2e8a1b3dc0ded61d16",
-    "homecare/approved-plans.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+    "homecare/approved-plans.json": "3d28e45234eaeb78e624a46447d1a4515f0412999a432b728b38ea9b4d7e95ae",
     "homecare/repair-cases.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
     "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f",
     "homecare/knowledge-structured.json": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e"
@@ -165,5 +165,12 @@
       "service_rule": 1,
       "manual_model_mapping": 1
     }
+  },
+  "approvedPlanCount": 1,
+  "actionReview": {
+    "scope": "TR15WV5 / UE / bundled laundry only",
+    "reviewDate": "2026-10-14",
+    "manufacturerApproval": false,
+    "bulkModelApprovalAllowed": false
   }
 }

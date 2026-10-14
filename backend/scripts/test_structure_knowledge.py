@@ -21,11 +21,13 @@ class StructureKnowledgeTests(unittest.TestCase):
             for name in (SOURCE, OUTPUT, 'homecare/source-manifest.json'):
                 (root / name).write_bytes((RESOURCES / name).read_bytes())
             before = (root / SOURCE).read_bytes()
+            version = json.loads((root / 'homecare/source-manifest.json').read_bytes())['version']
             build(root)
             build(root, check=True)
             self.assertEqual((root / SOURCE).read_bytes(), before)
             self.assertEqual((root / OUTPUT).read_bytes(), (RESOURCES / OUTPUT).read_bytes())
             manifest = json.loads((root / 'homecare/source-manifest.json').read_bytes())
+            self.assertEqual(manifest['version'], version)
             self.assertEqual(manifest['knowledgeProjection']['sourceSha256'], hashlib.sha256(before).hexdigest())
             with (root / SOURCE).open('ab') as file:
                 file.write(b' ')

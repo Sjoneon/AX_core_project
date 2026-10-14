@@ -94,7 +94,10 @@ public final class DialogueRouter {
         return new Transition(copy(previous,symptom,done,current,closed,dialogue),reply);
     }
     private static ConsultationState copy(ConsultationState state,String symptom,List<String> done,int current,boolean closed,DialogueState dialogue){
-        return new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),symptom,done,current,closed,dialogue);
+        boolean same=Objects.equals(symptom,state.symptomCode());
+        var selfCare=same?state.selfCare():SelfCareState.start();
+        if(same)for(String code:done)if(!state.doneSteps().contains(code))selfCare=selfCare.result(code,closed);
+        return new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),symptom,same?done:List.of(),same?current:0,closed,dialogue,selfCare);
     }
     private static String normalize(String text){return text.replaceAll("[\\s\\p{Punct}]","");}
     private static String timing(String input){

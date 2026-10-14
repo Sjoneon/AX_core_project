@@ -101,6 +101,36 @@
     "insufficient_evidence": "NO_DATA for known models; NEEDS_INPUT with missing model_code when the model is unconfirmed.",
     "safety_scope": "Safety uses the same model/category exclusions as other facts. UNDETERMINED is eligible only for verified category-common scope."
   },
+  "diagnostic_result_contract": {
+    "approval": "Explicit application-reviewed plan, exact registered model and error/symptom; never bulk approved_model_codes. Not manufacturer approval.",
+    "preconditions": "NEEDS_INPUT / CONFIRM_PRECONDITION with one question {id,text,source}, plan_scope and condition_answers; steps=[] until every answer is YES.",
+    "binding": "Data version + plan ID/revision + product ID + exact model. Product edits, symptom/error changes and risk invalidate confirmations.",
+    "steps": "At most one current approved step with step_code, text, caution and source; completed steps are skipped.",
+    "skip_reasons": [
+      "PRECONDITIONS_PENDING",
+      "PRECONDITION_NOT_MET",
+      "PRECONDITION_UNCONFIRMED",
+      "RESOLVED",
+      "ALL_DONE",
+      "NOT_VERIFIED",
+      "NO_SELF_CARE"
+    ],
+    "no_self_care": "Only an explicitly reviewed empty plan with disposition=NO_SELF_CARE. Missing approval is NOT_VERIFIED.",
+    "write_apis": {
+      "POST /api/conversations/{id}/precondition-answer": [
+        "question_id",
+        "plan_scope",
+        "answer: YES|NO|UNSURE",
+        "context_version"
+      ],
+      "POST /api/conversations/{id}/step-answer": [
+        "step_code",
+        "answer: YES|NO",
+        "context_version"
+      ],
+      "response": "ChatResponse {reply,conversationId,sources,warranty,tools}, with the updated get_diagnostic_plan. Both APIs commit state and history atomically."
+    }
+  },
   "notes": [
     "tools are exported from actual FastMCP discovery; annotations are MCP standard fields.",
     "Spring Agent strips the user-only properties before exposing tools to the LLM.",
@@ -110,7 +140,7 @@
     "Search results are candidates: EXCLUDED/other-model records are dropped, records without a model list are UNDETERMINED.",
     "estimate_repair_cost returns reference ranges (weekday visit fee basis) plus cost-table visit surcharges; never a quote or a waiver decision.",
     "Parts retention (manufacture-date basis) stays UNAVAILABLE until the B30 originals are verified.",
-    "Tool implementation does not mean complete production data: approved-plans/reviews are empty, center seed has only 3 entries."
+    "Tool implementation does not mean complete production data: one conditional TR15WV5/UE/bundled-laundry application plan; repair reviews empty; center seed only 3 entries."
   ],
   "tools": [
     {
@@ -541,7 +571,7 @@
     },
     {
       "name": "get_diagnostic_plan",
-      "description": "확정 제품의 증상·오류별 자가검진 계획을 조회한다. 위험 또는 실행 미승인 조치를 차단한다.",
+      "description": "확정 제품의 증상·오류별 검토된 자가검진 계획을 조회한다.\n선행 조건은 NEEDS_INPUT 질문으로 한 번에 하나씩 확인하며 모두 충족되기 전에는 단계를 반환하지 않는다.\n승인된 현재 단계만 반환하고 해결·모든 단계 실패·조건 미충족·실행 미승인·조치 없음을 구분한다.\n읽기 전용 조회이며 사용자 응답과 상태 갱신은 Spring 상담 API에서 처리한다.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {

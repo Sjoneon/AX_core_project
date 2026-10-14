@@ -50,6 +50,17 @@ async def main():
             'caveats':'fixed data-interpretation notices; warnings stay situational',
             'independent_action_allowed':'always false; the MCP adapter rejects any other value'},
         'knowledge_result_contract': KNOWLEDGE_RESULT_CONTRACT,
+        'diagnostic_result_contract': {
+            'approval': 'Explicit application-reviewed plan, exact registered model and error/symptom; never bulk approved_model_codes. Not manufacturer approval.',
+            'preconditions': 'NEEDS_INPUT / CONFIRM_PRECONDITION with one question {id,text,source}, plan_scope and condition_answers; steps=[] until every answer is YES.',
+            'binding': 'Data version + plan ID/revision + product ID + exact model. Product edits, symptom/error changes and risk invalidate confirmations.',
+            'steps': 'At most one current approved step with step_code, text, caution and source; completed steps are skipped.',
+            'skip_reasons': ['PRECONDITIONS_PENDING', 'PRECONDITION_NOT_MET', 'PRECONDITION_UNCONFIRMED', 'RESOLVED', 'ALL_DONE', 'NOT_VERIFIED', 'NO_SELF_CARE'],
+            'no_self_care': 'Only an explicitly reviewed empty plan with disposition=NO_SELF_CARE. Missing approval is NOT_VERIFIED.',
+            'write_apis': {
+                'POST /api/conversations/{id}/precondition-answer': ['question_id', 'plan_scope', 'answer: YES|NO|UNSURE', 'context_version'],
+                'POST /api/conversations/{id}/step-answer': ['step_code', 'answer: YES|NO', 'context_version'],
+                'response': 'ChatResponse {reply,conversationId,sources,warranty,tools}, with the updated get_diagnostic_plan. Both APIs commit state and history atomically.'}},
         'notes':[
             'tools are exported from actual FastMCP discovery; annotations are MCP standard fields.',
             'Spring Agent strips the user-only properties before exposing tools to the LLM.',
@@ -59,7 +70,7 @@ async def main():
             'Search results are candidates: EXCLUDED/other-model records are dropped, records without a model list are UNDETERMINED.',
             'estimate_repair_cost returns reference ranges (weekday visit fee basis) plus cost-table visit surcharges; never a quote or a waiver decision.',
             'Parts retention (manufacture-date basis) stays UNAVAILABLE until the B30 originals are verified.',
-            'Tool implementation does not mean complete production data: approved-plans/reviews are empty, center seed has only 3 entries.'],
+            'Tool implementation does not mean complete production data: one conditional TR15WV5/UE/bundled-laundry application plan; repair reviews empty; center seed only 3 entries.'],
         'tools':[tool.model_dump(mode='json',by_alias=True,exclude_none=True) for tool in tools]}
     path=Path(__file__).resolve().parents[2]/'docs/mcp/mcp-tools.contract.json'
     path.write_text(json.dumps(contract,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

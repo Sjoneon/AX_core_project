@@ -31,7 +31,7 @@ class DataIntegrityTests {
 
     @Test void untouchedCopyLoadsWithManifestVersion(){
         var catalog=new ToolDataCatalog(manifest());
-        assertThat(catalog.version).isEqualTo("B30-COST-V3-20261014-R4");
+        assertThat(catalog.version).isEqualTo("B30-COST-V3-20261014-R5");
         assertThat(catalog.parts).hasSize(32);assertThat(catalog.knowledge).hasSize(1542);
         assertThatCode(()->new WarrantyCatalog(manifest())).doesNotThrowAnyException();
     }

@@ -4,6 +4,8 @@
 
 [설계·구현·자료 범위](../docs/mcp/mcp_implementation.md), [보증의 제품/부품 구분](../docs/mcp/warranty_implementation.md), [실제 discovery 계약](../docs/mcp/mcp-tools.contract.json).
 
+`get_diagnostic_plan`은 조건 확인 전 `NEEDS_INPUT` 질문 1개와 빈 단계를 반환하고, 확인 후 현재 승인 단계만 조회합니다. 등록 계획은 TR15WV5/UE/세탁물 뭉침 1건이며 진동은 미승인입니다. 사용자 응답과 이력 저장은 [Spring 상담 API](../docs/mcp/approved_self_care.md)가 처리합니다. MCP 도구는 계속 읽기 전용입니다.
+
 ## 폴더 구조
 
 ```text

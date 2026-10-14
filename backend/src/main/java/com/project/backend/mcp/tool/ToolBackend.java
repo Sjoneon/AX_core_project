@@ -35,4 +35,15 @@ public class ToolBackend {
         long version=number(args,"context_version");if(version!=s.version())throw new ResponseStatusException(HttpStatus.CONFLICT,"CONTEXT_STALE");
         var next=consultations.stepAnswer(email,id,version,ToolDataCatalog.text(args,"step_code"),answer.equals("YES"));return diagnostics.execute(email,next,Map.of());
     }
+    public ToolEnvelope answerCondition(String email,Long id,Map<String,Object> args){
+        var s=consultations.snapshot(email,id);
+        long version=number(args,"context_version");if(version!=s.version())throw new ResponseStatusException(HttpStatus.CONFLICT,"CONTEXT_STALE");
+        String answer=ToolDataCatalog.text(args,"answer");if(!List.of("YES","NO","UNSURE").contains(answer))bad("조건 응답을 확인해 주세요.");
+        var diagnostics=tools.get("get_diagnostic_plan");var result=diagnostics.execute(email,s,Map.of());
+        if(!"NEEDS_INPUT".equals(result.status())||!"CONFIRM_PRECONDITION".equals(result.data().get("interaction"))||
+                !(result.data().get("question") instanceof Map<?,?> q)||!Objects.equals(q.get("id"),args.get("question_id"))||
+                !Objects.equals(result.data().get("plan_scope"),args.get("plan_scope")))bad("현재 선행 조건 질문이 아닙니다.");
+        var next=consultations.conditionAnswer(email,id,version,ToolDataCatalog.text(result.data(),"plan_scope"),ToolDataCatalog.text(args,"question_id"),answer);
+        return diagnostics.execute(email,next,Map.of());
+    }
 }

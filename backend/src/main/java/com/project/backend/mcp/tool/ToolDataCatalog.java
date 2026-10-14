@@ -44,6 +44,22 @@ public class ToolDataCatalog {
                 if(!Objects.equals(doc.get(field),original.get(field)))throw new IllegalStateException("원본과 구조화 자료 필드가 다릅니다: "+field);
             if(Boolean.TRUE.equals(doc.get("isActionApproved")))throw new IllegalStateException("검색 자료는 조치 실행 승인이 아닙니다.");
         }
+        if(approvedPlans.size()!=manifest.count("approvedPlanCount"))throw new IllegalStateException("승인 계획 건수가 다릅니다.");
+        var stepCodes=new HashSet<String>();var ids=new HashSet<String>();
+        for(var plan:approvedPlans){
+            if(!Boolean.TRUE.equals(plan.get("actionApproved"))||text(plan,"revision").isBlank()||!ids.add(text(plan,"id"))||
+                    !(plan.get("review") instanceof Map<?,?> review)||!"APPLICATION_REVIEWED_CONDITIONAL".equals(review.get("status"))||
+                    !Boolean.FALSE.equals(review.get("manufacturerApproval"))||!knowledgeById.containsKey(review.get("sourceRecordId"))||
+                    !Objects.equals(knowledgeById.get(review.get("sourceRecordId")).get("original_sha256"),review.get("sourceRecordSha256"))||
+                    strings(plan,"modelCodes").isEmpty()||!models.keySet().containsAll(strings(plan,"modelCodes"))||DiagnosticPlans.conditions(plan).isEmpty())
+                throw new IllegalStateException("실행 계획의 원문·검토·모델·선행 조건이 불완전합니다.");
+            var conditions=new HashSet<String>();
+            for(var q:DiagnosticPlans.conditions(plan))if(text(q,"id").isBlank()||text(q,"text").isBlank()||!conditions.add(text(q,"id")))
+                throw new IllegalStateException("실행 계획의 조건 질문이 잘못됐습니다.");
+            for(var step:DiagnosticPlans.steps(plan))if(text(step,"step_code").isBlank()||text(step,"text").isBlank()||text(step,"caution").isBlank()||!stepCodes.add(text(step,"step_code")))
+                throw new IllegalStateException("실행 계획의 단계가 잘못됐습니다.");
+            if(DiagnosticPlans.steps(plan).isEmpty()&&!"NO_SELF_CARE".equals(plan.get("disposition")))throw new IllegalStateException("자가조치 없음의 명시적 검토 결과가 필요합니다.");
+        }
     }
     public ToolDataCatalog(List<Map<String,Object>> knowledge,List<Map<String,Object>> parts,
             List<Map<String,Object>> cases,List<Map<String,Object>> plans,List<Map<String,Object>> centers,

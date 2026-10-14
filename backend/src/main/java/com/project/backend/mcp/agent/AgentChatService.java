@@ -58,10 +58,11 @@ public class AgentChatService {
     private final MessageInterpreter interpreter;
     private final AnswerContext.Builder answerContext;
     private final GroundedAnswerGenerator answers;
+    private final SelfCareChatService selfCare;
     public AgentChatService(ChatClient.Builder builder,McpGateway gateway,ConsultationService consultations,ConversationService history,
-            WarrantyService warranty,ToolBackend policyTools,ToolDataCatalog catalog,AgentLimits limits){
+            WarrantyService warranty,ToolBackend policyTools,ToolDataCatalog catalog,AgentLimits limits,SelfCareChatService selfCare){
         this.model=builder.build();this.gateway=gateway;this.consultations=consultations;this.history=history;this.warranty=warranty;
-        this.policyTools=policyTools;this.catalog=catalog;this.limits=limits;
+        this.policyTools=policyTools;this.catalog=catalog;this.limits=limits;this.selfCare=selfCare;
         this.risks=new RiskAssessmentService(this.model);
         this.interpreter=new MessageInterpreter(this.model);
         this.answerContext=new AnswerContext.Builder(catalog);
@@ -71,6 +72,12 @@ public class AgentChatService {
         if(request.category()==null&&request.conversationId()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"품목을 선택해 주세요.");
         if(request.warranty()!=null)warranty.check(request.warranty());
         var previous=request.conversationId()==null?null:consultations.snapshot(email,request.conversationId());
+        String conditionAnswer=exactConditionAnswer(request.message());
+        if(previous!=null&&request.productId()==null&&request.warranty()==null&&(request.category()==null||request.category()==previous.category())&&conditionAnswer!=null&&!List.of("SUSPECT","CONFIRMED").contains(previous.state().riskStatus())){
+            var recent=history.dialogueHistory(previous.id(),email);var visible=recent.isEmpty()?null:recent.getLast();
+            if(visible!=null&&visible.displayedCondition()!=null&&Objects.equals(visible.contextVersion(),previous.version()))
+                return selfCare.answer(previous.id(),email,map("question_id",visible.displayedCondition(),"plan_scope",visible.planScope(),"answer",conditionAnswer,"context_version",previous.version()),true);
+        }
         var selectedCategory=previous==null?request.category():previous.category();
         if(selectedCategory==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"제품을 선택해 새 상담을 시작해 주세요.");
         if(request.warranty()!=null&&request.warranty().category()!=selectedCategory)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"보증 품목이 다릅니다.");
@@ -92,6 +99,8 @@ public class AgentChatService {
                 var interpreted=interpreter.interpret(s.category(),request.message(),s.state().dialogue(),recent,approved);
                 String displayed=previous==null||recent.isEmpty()||!Objects.equals(recent.getLast().contextVersion(),previous.version())||!Objects.equals(previous.productId(),s.productId())?null:recent.getLast().displayedStep();
                 var transition=DialogueRouter.route(s.category(),s.state(),request.message(),interpreted,approved,displayed);
+                if(DiagnosticPlans.select(catalog,s,consultations.selectedModel(email,s)).isPresent()&&!Set.of("COST","WARRANTY","SERVICE","OUT_OF_SCOPE","CATEGORY_MISMATCH").contains(transition.state().dialogue().intent()))
+                    return selfCare.dialogue(s,email,request.message(),transition.state());
                 s=consultations.applyDialogue(email,s.id(),s.version(),transition.state());
                 outputs.put("consultation",dialogueResult(s));
                 reply=transition.reply();
@@ -131,6 +140,11 @@ public class AgentChatService {
         var warrantyResult=warrantyOf(outputs.get("check_warranty"));
         history.saveExchange(s.id(),email,label,reply,s.category(),List.of(),warrantyResult,outputs,calls);
         return new ChatResponse(reply,s.id(),List.of(),warrantyResult,outputs);
+    }
+    private static String exactConditionAnswer(String input){
+        return switch(input.strip().replaceAll("[.!]$","").toUpperCase(Locale.ROOT)){
+            case "예","네","YES"->"YES";case "아니요","아니오","NO"->"NO";case "모르겠어요","잘 모르겠어요","UNSURE"->"UNSURE";default->null;
+        };
     }
     // 위험 확인 질문과 안내는 검증된 문구로 구성 (MCP 호출 제외)
     private String safety(String email,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
@@ -226,14 +240,10 @@ public class AgentChatService {
                 +message.replace("<","‹").replace(">","›")+"\n</customer_message>";
     }
     private List<Map<String,Object>> approvedSteps(String email,ConsultationService.Snapshot s){
-        String model=consultations.selectedModel(email,s);if(model==null)return List.of();
         var steps=new ArrayList<Map<String,Object>>();
-        for(var plan:catalog.approvedPlans){
-            if(!s.category().name().equals(plan.get("category"))||!Boolean.TRUE.equals(plan.get("actionApproved"))||!ToolDataCatalog.strings(plan,"modelCodes").contains(ToolSupport.model(model)))continue;
-            if(plan.get("steps") instanceof List<?> values)for(var raw:values){
-                var step=new LinkedHashMap<>((Map<String,Object>)raw);
-                step.put("symptom_code",plan.get("symptomCode"));step.put("error_code",plan.get("errorCode"));steps.add(step);
-            }
+        for(var raw:DiagnosticPlans.pendingSteps(catalog,s,consultations.selectedModel(email,s))){
+            var step=new LinkedHashMap<>(raw);
+            step.put("symptom_code",s.state().symptomCode());step.put("error_code",s.state().errorCode());steps.add(step);
         }
         return List.copyOf(steps);
     }
@@ -273,10 +283,7 @@ public class AgentChatService {
                     else if(warrantyResult!=null)lines.add(warranty.explain(warrantyResult));
                     lines.add("참고로 품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준이라 서로 다른 기간이에요. 부품보유기간은 확인된 자료가 아직 없어 따로 안내하지 않아요.");
                 }
-                case "get_diagnostic_plan"->{
-                    String skipped=Objects.toString(data.get("skip_reason"),"");
-                    lines.add(result.status().equals("NEEDS_INPUT")?needsProduct():"RESOLVED".equals(skipped)?"해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요.":"ALL_DONE".equals(skipped)?"확인된 자가검진 단계를 모두 마쳤습니다. 해결되지 않았다면 공식 A/S로 연결해 주세요.":result.status().equals("OK")?"확인된 자가검진 단계를 한 번에 하나씩 진행해 주세요.":"현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 원문 근거와 공식 상담 경로를 확인해 주세요.");
-                }
+                case "get_diagnostic_plan"->lines.add(DiagnosticGuidance.format(result));
                 case "get_repair_candidates"->{if(!results.containsKey("estimate_repair_cost"))lines.add("이 품목의 수리 부품 후보를 확인했어요. 실제 고장 부품은 점검 후 정해져요.");}
                 case "estimate_repair_cost"->lines.addAll(cost(data));
                 case "find_service_centers"->lines.add(result.status().equals("NEEDS_INPUT")?needsProduct():"배송지역 기준의 센터와 공식 접수 경로를 준비했습니다. 운영시간과 접수 가능 제품은 공식 페이지에서 확인하세요.");

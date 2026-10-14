@@ -256,6 +256,26 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     }
   }
 
+  async function answerSelfCare(kind, payload, label) {
+    if (isBusy || sendingRef.current || !conversationId) return
+    sendingRef.current = true
+    setIsSending(true)
+    stickToBottomRef.current = true
+    try {
+      const endpoint = kind === 'precondition' ? 'precondition-answer' : 'step-answer'
+      const data = await request(`/api/conversations/${conversationId}/${endpoint}`, { method: 'POST', body: JSON.stringify(payload) })
+      if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('다음 안내를 가져오지 못했습니다.')
+      setMessages((previous) => [...previous,
+        { id: crypto.randomUUID(), role: 'user', content: label },
+        { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [], warranty: data.warranty || null, tools: data.tools || {} },
+      ])
+      await loadHistory()
+    } finally {
+      sendingRef.current = false
+      setIsSending(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">상담 화면으로 이동</a>
@@ -314,7 +334,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                         {message.tools.consultation.data.question.options.map((option) => <button type="button" key={option} disabled={message !== messages.at(-1) || isBusy} onClick={(event) => sendMessage(event, option)}>{option}</button>)}
                       </div>}
                       {message.role === 'assistant' && message.warranty && <WarrantyResult result={message.warranty} />}
-                      {message.role === 'assistant' && <ToolResults tools={message.tools} conversationId={conversationId} request={request} active={message === messages.at(-1) && !isBusy} />}
+                      {message.role === 'assistant' && <ToolResults tools={message.tools} active={message === messages.at(-1) && !isBusy} onAnswerSelfCare={answerSelfCare} />}
                       {message.role === 'assistant' && message.sources?.length > 0 && (
                         <div className="message-sources" aria-label="답변 생성에 전달한 검색 근거">
                           <p>검색 근거 · 적용 조건 확인 필요</p>

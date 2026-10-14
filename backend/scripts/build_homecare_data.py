@@ -95,8 +95,9 @@ def main() -> None:
                           '출장비 고정 가산이므로 중앙·하한·상한에 같은 금액을 더한다.',
         'validation': {'cases': 20, 'median_absolute_error_percent': 11.2, 'range_hit_percent': 80,
                        'note': '등급·축소 강도·범위 폭을 같은 20건으로 골랐으므로 새 사례에서는 오차가 더 클 수 있음'}}
-    unavailable = [item for item in manifest.get('unavailable', []) if not item.startswith('부품보유기간')]
-    unavailable.append('부품보유기간 구조화 값: B30 원본(knowledge_effective_B30.jsonl, checksums_B30.json) 미확보로 제공하지 않음')
+    unavailable = list(manifest.get('unavailable', []))
+    if not any(item.startswith('부품보유기간') for item in unavailable):
+        unavailable.append('부품보유기간 구조화 값: 제조일 기준 값·충돌 검토 및 구조화 미완료')
     manifest['unavailable'] = unavailable
     manifest['files'] = {name: sha256((RESOURCES / name).read_bytes()) for name in VERIFIED_FILES}
     write_json(manifest_path, manifest)

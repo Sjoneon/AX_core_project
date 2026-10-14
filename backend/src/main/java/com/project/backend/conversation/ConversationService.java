@@ -152,19 +152,24 @@ public class ConversationService {
     }
 
     /** Bounded text and the last displayed step, without raw documents, credentials or customer profile. */
-    public record DialogueMessage(String role,String content,String displayedStep,Long contextVersion) { }
+    public record DialogueMessage(String role,String content,String displayedStep,Long contextVersion,String displayedCondition,String planScope) {
+        public DialogueMessage(String role,String content,String displayedStep,Long contextVersion){this(role,content,displayedStep,contextVersion,null,null);}
+    }
     @Transactional(readOnly=true)
     public List<DialogueMessage> dialogueHistory(Long id,String email){
         findOwned(id,email);
         var recent=new ArrayList<>(messageRepository.findTop12ByConversationIdOrderByIdDesc(id));
         java.util.Collections.reverse(recent);
         return recent.stream().map(message->{
-            String step=null;Long version=null;var plan=message.getTools().get("get_diagnostic_plan");
+            String step=null,condition=null,scope=null;Long version=null;var plan=message.getTools().get("get_diagnostic_plan");
             if(plan!=null&&"OK".equals(plan.status())&&plan.data()!=null&&plan.data().get("steps") instanceof List<?> steps&&!steps.isEmpty())
                 step=java.util.Objects.toString(((java.util.Map<?,?>)steps.getFirst()).get("step_code"),null);
             if(plan!=null&&plan.meta()!=null&&plan.meta().get("context_version") instanceof Number value)version=value.longValue();
+            if(plan!=null&&"NEEDS_INPUT".equals(plan.status())&&plan.data()!=null&&plan.data().get("question") instanceof java.util.Map<?,?> q){
+                condition=java.util.Objects.toString(q.get("id"),null);scope=java.util.Objects.toString(plan.data().get("plan_scope"),null);
+            }
             String content=message.getContent();
-            return new DialogueMessage(message.getRole(),content.substring(0,Math.min(1200,content.length())),step,version);
+            return new DialogueMessage(message.getRole(),content.substring(0,Math.min(1200,content.length())),step,version,condition,scope);
         }).toList();
     }
 }

@@ -1,1 +1,124 @@
-[]
+[
+  {
+    "id": "TR15WV5-UE-BUNDLED",
+    "revision": "1",
+    "category": "WASHER",
+    "modelCodes": [
+      "TR15WV5"
+    ],
+    "errorCode": "UE",
+    "actionApproved": true,
+    "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_44",
+    "baseDate": "2026-10-14",
+    "review": {
+      "status": "APPLICATION_REVIEWED_CONDITIONAL",
+      "manufacturerApproval": false,
+      "sourceRecordId": "T2-065",
+      "sourceRecordSha256": "ae71963120069770989afb6e86b4b7848c5d2925694317a25afc6a066ceb011c",
+      "branchId": "TR15WV5-T2-065-bundled",
+      "manualId": "MFL71831233",
+      "manualZipSha256": "c3c9c3b31d2e79da40a7e029a97f4b8f820a5b1b38c24bb71ad46030f51e28e3",
+      "b30Checksums": {
+        "knowledge_effective_B30.jsonl": "d6250de9abaddac3910adeec6c503de766cdc0e8ec268fbe2c1d44eafa4ec795",
+        "manuals_B30.json": "8c7941c962aa038b18ad1bc282641907402fcc07f4ab8a143a5fbadc0bc1fa4f",
+        "model_code_lookup_B30.json": "612ceaa7bea76ad067a2dcce9c9f8412598d361a577ac97594c54910474b0e28",
+        "review_links_B30.json": "f471328aad69f114512772104bd988b32397f96c2230dafdeb45d65de052a952"
+      },
+      "sources": [
+        {
+          "path": "ko-kr/topics/topic_44.html",
+          "sha256": "e81ea7fe3dc1ec9564c98ae6df97dd3ac6713322fded4c551096a5af49bd7f15",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_44"
+        },
+        {
+          "path": "ko-kr/topics/topic_9.html",
+          "sha256": "20655ca16bf662af0b246befcab442b42c00e6313c081413052ab919cf4a0220",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_9"
+        },
+        {
+          "path": "ko-kr/topics/topic_16.html",
+          "sha256": "d863d92d5beee2fffb6564f4d7df4658fa859814fb289882c80eefb3dafa7d43",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_16"
+        },
+        {
+          "path": "ko-kr/topics/topic_20.html",
+          "sha256": "4aa67021f068efe431e08b9d76dab952b9586f1c3fe5d31668f4e0e868b0567a",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_20"
+        },
+        {
+          "path": "ko-kr/topics/topic_23.html",
+          "sha256": "41bb6112bbae009dc083c3f1512ddfd9d15e7b63c8b5a7aef8e86dd20c2ea21a",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_23"
+        },
+        {
+          "path": "ko-kr/res/fig/t_00148364_r3/control_panel_vbt_ko_01.svg",
+          "sha256": "58dbda12a1d35ac6c6af2607fb0ee18e8f630f4457cf2e7ac05476bb065a097e",
+          "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_20",
+          "review": "2026-10-14 원문 SVG 화면 확인: 동작/일시정지, 헹굼·탈수단독 표시. 실물 일치 여부는 매 상담에서 확인."
+        }
+      ],
+      "scope": "HomeCare 실행 경로 검토. OEM 승인·실물 시험 아님. 원문/B30 후보 정책은 변경하지 않음.",
+      "excluded": [
+        "다른 UE 분기",
+        "TR15MV5 및 다른 모델",
+        "진동 조치",
+        "수평 조절",
+        "분해",
+        "금지 세탁물"
+      ]
+    },
+    "preconditions": [
+      {
+        "id": "MODEL_LABEL",
+        "text": "제품 라벨의 전체 모델명이 TR15WV5와 정확히 일치하나요?",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_20",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      },
+      {
+        "id": "UE_OBSERVED",
+        "text": "현재 표시창에서 UE 오류를 직접 확인했나요?",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_44",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      },
+      {
+        "id": "BUNDLED_LAUNDRY",
+        "text": "세탁 가능한 일반 의류 여러 장이 뭉친 상태인가요? 이불·인형·방수성 천·기능성 의류·내용물이 든 베개/쿠션·한 장만 넣은 니트·세탁망 단독·용량 초과는 이 안내에서 제외합니다.",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_9",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      },
+      {
+        "id": "SAFE_STATE",
+        "text": "연기·타는 냄새·불꽃·누수·이상한 소리·감전 징후가 없고, 손이 마른 상태이며 주변 어린이·반려동물이 안전하게 떨어져 있나요?",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_9",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      },
+      {
+        "id": "STOPPED_ACCESS",
+        "text": "세탁통이 완전히 멈춰 있고 문 유리가 온전하며, 문을 억지로 열거나 잠금장치를 해제하지 않아도 접근 가능한 상태인가요? 회전 중이거나 상태를 모르겠으면 아니요 또는 모르겠어요로 답해 주세요.",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_16",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      },
+      {
+        "id": "CONTROL_DIAGRAM",
+        "text": "아래 원문 기능조작부 그림을 직접 확인했나요? 실물에 동작/일시정지 버튼과 헹굼 버튼의 탈수단독 표시가 일치하고 버튼 잠금이 해제되어 있나요?",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_20",
+        "failure_guidance": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+      }
+    ],
+    "steps": [
+      {
+        "step_code": "TR15WV5-UE-SPREAD",
+        "text": "동작/일시정지 버튼으로 UE 표시를 해제하세요. 세탁통이 완전히 멈춘 것을 다시 확인한 뒤 문을 열고 뭉친 세탁물을 고르게 펴 주세요.",
+        "caution": "세탁통이 조금이라도 회전하면 손을 넣지 마세요. 문을 억지로 열지 마세요. 문을 열어도 멈추지 않거나 위험 징후가 생기면 진행을 중지하고 공식 서비스에 문의하세요.",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_44"
+      },
+      {
+        "step_code": "TR15WV5-UE-SPIN",
+        "text": "세탁기 문을 닫고 헹굼 버튼을 3초 이상 눌러 탈수단독을 선택한 뒤 동작/일시정지 버튼으로 작동하세요.",
+        "caution": "앞 단계에서 세탁물을 고르게 편 경우에만 진행하세요. 조작부나 현재 상태가 달라졌으면 진행하지 마세요. UE가 반복되면 추가 조작 대신 공식 서비스에 문의하세요.",
+        "source": "https://gscs-manual.lge.com/DFZ/MFL71831233/ko-kr/main.html#topic_23"
+      }
+    ],
+    "followup": "추가 조작을 반복하지 말고 LG전자 공식 상담으로 제품 상태를 확인해 주세요. 원문의 A/S 필요 여부 공란은 안전함이나 서비스 불필요를 뜻하지 않습니다."
+  }
+]

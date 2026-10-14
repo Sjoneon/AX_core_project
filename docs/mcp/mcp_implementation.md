@@ -13,7 +13,7 @@
 | `lookup_model` | 고객이 말한 모델 코드를 판매 코드 52개와 정확히 일치할 때만 조회. 원문 보존, 접미사 미절단, 대표 모델은 공통 자료용 | 상담 품목과 다르면 경고만. 비슷한 코드를 제안하지 않음 |
 | `search_knowledge` | 제조사 전용 검색: 적용 필터·정확 코드/표시·증상 어휘·캐시 임베딩. 관련 안전 최대 2건 우선, 보완은 별도 연결 | 모델 미판정은 검증된 품목 공통 범위만. 근거 부족은 NO_DATA/NEEDS_INPUT, 의미 검색 장애는 어휘 대체 |
 | `get_product_context` | 본인 등록 제품 목록과 상담에서 직접 선택한 제품 조회 | 자동 선택하지 않음 |
-| `get_diagnostic_plan` | 위험 차단, 승인된 모델·오류의 자가검진을 한 단계씩 조회 | 실행 승인 자료가 비어 있어 `NOT_VERIFIED`와 원문 후보 반환 |
+| `get_diagnostic_plan` | 위험 차단, 승인된 모델·오류의 자가검진을 한 단계씩 조회 | TR15WV5/UE/세탁물 뭉침 1건. 선행 조건 6개 확인 후 현재 단계 1개, 나머지는 `NOT_VERIFIED` |
 | `check_warranty` | 품질보증(구입일 기준)과 주요 부품 보증을 분리, 부품보유기간(제조일 기준)을 별도 블록으로 | 구입일이 없으면 `NEEDS_INPUT`. 부품보유기간은 B30 원본 확인 전까지 `UNAVAILABLE` |
 | `get_repair_candidates` | 품목의 부품 코드·이름과 `candidate_set_id` | 4품목 32개 그룹. 등록 제품 없이도 동작. 국내 SKU 호환을 확정하지 않음 |
 | `estimate_repair_cost` | 참고용 예상 범위(중앙·80% 범위), 신뢰도, 시간대·월 출장비 가산, 고정 고지문 | 견적·무상 판정 아님. 보증은 문장으로만 안내하고 0원으로 바꾸지 않음 |
@@ -69,11 +69,13 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 
 위험 후보는 `RiskRules`의 14개 사례 키워드로 찾고, 의심 문장은 `RiskAssessmentService`가 최대 8초 안에 AI 문맥으로 판정한다. 실패하면 키워드 후보를 유지하고, 긴급 신호는 AI나 MCP를 기다리지 않고 즉시 안내한다. 인화성 오염은 RC14다. 위험 확인 버튼·이력·조치 차단은 일반 증상 해석과 별도다.
 
-2026-10-14에 `MessageInterpreter/DialogueRouter`로 품목별 5개 증상, 비용·보증·A/S 문의, 확인 질문·응답과 후속 대화를 연결했다. 상태는 기존 상담 JSON에 저장하며 최근 대화 12개를 전달한다. 해석 실패·8초 초과 시 증상 선택을 제공하고 질문 뒤에도 모르면 `UNCLASSIFIED`로 안내한다. 완료 조치는 정확한 모델의 승인 단계와 대조하며 `approved-plans.json=[]`은 유지된다. `tools.consultation`은 화면용 서버 상태 결과이고 MCP 도구가 아니다. [분류·상태·38개 실제 모델 평가](symptom_interpretation.md)를 참고한다.
+2026-10-14에 `MessageInterpreter/DialogueRouter`로 품목별 5개 증상, 비용·보증·A/S 문의, 확인 질문·응답과 후속 대화를 연결했다. 상태는 기존 상담 JSON에 저장하며 최근 대화 12개를 전달한다. 해석 실패·8초 초과 시 증상 선택을 제공하고 질문 뒤에도 모르면 `UNCLASSIFIED`로 안내한다. 완료 조치는 정확한 모델의 승인 단계와 대조하며 3단계 당시 `approved-plans.json=[]`이었다. 5단계의 조건부 계획 등록은 아래 기록과 분리한다. `tools.consultation`은 화면용 서버 상태 결과이고 MCP 도구가 아니다. [분류·상태·38개 실제 모델 평가](symptom_interpretation.md)를 참고한다.
+
+5단계는 [원문 검토·조건·이력 계약](approved_self_care.md)에 정리했다. 조건 6개를 모두 확인하기 전에는 조치를 반환하지 않으며 제품 수정·위험 감지는 확인 값을 초기화한다. 현재 승인 단계만 안내하고 결과와 다음 안내를 같은 트랜잭션에 저장한다. `precondition-answer`와 `step-answer`는 `ChatResponse`를 반환한다. 실행 경로 검토는 제조사 승인·실물 시험을 의미하지 않으며 진동은 미승인 상태를 유지한다.
 
 ## 연결한 원자료와 무결성
 
-`backend/src/main/resources/homecare/source-manifest.json`(버전 `B30-COST-V3-20261014-R4`)에 원본·생성 자료의 출처·해시·제약을 저장했다. Spring은 기동 시 데이터 파일 9개(homecare 8개 + `warranty/policies.json`)의 SHA-256을 매니페스트와 대조하고 건수도 확인한다. 하나라도 다르면 기동하지 않는다. 데이터 JSON은 `.gitattributes`로 줄바꿈 변환을 막는다.
+`backend/src/main/resources/homecare/source-manifest.json`(버전 `B30-COST-V3-20261014-R5`)에 원본·생성 자료의 출처·해시·제약을 저장했다. Spring은 기동 시 데이터 파일 9개(homecare 8개 + `warranty/policies.json`)의 SHA-256을 매니페스트와 대조하고 건수도 확인한다. 하나라도 다르면 기동하지 않는다. 데이터 JSON은 `.gitattributes`로 줄바꿈 변환을 막는다.
 
 - LG B30 전체 사실 1,659건 중 현재 로컬에 들어온 1,542건을 사용한다. 기존 검수에서 발견한 누락 117건(김치냉장고 97건 포함)은 구조화 작업으로 복원되지 않았다. 각 기록의 `effective_model_lists`·`current_QA_review`·`latest_applicability_update`·`procedure_supplements`·`use_policy`는 원본 파일에 그대로 남아 있다. Spring이 기동 시 읽어 적용 판정에 쓴다(최신 적용 목록 우선, 제외 모델 제거).
 - 2026-10-14에 기존 원본 1,542건을 변경 없이 보존하고 `structure_knowledge.py`로 `knowledge-structured.json` 1,542건을 생성했다. 검색 본문 `searchText`와 화면 본문 `displayText`를 분리하고 원인별 분기·선행 조건·그림/실물 제약·보완 관계를 보존한다. `search_knowledge`와 자가검진 `references`는 구조화 결과를 사용하며 원본 래퍼 JSON을 반환하지 않는다. 기존 저장 상담 표시 정리는 후속 작업이다. [대상 자료·원문 대조·생성/검증 기록](manufacturer_data_structure.md)을 참고한다.
@@ -82,7 +84,7 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 - 출장비 가산은 CSV 열을 그대로 쓴다. 야간·휴일 +5,000원, 6~8월 평일 +5,000원, 6~8월 야간·휴일 +10,000원(야간 가산과 중복 합산하지 않음)이다. 패키지 `model_v3.py`의 `SURCHARGE`와 `normalize.py`의 출장비 28,000/33,000/33,000/38,000원으로 해석을 확인했다. 고정 가산이므로 중앙·하한·상한에 같은 금액을 더한다.
 - v3는 국내 LG 유상 20건 검증에서 중앙 절대오차 11.2%, 80% 범위 적중 80%였다. 같은 20건으로 등급·범위를 골랐으므로 새 사례 오차는 더 클 수 있다(비용 결과 `caveats`에 포함).
 - 부품보유기간: 변환본 T5 기록에 `parts_holding_period` 문장이 있으나 식기세척기 품목 공통 5년(T5-004)과 모델별 7년(T5-009 등)이 충돌한다. B30 원본(`knowledge_effective_B30.jsonl`, `checksums_B30.json`)으로 확인하기 전까지 값을 제공하지 않는다.
-- `repair-cases.json=[]`, `approved-plans.json=[]`이다. 센터는 대치·분당·북수원 3곳이다.
+- `repair-cases.json=[]`이고 `approved-plans.json`에는 TR15WV5/UE/세탁물 뭉침 조건부 계획 1건이 있다. 센터는 대치·분당·북수원 3곳이다.
 
 ## 웹 API
 
@@ -95,7 +97,8 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 | `POST /api/chat` | 상담. 사용자별 분당 5회(연속 3회)·하루 100회, 초과 시 429 + `Retry-After` |
 | `GET /api/conversations/{id}/context` | 현재 제품·위험·조치 상태 |
 | `GET /api/conversations/{id}/tool-calls` | 본인 상담의 도구 호출 기록(V005) |
-| `POST /api/conversations/{id}/product`, `/risk-answer`, `/step-answer` | 제품 확정, 위험 확인, 조치 해결 여부 |
+| `POST /api/conversations/{id}/product`, `/risk-answer` | 제품 확정, 위험 확인 |
+| `POST /api/conversations/{id}/precondition-answer`, `/step-answer` | 현재 조건·조치 결과를 상태와 이력에 저장하고 다음 안내의 `ChatResponse` 반환 |
 | `POST /api/tools/{name}` | MCP 컨테이너 전용(외부 차단) |
 
 Nginx는 IP별로 `POST /api/chat` 분당 30회(burst 10), `/api/auth/` 분당 10회(burst 5), 나머지 `/api/` 초당 10회(burst 30)를 넘으면 429를 준다.

@@ -63,17 +63,19 @@ class McpIntegrationTests {
     @LocalServerPort int backendPort;
     @Autowired ConsultationService consultations;
     @Autowired UserProductService products;
+    @Autowired ProductService productCrud;
     @Autowired AppUserRepository users;
     @Autowired JwtTokenProvider jwt;
     @Autowired McpGateway gateway;
     @Autowired AgentChatService agent;
-    @Autowired ConversationService history;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean ConversationService history;
     @Autowired ToolBackend tools;
     @Autowired ToolCallLogRepository toolCalls;
     @Autowired ChatClient.Builder chatClient;
     @Autowired WarrantyService warranty;
     @Autowired ToolDataCatalog catalog;
     @Autowired AgentLimits limits;
+    @Autowired SelfCareChatService selfCare;
     Process python;
     Path log;
     final String owner="mcp-owner@example.com", other="mcp-other@example.com";
@@ -164,6 +166,133 @@ class McpIntegrationTests {
     }
     static Set<String> numbers(String text){
         var found=new TreeSet<String>();var matcher=NUMBER.matcher(text);while(matcher.find())found.add(matcher.group().replace(",",""));return found;
+    }
+    record SelfCareCase(String email,Long productId,ChatResponse response) { }
+    SelfCareCase realSelfCare(){
+        String email="selfcare-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        var input=new WarrantyModels.Request(ProductCategory.WASHER,"TR15WV5",LocalDate.of(2025,1,1),null,null,null,"GENERAL",true,true);
+        Long id=products.create(email,new UserProductService.Create("통돌이",input,"서울","강남구")).id();
+        var response=agent.chat(new ChatRequest("UE 표시가 나고 세탁물이 뭉쳐 있어요",null,ProductCategory.WASHER,null,id),email,token(email));
+        return new SelfCareCase(email,id,response);
+    }
+    static Map<String,Object> conditionArgs(ChatResponse response,String answer){
+        var result=response.tools().get("get_diagnostic_plan");var question=(Map<?,?>)result.data().get("question");
+        return map("question_id",question.get("id"),"plan_scope",result.data().get("plan_scope"),"answer",answer,"context_version",result.meta().get("context_version"));
+    }
+    static Map<String,Object> stepArgs(ChatResponse response,String answer){
+        var result=response.tools().get("get_diagnostic_plan");var step=(Map<?,?>)((List<?>)result.data().get("steps")).getFirst();
+        return map("step_code",step.get("step_code"),"answer",answer,"context_version",result.meta().get("context_version"));
+    }
+    ChatResponse confirmAll(SelfCareCase c){
+        var response=c.response();
+        for(int i=0;i<6;i++)response=selfCare.answer(response.conversationId(),c.email(),conditionArgs(response,"YES"),true);
+        assertThat(response.tools().get("get_diagnostic_plan").status()).isEqualTo("OK");return response;
+    }
+    java.net.http.HttpResponse<String> postSelfCare(String email,Long id,String path,Map<String,Object> args) throws Exception {
+        var request=java.net.http.HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+backendPort+"/api/conversations/"+id+"/"+path))
+            .header("Authorization",token(email)).header("Content-Type","application/json")
+            .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(args))).build();
+        return java.net.http.HttpClient.newHttpClient().send(request,java.net.http.HttpResponse.BodyHandlers.ofString());
+    }
+    @Test void realReviewedPlanRunsThroughHttpConditionsStepsHistoryAndResolution() throws Exception {
+        var c=realSelfCare();var response=c.response();
+        try(var session=gateway.open(token(c.email()),consultations.snapshot(c.email(),response.conversationId()))){
+            var gated=session.invoke("get_diagnostic_plan",Map.of());assertThat(gated.status()).isEqualTo("NEEDS_INPUT");
+            assertThat(gated.data()).containsEntry("steps",List.of()).containsEntry("skip_reason","PRECONDITIONS_PENDING");
+        }
+        for(int i=0;i<6;i++){
+            var posted=postSelfCare(c.email(),response.conversationId(),"precondition-answer",conditionArgs(response,"YES"));
+            assertThat(posted.statusCode()).isEqualTo(200);response=JSON.readValue(posted.body(),ChatResponse.class);
+            assertThat(history.detail(response.conversationId(),c.email()).messages().getLast().tools().get("get_diagnostic_plan").data()).isEqualTo(response.tools().get("get_diagnostic_plan").data());
+        }
+        var first=stepArgs(response,"NO");assertThat(first.get("step_code")).isEqualTo("TR15WV5-UE-SPREAD");
+        var posted=postSelfCare(c.email(),response.conversationId(),"step-answer",first);assertThat(posted.statusCode()).isEqualTo(200);
+        response=JSON.readValue(posted.body(),ChatResponse.class);
+        assertThat(stepArgs(response,"YES").get("step_code")).isEqualTo("TR15WV5-UE-SPIN");
+        posted=postSelfCare(c.email(),response.conversationId(),"step-answer",stepArgs(response,"YES"));assertThat(posted.statusCode()).isEqualTo(200);
+        response=JSON.readValue(posted.body(),ChatResponse.class);assertThat(response.reply()).contains("해결되었습니다");
+        var state=consultations.snapshot(c.email(),response.conversationId()).state();
+        assertThat(state.closed()).isTrue();assertThat(state.doneSteps()).containsExactly("TR15WV5-UE-SPREAD","TR15WV5-UE-SPIN");
+        assertThat(state.selfCare().conditions()).hasSize(6);assertThat(state.selfCare().results()).containsEntry("TR15WV5-UE-SPREAD","NOT_RESOLVED").containsEntry("TR15WV5-UE-SPIN","RESOLVED");
+        assertThat(history.detail(response.conversationId(),c.email()).messages()).hasSize(18);
+        assertThat(history.toolCalls(response.conversationId(),c.email())).extracting(ConversationService.ToolCallView::selectionSource).containsOnly("POLICY_FALLBACK");
+        assertThat(modelCalls.get()).isZero();
+    }
+    @Test void failedReviewedPlanEndsWithOfficialFollowupWithoutInventingMoreSteps(){
+        var c=realSelfCare();var response=confirmAll(c);
+        response=selfCare.answer(response.conversationId(),c.email(),stepArgs(response,"NO"),false);
+        response=selfCare.answer(response.conversationId(),c.email(),stepArgs(response,"NO"),false);
+        assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("skip_reason","ALL_DONE").containsEntry("steps",List.of()).containsKey("route");
+        assertThat(response.reply()).contains("해결되지","공식 상담").doesNotContain("해결되었습니다");
+        assertThat(consultations.snapshot(c.email(),response.conversationId()).state().closed()).isFalse();
+        assertThat(history.detail(response.conversationId(),c.email()).messages()).hasSize(18);
+    }
+    @Test void rejectedAndUnknownConditionsNeverExposeAnActionOrBecomeNoSelfCare(){
+        for(String answer:List.of("NO","UNSURE")){
+            var c=realSelfCare();var response=selfCare.answer(c.response().conversationId(),c.email(),conditionArgs(c.response(),answer),true);
+            var result=response.tools().get("get_diagnostic_plan");
+            assertThat(result.data()).containsEntry("steps",List.of()).containsEntry("skip_reason",answer.equals("NO")?"PRECONDITION_NOT_MET":"PRECONDITION_UNCONFIRMED");
+            assertThatThrownBy(()->selfCare.answer(response.conversationId(),c.email(),map("step_code","TR15WV5-UE-SPREAD","answer","YES","context_version",result.meta().get("context_version")),false)).hasMessageContaining("현재 승인된 조치");
+            assertThat(history.detail(response.conversationId(),c.email()).messages()).hasSize(4);
+        }
+    }
+    @Test void staleForgedOutOfOrderAndForeignConditionAnswersDoNotWriteHistory() throws Exception {
+        var c=realSelfCare();var response=c.response();var args=conditionArgs(response,"YES");Long id=response.conversationId();
+        var wrong=new LinkedHashMap<>(args);wrong.put("question_id","CONTROL_DIAGRAM");
+        assertThat(postSelfCare(c.email(),id,"precondition-answer",wrong).statusCode()).isEqualTo(400);
+        wrong=new LinkedHashMap<>(args);wrong.put("plan_scope","FORGED");assertThat(postSelfCare(c.email(),id,"precondition-answer",wrong).statusCode()).isEqualTo(400);
+        assertThat(postSelfCare(other,id,"precondition-answer",args).statusCode()).isEqualTo(404);
+        response=selfCare.answer(id,c.email(),args,true);
+        assertThat(postSelfCare(c.email(),id,"precondition-answer",args).statusCode()).isEqualTo(409);
+        assertThat(history.detail(id,c.email()).messages()).hasSize(4);
+    }
+    @Test void naturalYesUsesOnlyTheDisplayedConditionAndDoneClaimsCannotSkipGates(){
+        var c=realSelfCare();var id=c.response().conversationId();
+        var yes=agent.chat(new ChatRequest("네",id,null,null,null),c.email(),token(c.email()));
+        assertThat(((Map<?,?>)yes.tools().get("get_diagnostic_plan").data().get("question")).get("id")).isEqualTo("UE_OBSERVED");
+        interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("TR15WV5-UE-SPREAD"),"RESOLVED"));
+        var forged=agent.chat(new ChatRequest("TR15WV5-UE-SPREAD 이미 했고 해결됐어요",id,null,null,null),c.email(),token(c.email()));
+        assertThat(forged.tools().get("get_diagnostic_plan").data()).containsEntry("steps",List.of());
+        var state=consultations.snapshot(c.email(),id).state();assertThat(state.doneSteps()).isEmpty();assertThat(state.closed()).isFalse();
+        assertThat(state.selfCare().conditions()).containsOnlyKeys("MODEL_LABEL");
+    }
+    @Test void naturalAlreadyDoneAndResolvedRepliesAdvanceTheGatedCurrentStep(){
+        var c=realSelfCare();var shown=confirmAll(c);Long id=shown.conversationId();
+        interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("TR15WV5-UE-SPREAD"),"NOT_RESOLVED"));
+        var next=agent.chat(new ChatRequest("그건 이미 했어요",id,null,null,null),c.email(),token(c.email()));
+        assertThat(stepArgs(next,"YES").get("step_code")).isEqualTo("TR15WV5-UE-SPIN");
+        interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("TR15WV5-UE-SPIN"),"RESOLVED"));
+        var resolved=agent.chat(new ChatRequest("이제 해결됐어요",id,null,null,null),c.email(),token(c.email()));
+        assertThat(resolved.reply()).contains("해결되었습니다");assertThat(consultations.snapshot(c.email(),id).state().selfCare().results()).hasSize(2);
+        assertThat(history.detail(id,c.email()).messages()).hasSize(18);
+    }
+    @Test void productChangeAndNewRiskDiscardPriorConditionConfirmations(){
+        var c=realSelfCare();var shown=confirmAll(c);Long id=shown.conversationId();
+        var reset=consultations.confirmProduct(c.email(),id,c.productId());
+        assertThat(reset.state().selfCare().conditions()).isEmpty();
+        var gated=tools.execute("get_diagnostic_plan",c.email(),map("conversation_id",id),reset.version());assertThat(gated.status()).isEqualTo("NEEDS_INPUT");
+        assertThatThrownBy(()->selfCare.answer(id,c.email(),stepArgs(shown,"YES"),false)).hasMessageContaining("CONTEXT_STALE");
+        var risk=consultations.begin(c.email(),id,null,"연기가 나요",null);
+        assertThat(risk.state().selfCare().conditions()).isEmpty();
+        assertThat(tools.execute("get_diagnostic_plan",c.email(),map("conversation_id",id),risk.version()).status()).isEqualTo("BLOCKED_BY_SAFETY");
+    }
+    @Test void editingTheSameProductInvalidatesConditionsAndOldActionButtons(){
+        var c=realSelfCare();var shown=confirmAll(c);Long id=shown.conversationId();
+        productCrud.update(c.productId(),new ProductRequest(ProductCategory.WASHER,"변경한 이름","TR15WV5","2025-02-01",null,null,null),c.email());
+        var s=consultations.snapshot(c.email(),id);assertThat(s.state().selfCare().conditions()).isEmpty();assertThat(s.state().doneSteps()).isEmpty();
+        assertThatThrownBy(()->selfCare.answer(id,c.email(),stepArgs(shown,"YES"),false)).hasMessageContaining("CONTEXT_STALE");
+        assertThat(tools.execute("get_diagnostic_plan",c.email(),map("conversation_id",id),s.version()).data()).containsEntry("skip_reason","PRECONDITIONS_PENDING");
+    }
+    @Test void historyFailureRollsBackTheConditionAndStepResultWithTheRevision(){
+        var c=realSelfCare();Long id=c.response().conversationId();var before=consultations.snapshot(c.email(),id);
+        org.mockito.Mockito.doThrow(new IllegalStateException("TEST_ONLY history failure")).when(history).saveExchange(org.mockito.ArgumentMatchers.eq(id),org.mockito.ArgumentMatchers.eq(c.email()),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(ProductCategory.WASHER),org.mockito.ArgumentMatchers.anyList(),org.mockito.ArgumentMatchers.isNull(),org.mockito.ArgumentMatchers.anyMap(),org.mockito.ArgumentMatchers.anyList());
+        assertThatThrownBy(()->selfCare.answer(id,c.email(),conditionArgs(c.response(),"YES"),true)).hasMessageContaining("history failure");
+        assertThat(consultations.snapshot(c.email(),id)).isEqualTo(before);assertThat(history.detail(id,c.email()).messages()).hasSize(2);
+        org.mockito.Mockito.reset(history);
+        var shown=confirmAll(c);before=consultations.snapshot(c.email(),id);
+        org.mockito.Mockito.doThrow(new IllegalStateException("TEST_ONLY history failure")).when(history).saveExchange(org.mockito.ArgumentMatchers.eq(id),org.mockito.ArgumentMatchers.eq(c.email()),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.eq(ProductCategory.WASHER),org.mockito.ArgumentMatchers.anyList(),org.mockito.ArgumentMatchers.isNull(),org.mockito.ArgumentMatchers.anyMap(),org.mockito.ArgumentMatchers.anyList());
+        assertThatThrownBy(()->selfCare.answer(id,c.email(),stepArgs(shown,"YES"),false)).hasMessageContaining("history failure");
+        assertThat(consultations.snapshot(c.email(),id)).isEqualTo(before);assertThat(history.detail(id,c.email()).messages()).hasSize(14);
     }
     /**
      * Every number in the reply must come from a tool result. Warranty periods may be shown in years derived from
@@ -384,7 +513,7 @@ class McpIntegrationTests {
     }
     @Test void mcpOutageGivesGeneralGuidanceAndStillSavesTheConsultation(CapturedOutput output) throws Exception {
         int closed;try(var socket=new ServerSocket(0)){closed=socket.getLocalPort();}
-        var offline=new AgentChatService(chatClient,new McpGateway("http://127.0.0.1:"+closed,limits),consultations,history,warranty,tools,catalog,limits);
+        var offline=new AgentChatService(chatClient,new McpGateway("http://127.0.0.1:"+closed,limits),consultations,history,warranty,tools,catalog,limits,selfCare);
         var response=offline.chat(new ChatRequest("세탁기 문이 안 열려요",null,ProductCategory.WASHER,null,null),owner,token(owner));
         assertThat(modelCalls.get()).isZero();
         assertThat(response.reply()).contains("일반 안내","1544-7777");
@@ -485,13 +614,13 @@ class McpIntegrationTests {
         history.saveExchange(state.id(),owner,"물이 빠지지 않아요","TEST_ONLY 필터 확인",ProductCategory.WASHER,List.of(),null,Map.of("get_diagnostic_plan",shown));
         var plan=map("category","WASHER","modelCodes",List.of("F21VDSK"),"actionApproved",true,"symptomCode","DRAIN","errorCode",null,"steps",List.of(step));
         var testCatalog=new ToolDataCatalog(List.of(),List.of(),List.of(),List.of(plan),List.of(),Map.of(),Map.of());
-        var testAgent=new AgentChatService(chatClient,gateway,consultations,history,warranty,tools,testCatalog,limits);
+        var testAgent=new AgentChatService(chatClient,gateway,consultations,history,warranty,tools,testCatalog,limits,selfCare);
         interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("TEST-1"),"RESOLVED"));
         var response=testAgent.chat(new ChatRequest("이제 해결됐어요.",state.id(),null,null,null),owner,token(owner));
         var saved=consultations.snapshot(owner,state.id()).state();
         assertThat(saved.doneSteps()).containsExactly("TEST-1");assertThat(saved.currentStep()).isEqualTo(1);assertThat(saved.closed()).isTrue();
         assertThat(history.detail(state.id(),owner).messages()).hasSize(4);
-        assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("consultation").data()).containsEntry("self_care_reply","RESOLVED");
+        assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("skip_reason","RESOLVED");
         assertThat(modelCalls.get()).isZero();
     }
     @Test void generatedVibrationReplyUsesCanonicalConditionsAndPreservesMissingApproval(){

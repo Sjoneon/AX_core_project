@@ -269,4 +269,27 @@ class ToolBackendTests {
         snapshot=new ConsultationService.Snapshot(1L,ProductCategory.WASHER,null,"불꽃",new ConsultationState("CONFIRMED","RC01",0,null,null,List.of(),0,false),3);
         assertThat(backend(List.of(),List.of(),List.of()).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L).status()).isEqualTo("BLOCKED_BY_SAFETY");
     }
+    @Test void reviewedNoActionIsDifferentFromMissingApprovalAndExhaustedSteps(){
+        var plan=map("id","TEST_ONLY_NO_ACTION","category","WASHER","modelCodes",List.of("TEST_MODEL"),"actionApproved",true,"errorCode","OE","disposition","NO_SELF_CARE","steps",List.of(),"followup","TEST_ONLY official followup");
+        var checked=backend(List.of(),List.of(),List.of(plan)).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L);
+        assertThat(checked.status()).isEqualTo("OK");assertThat(checked.data()).containsEntry("skip_reason","NO_SELF_CARE");
+        assertThat(backend(List.of(),List.of(),List.of()).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L).status()).isEqualTo("NOT_VERIFIED");
+    }
+    @Test void conditionsAreBoundToExactProductPlanRevisionAndDataVersion(){
+        var plan=map("id","TEST_ONLY","revision","2","category","WASHER","modelCodes",List.of("TEST_MODEL"),"actionApproved",true,"errorCode","OE","steps",List.of(map("step_code","TEST-1","text","TEST_ONLY")),
+                "preconditions",List.of(map("id","P1","text","TEST_ONLY confirm")));
+        var catalog=new ToolDataCatalog(List.of(),List.of(),List.of(),List.of(plan),List.of(),Map.of(),Map.of());
+        String scope=DiagnosticPlans.scope(catalog,snapshot,"TEST_MODEL",plan);
+        for(String stale:List.of(scope.replace(":2:2:",":1:2:"),scope.replace("TEST_DATA:","OLD_DATA:"),scope.replace(":2:TEST_MODEL",":9:TEST_MODEL"))){
+            snapshot=new ConsultationService.Snapshot(1L,ProductCategory.WASHER,2L,"OE",new ConsultationState("CLEAR",null,0,"OE",null,List.of("TEST-1"),1,false,DialogueState.start(),new SelfCareState(stale,Map.of("P1","YES"),Map.of())),3);
+            assertThat(backend(catalog).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L).data()).containsEntry("skip_reason","PRECONDITIONS_PENDING").containsEntry("steps",List.of());
+        }
+    }
+    @Test void aFamilyAliasOrSkuSuffixNeverReceivesTheReviewedRealModelPlan(){
+        snapshot=new ConsultationService.Snapshot(1L,ProductCategory.WASHER,2L,"UE",new ConsultationState("CLEAR",null,0,"UE",null,List.of(),0,false),3);
+        for(String model:List.of("TR15MV5","TR15WV5.AKOR","FX24ENER")){
+            when(product.warranty()).thenReturn(new WarrantyModels.Request(ProductCategory.WASHER,model,LocalDate.of(2025,1,1),null,null,null,"GENERAL",true,true));
+            assertThat(backend(real).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L).status()).isEqualTo("NOT_VERIFIED");
+        }
+    }
 }

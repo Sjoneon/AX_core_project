@@ -16,7 +16,6 @@ from pathlib import Path
 RESOURCES = Path(__file__).resolve().parents[1] / 'src/main/resources'
 SOURCE = 'homecare/knowledge.json'
 OUTPUT = 'homecare/knowledge-structured.json'
-VERSION = 'B30-COST-V3-20261014-R4'
 
 # Explicit semantic fields only; never flatten a wrapper or arbitrary QA metadata.
 GROUPS = {
@@ -225,7 +224,8 @@ def build(resources=RESOURCES, check=False):
     for doc in output:
         for field, key in (('category', 'byCategory'), ('recordType', 'byRecordType')):
             info[key][doc[field]] = info[key].get(doc[field], 0) + 1
-    manifest['version'] = VERSION
+    # This projection is part of the current package. Rebuilding it must not
+    # downgrade a later package version introduced by another data generator.
     manifest['structuredKnowledgeCount'] = len(output)
     manifest['knowledgeProjection'] = info
     manifest['files'][OUTPUT] = hashlib.sha256(data).hexdigest()
@@ -235,7 +235,7 @@ def build(resources=RESOURCES, check=False):
     else:
         (resources / OUTPUT).write_bytes(data)
         manifest_path.write_bytes(encode(manifest))
-    print(f'{VERSION}: {len(output)} structured records; source bytes unchanged; check={check}')
+    print(f"{manifest['version']}: {len(output)} structured records; source bytes unchanged; check={check}")
 
 
 if __name__ == '__main__':

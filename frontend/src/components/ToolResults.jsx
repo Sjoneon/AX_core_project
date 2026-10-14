@@ -14,14 +14,13 @@ function Route({ route }) {
   if (!route) return null
   return <div className="tool-route"><a href={route.apply_url} target="_blank" rel="noreferrer">공식 출장 접수</a> · <a href={route.center_finder_url} target="_blank" rel="noreferrer">전국 센터 찾기</a> · <a href={`tel:${route.phone}`}>상담 {route.phone}</a></div>
 }
-export default function ToolResults({ tools, conversationId, request, active, onStateChanged }) {
+export default function ToolResults({ tools, active, onAnswerSelfCare }) {
   const [copyStatus, setCopyStatus] = useState('')
-  const [planOverride, setPlanOverride] = useState(null)
   const [stepError, setStepError] = useState('')
   const [busy, setBusy] = useState(false)
-  async function answerStep(code, answer, version) {
+  async function answerSelfCare(kind, payload, label) {
     setBusy(true); setStepError('')
-    try { setPlanOverride(await request(`/api/conversations/${conversationId}/step-answer`, { method: 'POST', body: JSON.stringify({ step_code: code, answer, context_version: version }) })); onStateChanged?.() }
+    try { await onAnswerSelfCare(kind, payload, label) }
     catch (error) { setStepError(error.message) }
     finally { setBusy(false) }
   }
@@ -30,15 +29,25 @@ export default function ToolResults({ tools, conversationId, request, active, on
     catch { setCopyStatus('아래 요약을 선택해 복사해 주세요.') }
   }
   return Object.entries(tools || {}).filter(([name]) => names[name]).map(([name, original]) => {
-    const result = name === 'get_diagnostic_plan' && planOverride ? planOverride : original
+    const result = original
     const data = result.data || {}
     return <section className="tool-result" key={name} aria-label={names[name]}>
       <h3>{names[name]} <small>{labels[result.status] || result.status}</small></h3>
       {name === 'get_diagnostic_plan' && <>
         {data.safety_notices?.map((notice) => <details key={notice.document_id} open><summary>안전 주의 · {notice.title}</summary><p className="source-content">{notice.content}</p></details>)}
         {data.skip_reason === 'RESOLVED' && <p>해결되었습니다. 새 증상은 새 상담으로 시작해 주세요.</p>}
+        {data.question && <div><p>{data.question.text}</p>
+          {data.question.source && <a href={data.question.source} target="_blank" rel="noreferrer">조건 확인에 필요한 원문·그림 보기</a>}
+          {active && <div className="tool-actions">{[['YES', '예'], ['NO', '아니요'], ['UNSURE', '모르겠어요']].map(([answer, label]) => <button key={answer} disabled={busy} onClick={() => answerSelfCare('precondition', { question_id: data.question.id, plan_scope: data.plan_scope, answer, context_version: result.meta.context_version }, `${data.question.text}\n${label}`)}>{label}</button>)}</div>}
+        </div>}
+        {data.skip_reason === 'ALL_DONE' && <p>검토된 단계를 모두 마쳤지만 해결되지 않았습니다.</p>}
+        {data.skip_reason === 'NO_SELF_CARE' && <p>검토 결과 이 조건에 제공할 자가조치가 없습니다.</p>}
+        {data.skip_reason === 'PRECONDITION_NOT_MET' && <p>선행 조건이 충족되지 않아 조치를 중지했습니다.</p>}
+        {data.skip_reason === 'PRECONDITION_UNCONFIRMED' && <p>선행 조건을 확인하지 못해 조치를 중지했습니다.</p>}
+        {data.followup && <p>{data.followup}</p>}
+        {(data.followup || data.skip_reason === 'NOT_VERIFIED') && <Route route={data.route} />}
         {data.steps?.map((step) => <div key={step.step_code}><p>{step.text || step.instruction}</p>{step.caution && <p>{step.caution}</p>}
-          {active && <div className="tool-actions">해결됐나요? <button disabled={busy} onClick={() => answerStep(step.step_code, 'YES', result.meta.context_version)}>예</button><button disabled={busy} onClick={() => answerStep(step.step_code, 'NO', result.meta.context_version)}>아니요 · 다음 단계</button></div>}
+          {active && <div className="tool-actions">해결됐나요? {[['YES', '예'], ['NO', '아니요 · 다음 안내']].map(([answer, label]) => <button key={answer} disabled={busy} onClick={() => answerSelfCare('step', { step_code: step.step_code, answer, context_version: result.meta.context_version }, `${step.text || step.instruction} — 해결됐나요?\n${answer === 'YES' ? '예' : '아니요'}`)}>{label}</button>)}</div>}
         </div>)}
         {data.references?.map((ref) => <details key={ref.document_id}><summary>{ref.title} · 실행 승인 미확인</summary><p className="source-content">{ref.content}</p></details>)}
         {stepError && <p role="alert">{stepError}</p>}
