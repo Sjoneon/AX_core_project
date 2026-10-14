@@ -7,10 +7,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 
-spec = importlib.util.spec_from_file_location('initializer', Path(__file__).parents[1] / 'initialize-rds.py')
+spec = importlib.util.spec_from_file_location('initializer', Path(__file__).parents[1] / 'rds/initialize-rds.py')
 initializer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(initializer)
-verify_spec = importlib.util.spec_from_file_location('verifier', Path(__file__).parents[1] / 'verify-rds.py')
+verify_spec = importlib.util.spec_from_file_location('verifier', Path(__file__).parents[1] / 'rds/verify-rds.py')
 verifier = importlib.util.module_from_spec(verify_spec)
 verify_spec.loader.exec_module(verifier)
 
@@ -40,6 +40,24 @@ class SchemaInitializationTests(unittest.TestCase):
         cursor.fetchone.return_value = ('different checksum',)
         with self.assertRaises(SystemExit):
             initializer.apply_schema(cursor, 'modified SQL')
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    def test_audited_previous_v001_is_preserved_without_ddl_or_checksum_rewrite(self):
+        cursor = Mock()
+        cursor.fetchall.return_value = [(table,) for table in (*initializer.TABLES, 'schema_migrations')]
+        cursor.fetchone.return_value = (initializer.V001_PREVIOUS_SHA256,)
+        sql = (Path(__file__).parents[1] / 'rds/sql/V001__initial_schema.sql').read_text(encoding='utf-8')
+        self.assertEqual(hashlib.sha256(sql.encode()).hexdigest(), initializer.V001_CURRENT_SHA256)
+        with contextlib.redirect_stdout(io.StringIO()):
+            initializer.apply_schema(cursor, sql)
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    def test_previous_checksum_does_not_allow_arbitrary_modified_sql(self):
+        cursor = Mock()
+        cursor.fetchall.return_value = [(table,) for table in (*initializer.TABLES, 'schema_migrations')]
+        cursor.fetchone.return_value = (initializer.V001_PREVIOUS_SHA256,)
+        with self.assertRaises(SystemExit):
+            initializer.apply_schema(cursor, 'unexpected new SQL')
         self.assertEqual(cursor.execute.call_count, 2)
 
     def test_partial_or_unrelated_schema_is_not_modified(self):
