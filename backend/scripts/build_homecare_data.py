@@ -14,7 +14,6 @@ import json
 from pathlib import Path
 
 RESOURCES = Path(__file__).resolve().parents[1] / 'src/main/resources'
-VERSION = 'B30-COST-V3-20261013-R3'
 HEADER = ['제품군', '부품코드', '부품', '작업 등급', '부품비 추정(중앙)', '기술료(등급 중앙)', '출장비(평일)',
           '해외 기반 총액(v2)', '국내 같은 부품 사례 수', '국내 같은 부품 중앙값', '국내 사례 가중치',
           '예상 총액 중앙', '80% 범위 하한', '80% 범위 상한', '야간·휴일 가산', '6~8월 가산(평일/야간)', '신뢰도']
@@ -25,7 +24,7 @@ CORE_PART_CODES = {'W05', 'W06', 'R01'}
 # Every file Spring reads. The manifest itself is the trust root packaged with the application.
 VERIFIED_FILES = ['homecare/knowledge.json', 'homecare/models.json', 'homecare/parts.json', 'homecare/centers.json',
                   'homecare/route.json', 'homecare/approved-plans.json', 'homecare/repair-cases.json',
-                  'warranty/policies.json']
+                  'homecare/knowledge-structured.json', 'warranty/policies.json']
 
 
 def sha256(data: bytes) -> str:
@@ -85,7 +84,7 @@ def main() -> None:
 
     manifest_path = RESOURCES / 'homecare/source-manifest.json'
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    manifest['version'] = VERSION
+    # A cost-only rebuild must not downgrade the independently versioned knowledge projection.
     manifest['costGroups'] = len(parts)
     manifest['costSha256'] = sha256(raw)
     manifest['costSource'] = {
@@ -101,7 +100,7 @@ def main() -> None:
     manifest['unavailable'] = unavailable
     manifest['files'] = {name: sha256((RESOURCES / name).read_bytes()) for name in VERIFIED_FILES}
     write_json(manifest_path, manifest)
-    print(f'{VERSION}: {len(parts)} parts, excluded {[e["part_code"] for e in excluded]}, '
+    print(f'{manifest["version"]}: {len(parts)} parts, excluded {[e["part_code"] for e in excluded]}, '
           f'{len(VERIFIED_FILES)} verified files')
 
 

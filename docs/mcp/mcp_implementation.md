@@ -70,9 +70,10 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 
 ## 연결한 원자료와 무결성
 
-`backend/src/main/resources/homecare/source-manifest.json`(버전 `B30-COST-V3-20261013-R3`)에 원본·생성 자료의 출처·해시·제약을 저장했다. Spring은 기동 시 데이터 파일 8개(homecare 7개 + `warranty/policies.json`)의 SHA-256을 매니페스트와 대조하고 건수도 확인한다. 하나라도 다르면 기동하지 않는다. 데이터 JSON은 `.gitattributes`로 줄바꿈 변환을 막는다.
+`backend/src/main/resources/homecare/source-manifest.json`(버전 `B30-COST-V3-20261014-R4`)에 원본·생성 자료의 출처·해시·제약을 저장했다. Spring은 기동 시 데이터 파일 9개(homecare 8개 + `warranty/policies.json`)의 SHA-256을 매니페스트와 대조하고 건수도 확인한다. 하나라도 다르면 기동하지 않는다. 데이터 JSON은 `.gitattributes`로 줄바꿈 변환을 막는다.
 
-- LG B30 원본 1,659개 사실 중 4개 품목·HTTPS 근거가 명확한 1,542개를 사용한다. 각 기록의 `effective_model_lists`·`current_QA_review`·`latest_applicability_update`·`procedure_supplements`·`use_policy`는 변환본에 원문 그대로 남아 있다. Spring이 기동 시 읽어 적용 판정에 쓴다(최신 적용 목록 우선, 제외 모델 제거).
+- LG B30 전체 사실 1,659건 중 현재 로컬에 들어온 1,542건을 사용한다. 기존 검수에서 발견한 누락 117건(김치냉장고 97건 포함)은 구조화 작업으로 복원되지 않았다. 각 기록의 `effective_model_lists`·`current_QA_review`·`latest_applicability_update`·`procedure_supplements`·`use_policy`는 원본 파일에 그대로 남아 있다. Spring이 기동 시 읽어 적용 판정에 쓴다(최신 적용 목록 우선, 제외 모델 제거).
+- 2026-10-14에 기존 원본 1,542건을 변경 없이 보존하고 `structure_knowledge.py`로 `knowledge-structured.json` 1,542건을 생성했다. 검색 본문 `searchText`와 화면 본문 `displayText`를 분리하고 원인별 분기·선행 조건·그림/실물 제약·보완 관계를 보존한다. `search_knowledge`와 자가검진 `references`는 구조화 결과를 사용하며 원본 래퍼 JSON을 반환하지 않는다. 임베딩 RAG와 기존 저장 상담 표시 정리는 후속 작업이다. [대상 자료·원문 대조·생성/검증 기록](manufacturer_data_structure.md)을 참고한다.
 - 수리비는 `한국기준_예상수리비_표_v3.csv`(SHA-256이 매니페스트 `costSha256`과 일치)를 `backend/scripts/build_homecare_data.py`로 변환했다. 33개 중 D02 '히터(미국 전기식)'는 CSV 신뢰도 열에 "제외(미국형 전기식 건조기 전용 부품)"로 표시돼 32개를 쓴다.
 - 출장비 가산은 CSV 열을 그대로 쓴다. 야간·휴일 +5,000원, 6~8월 평일 +5,000원, 6~8월 야간·휴일 +10,000원(야간 가산과 중복 합산하지 않음)이다. 패키지 `model_v3.py`의 `SURCHARGE`와 `normalize.py`의 출장비 28,000/33,000/33,000/38,000원으로 해석을 확인했다. 고정 가산이므로 중앙·하한·상한에 같은 금액을 더한다.
 - v3는 국내 LG 유상 20건 검증에서 중앙 절대오차 11.2%, 80% 범위 적중 80%였다. 같은 20건으로 등급·범위를 골랐으므로 새 사례 오차는 더 클 수 있다(비용 결과 `caveats`에 포함).

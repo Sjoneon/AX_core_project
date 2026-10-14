@@ -20,6 +20,7 @@ public class ToolDataCatalog {
     public final Map<String,Map<String,Object>> knowledgeById;
     /** Applicability and supplement links parsed once from each record's embedded B30 overlay. */
     public final Map<String,KnowledgeOverlay> overlays;
+    public final Map<String,KnowledgeDocument> structuredKnowledgeById;
     // Every file is hash-verified by the manifest before parsing; any mismatch stops startup.
     @Autowired
     public ToolDataCatalog(DataManifest manifest) {
@@ -29,6 +30,20 @@ public class ToolDataCatalog {
         if(knowledge.size()!=manifest.count("knowledgeCount")||models.size()!=manifest.count("exactSalesCodes")||parts.size()!=manifest.count("costGroups"))
             throw new IllegalStateException("자료 건수가 매니페스트와 다릅니다.");
         knowledgeById=index(knowledge);overlays=overlays(knowledge,models);
+        var structured=readList(manifest,"knowledge-structured.json");
+        if(!Objects.equals(manifest.section("knowledgeProjection").get("sourceSha256"),manifest.section("files").get("homecare/knowledge.json")))
+            throw new IllegalStateException("구조화 자료의 원본 해시가 매니페스트와 다릅니다.");
+        if(structured.size()!=manifest.count("structuredKnowledgeCount"))throw new IllegalStateException("구조화 자료 건수가 매니페스트와 다릅니다.");
+        structuredKnowledgeById=structured.stream().collect(Collectors.toUnmodifiableMap(d->text(d,"id"),KnowledgeDocument::new));
+        if(!structuredKnowledgeById.keySet().equals(knowledgeById.keySet()))throw new IllegalStateException("원본과 구조화 자료 ID가 다릅니다.");
+        for(var doc:structured){
+            if(!(doc.get("schemaVersion") instanceof Number schema)||schema.intValue()!=1)
+                throw new IllegalStateException("지원하지 않는 구조화 자료 스키마입니다.");
+            var original=knowledgeById.get(text(doc,"id"));
+            for(var field:List.of("category","topic","title","recordType","errorCodes","baseDate"))
+                if(!Objects.equals(doc.get(field),original.get(field)))throw new IllegalStateException("원본과 구조화 자료 필드가 다릅니다: "+field);
+            if(Boolean.TRUE.equals(doc.get("isActionApproved")))throw new IllegalStateException("검색 자료는 조치 실행 승인이 아닙니다.");
+        }
     }
     public ToolDataCatalog(List<Map<String,Object>> knowledge,List<Map<String,Object>> parts,
             List<Map<String,Object>> cases,List<Map<String,Object>> plans,List<Map<String,Object>> centers,
@@ -36,6 +51,7 @@ public class ToolDataCatalog {
         this.knowledge=List.copyOf(knowledge);this.parts=List.copyOf(parts);this.repairCases=List.copyOf(cases);
         this.approvedPlans=List.copyOf(plans);this.centers=List.copyOf(centers);this.models=Map.copyOf(models);this.route=Map.copyOf(route);
         this.version="TEST_DATA";this.costSource=Map.of();knowledgeById=index(this.knowledge);overlays=overlays(this.knowledge,this.models);
+        structuredKnowledgeById=this.knowledge.stream().collect(Collectors.toUnmodifiableMap(d->text(d,"id"),KnowledgeDocument::plain));
     }
     private static List<Map<String,Object>> readList(DataManifest manifest,String name){
         return JSON.readValue(manifest.read("homecare/"+name),new TypeReference<>(){});

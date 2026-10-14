@@ -21,6 +21,8 @@ $env:HOMECARE_TEST_PYTHON=(Resolve-Path '.\mcp_server\.venv\Scripts\python.exe')
 $env:JAVA_HOME='C:\Users\Roneon\.jdks\openjdk-21.0.1'
 $env:PATH="$env:JAVA_HOME\bin;$env:PATH"
 
+python -I backend/scripts/structure_knowledge.py --check
+python -I -m unittest discover -s backend/scripts -p test_structure_knowledge.py -v
 & $env:HOMECARE_TEST_PYTHON -m unittest discover -s .\mcp_server\tests -t .\mcp_server -q
 
 Set-Location .\backend
@@ -28,6 +30,8 @@ Set-Location .\backend
 ```
 
 Python은 실패 없는 `OK`, Java는 실패 0과 `BUILD SUCCESSFUL`을 확인한다. 변경이 없으면 Gradle이 이전 성공 결과를 재사용할 수 있다. 새 실행이 필요할 때만 `--rerun-tasks`를 추가한다. Gradle 의존성을 아직 내려받지 않았거나 새로 추가했다면 `--offline`을 빼고 다운로드한다. `GRADLE_USER_HOME`은 기본 사용자 캐시를 사용하며 별도 캐시가 필요한 환경에서만 지정한다.
+
+2026-10-14의 제조사 자료 1단계는 [구조화 기록](../mcp/manufacturer_data_structure.md)에 범위와 원문 대조 사례를 정리했다. 원본 1,542건과 구조화 1,542건의 ID·해시·조건·보완 관계를 검증하며, 구조화 통과와 실제 증상 검색 품질은 별도로 판정한다.
 
 2026-10-13 기록은 Java 130개(MySQL 전용 `mysqlSchemaTest` 1개 제외)·Python MCP 20개다. 현재 실행의 테스트 수와 결과는 새 보고서에서 확인한다. Java 보고서는 `backend/build/reports/tests/test/index.html`에 생성된다. `--tests '*McpIntegrationTests'`로 실행하면 해당 클래스만 실행하므로 전체 검증으로 기록하지 않는다.
 

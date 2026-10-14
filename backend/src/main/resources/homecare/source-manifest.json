@@ -1,5 +1,5 @@
 {
-  "version": "B30-COST-V3-20261013-R3",
+  "version": "B30-COST-V3-20261014-R4",
   "knowledgeCount": 1542,
   "exactSalesCodes": 52,
   "costGroups": 32,
@@ -112,6 +112,58 @@
     "homecare/route.json": "be9bb0ef8ac6b96d92f1fb652640127c2825e0b980521d2e8a1b3dc0ded61d16",
     "homecare/approved-plans.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
     "homecare/repair-cases.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
-    "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f"
+    "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f",
+    "homecare/knowledge-structured.json": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e"
+  },
+  "structuredKnowledgeCount": 1542,
+  "knowledgeProjection": {
+    "schemaVersion": 1,
+    "sourceFile": "homecare/knowledge.json",
+    "sourceSha256": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d",
+    "outputFile": "homecare/knowledge-structured.json",
+    "generator": "backend/scripts/structure_knowledge.py",
+    "recordCount": 1542,
+    "byCategory": {
+      "WASHER": 520,
+      "DRYER": 274,
+      "REFRIGERATOR": 360,
+      "DISHWASHER": 388
+    },
+    "byRecordType": {
+      "T1_models": 11,
+      "T2_error_codes": 124,
+      "T3_symptoms": 220,
+      "T4_safety": 76,
+      "T5_warranty_fees": 15,
+      "selfcare_summary": 565,
+      "safety": 23,
+      "warranty": 17,
+      "maintenance_procedure": 179,
+      "maintenance_reference": 26,
+      "installation_reference": 17,
+      "maintenance_supplement": 17,
+      "excluded_optional_reference": 1,
+      "configuration_procedure": 68,
+      "source_applicability_review": 62,
+      "service_escalation_rule": 8,
+      "source_normalization_evidence": 1,
+      "source_conflict_review": 10,
+      "safety_rule": 9,
+      "warranty_rule": 22,
+      "service_policy_reference": 4,
+      "paid_service_rule": 22,
+      "product_specification": 10,
+      "normal_operation_reference": 4,
+      "feature_reference": 2,
+      "part_compatibility_reference": 9,
+      "operation_procedure": 2,
+      "operation_reference": 3,
+      "troubleshooting_block": 9,
+      "component_visual_reference": 1,
+      "component_identification_reference": 2,
+      "model_code_reference": 1,
+      "service_rule": 1,
+      "manual_model_mapping": 1
+    }
   }
 }

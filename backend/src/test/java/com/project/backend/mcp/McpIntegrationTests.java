@@ -150,6 +150,7 @@ class McpIntegrationTests {
             assertThat(session.invoke("get_product_context",Map.of()).status()).isEqualTo("OK");
             var knowledge=session.invoke("search_knowledge",map("query","OE","topic","MANUAL","top_k",2));
             assertThat(knowledge.data()).containsKeys("safety_notices","documents");assertThat(knowledge.independent_action_allowed()).isFalse();
+            assertThat(knowledge.data().toString()).doesNotContain("original_record_sha256","current_QA_review","source_topic_sha256");
             assertThat(session.invoke("get_diagnostic_plan",Map.of()).status()).isEqualTo("NOT_VERIFIED");
             var warranty=session.invoke("check_warranty",Map.of());
             assertThat(warranty.data()).containsKeys("productWarranty","partWarranties","coverage_periods");

@@ -8,6 +8,19 @@ from pathlib import Path
 from fastmcp import Client
 from homecare_mcp.server import create_server
 
+KNOWLEDGE_RESULT_CONTRACT = {
+    'applies_to': ['search_knowledge.data.documents', 'search_knowledge.data.safety_notices',
+                   'get_diagnostic_plan.data.references', 'get_diagnostic_plan.data.safety_notices'],
+    'content': 'Human display text from the structured projection; never the embedded B30 JSON wrapper.',
+    'fields': ['document_id', 'title', 'content', 'symptoms', 'error_codes', 'causes', 'action_descriptions',
+               'branches', 'preconditions', 'conditions', 'warnings', 'official_sources', 'relationships',
+               'requirements', 'reference_details', 'model_applicability', 'supplements', 'is_action_approved'],
+    'source_fields': ['url', 'role', 'locator'],
+    'supplements': 'Separate projected documents with relation PROCEDURE_SUPPLEMENT; original steps/conditions are retained.',
+    'action_descriptions': 'Source candidates only. Execution approval comes exclusively from approved-plans.json.',
+    'internal_only': ['B30 wrapper', 'source hashes', 'collection history', 'QA review history', 'fieldOrigins'],
+    'retrieval': 'Keyword scoring uses searchText from knowledge-structured.json; embedding retrieval is a later stage.'}
+
 async def main():
     """실제 등록 도구의 JSON 계약 생성·저장"""
     async with Client(create_server()) as client:
@@ -31,6 +44,7 @@ async def main():
             'confidence':'HIGH | MEDIUM | LOW | UNDETERMINED',
             'caveats':'fixed data-interpretation notices; warnings stay situational',
             'independent_action_allowed':'always false; the MCP adapter rejects any other value'},
+        'knowledge_result_contract': KNOWLEDGE_RESULT_CONTRACT,
         'notes':[
             'tools are exported from actual FastMCP discovery; annotations are MCP standard fields.',
             'Spring Agent strips the user-only properties before exposing tools to the LLM.',

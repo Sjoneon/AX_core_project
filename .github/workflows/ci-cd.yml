@@ -41,6 +41,10 @@ jobs:
           # The committed discovery contract must match the tools in code.
           "$RUNNER_TEMP/homecare-mcp/bin/python" -m scripts.export_contract
           git diff --exit-code -- ../docs/mcp/mcp-tools.contract.json
+      - name: Manufacturer knowledge projection
+        run: |
+          python3 -I backend/scripts/structure_knowledge.py --check
+          python3 -I -m unittest discover -s backend/scripts -p test_structure_knowledge.py -v
       - name: Backend tests and JAR
         working-directory: backend
         run: ./gradlew --no-daemon test bootJar

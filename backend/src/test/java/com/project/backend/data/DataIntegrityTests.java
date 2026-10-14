@@ -14,7 +14,7 @@ import com.project.backend.warranty.WarrantyCatalog;
 /** A data file that differs from source-manifest.json by even one byte must stop the application from starting. */
 class DataIntegrityTests {
     static final List<String> FILES=List.of(DataManifest.MANIFEST,"homecare/knowledge.json","homecare/models.json","homecare/parts.json",
-            "homecare/centers.json","homecare/route.json","homecare/approved-plans.json","homecare/repair-cases.json","warranty/policies.json");
+            "homecare/centers.json","homecare/route.json","homecare/approved-plans.json","homecare/repair-cases.json","homecare/knowledge-structured.json","warranty/policies.json");
     @TempDir Path root;
 
     @BeforeEach void copyPackagedData() throws Exception {
@@ -31,7 +31,7 @@ class DataIntegrityTests {
 
     @Test void untouchedCopyLoadsWithManifestVersion(){
         var catalog=new ToolDataCatalog(manifest());
-        assertThat(catalog.version).isEqualTo("B30-COST-V3-20261013-R3");
+        assertThat(catalog.version).isEqualTo("B30-COST-V3-20261014-R4");
         assertThat(catalog.parts).hasSize(32);assertThat(catalog.knowledge).hasSize(1542);
         assertThatCode(()->new WarrantyCatalog(manifest())).doesNotThrowAnyException();
     }
@@ -56,6 +56,12 @@ class DataIntegrityTests {
         var path=root.resolve(DataManifest.MANIFEST);
         Files.writeString(path,Files.readString(path).replace("\"costGroups\": 32","\"costGroups\": 33"));
         assertThatThrownBy(()->new ToolDataCatalog(manifest())).hasMessageContaining("건수");
+    }
+    @Test void projectionMustReferToTheCurrentVerifiedSource() throws Exception {
+        var path=root.resolve(DataManifest.MANIFEST);
+        var sourceHash=manifest().section("knowledgeProjection").get("sourceSha256").toString();
+        Files.writeString(path,Files.readString(path).replace("\"sourceSha256\": \""+sourceHash+"\"","\"sourceSha256\": \"stale\""));
+        assertThatThrownBy(()->new ToolDataCatalog(manifest())).hasMessageContaining("원본 해시");
     }
 
     private void restore(String file) throws Exception {

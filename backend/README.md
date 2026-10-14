@@ -26,6 +26,8 @@ MCP 도구 8개와 제품 전체·주요 부품별 보증을 구현했습니다.
 사용자 계정과 대화 내역은 MySQL에 저장하고, 로그인 시 발급한 JWT로 API를 인증합니다.
 새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. 전체 JUnit 실행 전 `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정해야 합니다.
 
+제조사 지식 1,542건은 원본 `knowledge.json`과 검색·표시용 `knowledge-structured.json`으로 분리했습니다. `python -I backend/scripts/structure_knowledge.py`로 생성하고 `--check`로 재현성을 검사합니다. 원문·조건·출처의 구조와 검증 범위는 [제조사 자료 구조화 기록](../docs/mcp/manufacturer_data_structure.md)을 참고하세요. 조치 후보는 실행 승인이 아니며 RAG 검색 보완은 후속 단계입니다.
+
 ## 실행
 
 프로젝트 루트에서 실행합니다.

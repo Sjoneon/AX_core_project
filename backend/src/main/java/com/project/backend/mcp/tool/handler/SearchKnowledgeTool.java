@@ -60,15 +60,19 @@ public class SearchKnowledgeTool implements HomeCareTool {
     private Map<String,Object> view(Hit h){
         var d=h.doc();String id=text(d,"id");var overlay=catalog.overlays.get(id);
         var supplements=overlay.supplementIds().stream().map(catalog.knowledgeById::get).filter(Objects::nonNull)
-                .map(x->map("document_id",text(x,"id"),"title",x.get("title"),"content",x.get("text"),"relation","PROCEDURE_SUPPLEMENT")).toList();
-        return map("document_id",id,"title",d.get("title"),"record_type",d.get("recordType"),"topic",d.get("topic"),"content",d.get("text"),
+                .map(x->{var value=catalog.structuredKnowledgeById.get(text(x,"id")).view();
+                    value.putAll(map("document_id",text(x,"id"),"title",catalog.structuredKnowledgeById.get(text(x,"id")).title(),"relation","PROCEDURE_SUPPLEMENT"));return value;}).toList();
+        var value=catalog.structuredKnowledgeById.get(id).view();
+        value.putAll(map("document_id",id,"title",catalog.structuredKnowledgeById.get(id).title(),"record_type",d.get("recordType"),"topic",d.get("topic"),
                 "evidence_ids",List.of(id),"applicability_status",h.status(),"applicability_basis",overlay.basis(),
                 "has_qa_review",overlay.qaReview(),"has_applicability_update",overlay.applicabilityUpdate(),
-                "conditions",d.getOrDefault("conditions",List.of()),"supplements",supplements,"is_action_approved",false);
+                "conditions",catalog.structuredKnowledgeById.get(id).preconditions(),"supplements",supplements,"is_action_approved",false));
+        return value;
     }
     private int score(Map<String,Object> d,String query,String error){
         int value=error!=null&&strings(d,"errorCodes").contains(error)?100:0;
-        String title=text(d,"title").toLowerCase(Locale.ROOT),body=text(d,"text").toLowerCase(Locale.ROOT);
+        var document=catalog.structuredKnowledgeById.get(text(d,"id"));
+        String title=document.title().toLowerCase(Locale.ROOT),body=document.searchText().toLowerCase(Locale.ROOT);
         for(var raw:query.split("[^\\p{L}\\p{N}]+")){
             if(raw.length()<2)continue;
             // "배수가" also matches "배수": drop one trailing Korean particle when the stem keeps two letters.

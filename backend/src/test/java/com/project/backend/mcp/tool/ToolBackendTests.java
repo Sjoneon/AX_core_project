@@ -1,6 +1,7 @@
 package com.project.backend.mcp.tool;
 
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
+import static com.project.backend.mcp.tool.ToolDataCatalog.text;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import java.time.*;
@@ -156,6 +157,20 @@ class ToolBackendTests {
     }
 
     // ---- search_knowledge (rules 2-6) ----
+    @Test void internalWrapperTermsAndHashesAreNotSearchable(){
+        consult(ProductCategory.WASHER,null,"세탁기 확인");
+        for(var query:List.of("current_QA_review","original_record_sha256",text(real.knowledgeById.get("T2-003"),"original_sha256")))
+            assertThat(backend(real).execute("search_knowledge","owner",map("conversation_id",1,"query",query),3L).status()).isEqualTo("NO_DATA");
+    }
+    @Test void diagnosticReferencesAndSupplementsUseTheSameSafeProjection(){
+        consult(ProductCategory.WASHER,2L,"FX24ENER 급수구 거름망 청소");
+        var result=backend(real).execute("search_knowledge","owner",map("conversation_id",1,"query","급수구 거름망","top_k",5),3L);
+        assertThat(result.data().toString()).doesNotContain("original_record_sha256","current_QA_review","source_topic_sha256");
+        var plan=backend(real).execute("get_diagnostic_plan","owner",map("conversation_id",1),3L);
+        assertThat(plan.status()).isEqualTo("NOT_VERIFIED");
+        assertThat(plan.data().toString()).doesNotContain("original_record_sha256","current_QA_review","source_topic_sha256");
+        assertThat((List<?>)plan.data().get("steps")).isEmpty();
+    }
     @Test void excludedModelNeverReceivesTheExcludedRecord(){
         assertThat(real.overlays.get("B25-MFL71401557-craft-ice-pump-exclusion").status("T876MEE1H1",null)).isEqualTo("EXCLUDED");
         consult(ProductCategory.REFRIGERATOR,null,"T876MEE1H1 craft ice pump");
