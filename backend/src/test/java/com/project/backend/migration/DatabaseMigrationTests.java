@@ -27,7 +27,7 @@ class DatabaseMigrationTests {
         try (var connection = DriverManager.getConnection(URL, USER, PASSWORD);
              var sql = connection.createStatement()) {
             sql.execute("SET FOREIGN_KEY_CHECKS=0");
-            for (String table : new String[]{"user_products", "chat_messages", "chat_conversations", "app_users", "schema_migrations", "flyway_schema_history"}) {
+            for (String table : new String[]{"chat_tool_calls", "user_products", "chat_messages", "chat_conversations", "app_users", "schema_migrations", "flyway_schema_history"}) {
                 sql.execute("DROP TABLE IF EXISTS " + table);
             }
             sql.execute("SET FOREIGN_KEY_CHECKS=1");
@@ -98,40 +98,42 @@ class DatabaseMigrationTests {
     }
 
     @Test
-    void productMigrationPreservesLegacyHistoryAndSupportsFreshInstall(@TempDir Path directory) throws Exception {
-        try (var stream = getClass().getResourceAsStream("/db/migration/V001__initial_schema.sql")) {
-            Files.write(directory.resolve("V001__initial_schema.sql"), stream.readAllBytes());
+    void profileMigrationPreservesMcpProductsAndConversationHistory(@TempDir Path directory) throws Exception {
+        String[] migrations = {"V001__initial_schema.sql", "V002__warranty_result.sql",
+                "V003__mcp_context_and_products.sql", "V004__four_category_scope.sql", "V005__chat_tool_calls.sql"};
+        for (String name : migrations) {
+            try (var stream = getClass().getResourceAsStream("/db/migration/" + name)) {
+                Files.write(directory.resolve(name), stream.readAllBytes());
+            }
         }
         String location = "filesystem:" + directory;
         try (var connection = DriverManager.getConnection(URL, USER, PASSWORD);
              var sql = connection.createStatement()) {
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
             sql.executeUpdate("INSERT INTO app_users(id,email,password,role) VALUES (1,'product-migration@example.com','hash','USER')");
-            sql.executeUpdate("INSERT INTO chat_conversations(id,user_id,title,category,created_at,updated_at) VALUES (1,1,'legacy','AIR_CONDITIONER',NOW(),NOW())");
+            sql.executeUpdate("INSERT INTO chat_conversations(id,user_id,title,category,created_at,updated_at) VALUES (1,1,'legacy','WASHER',NOW(),NOW())");
             sql.executeUpdate("INSERT INTO chat_messages(conversation_id,role,content,sources,created_at) VALUES (1,'assistant','legacy reply','[]',NOW())");
-            try (var stream = getClass().getResourceAsStream("/db/migration/V002__create_user_products.sql")) {
-                Files.write(directory.resolve("V002__create_user_products.sql"), stream.readAllBytes());
+            sql.executeUpdate("INSERT INTO user_products(user_id,category,display_name,warranty_input,delivery_sido,delivery_sigungu) VALUES (1,'WASHER','legacy product','{}','서울','강남구')");
+            try (var stream = getClass().getResourceAsStream("/db/migration/V006__product_profile.sql")) {
+                Files.write(directory.resolve("V006__product_profile.sql"), stream.readAllBytes());
             }
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
             try (var rows = sql.executeQuery("SELECT category,content,sources FROM chat_conversations JOIN chat_messages ON chat_conversations.id=conversation_id")) {
                 assertThat(rows.next()).isTrue();
-                assertThat(rows.getString(1)).isEqualTo("AIR_CONDITIONER");
+                assertThat(rows.getString(1)).isEqualTo("WASHER");
                 assertThat(rows.getString(2)).isEqualTo("legacy reply");
                 assertThat(rows.getString(3)).isEqualTo("[]");
             }
-            sql.executeUpdate("INSERT INTO user_products(user_id,category,created_at,updated_at) VALUES (1,'WASHER',NOW(),NOW())");
-            try (var rows = sql.executeQuery("SELECT name,purchase_date,address FROM user_products")) {
+            try (var rows = sql.executeQuery("SELECT display_name,warranty_input,delivery_sido,delivery_sigungu,postcode,address,address_detail,created_at,updated_at FROM user_products")) {
                 assertThat(rows.next()).isTrue();
-                assertThat(rows.getString(1)).isNull();
-                assertThat(rows.getDate(2)).isNull();
-                assertThat(rows.getString(3)).isNull();
+                assertThat(rows.getString(1)).isEqualTo("legacy product");
+                assertThat(rows.getString(2)).isEqualTo("{}");
+                assertThat(rows.getString(3)).isEqualTo("서울");
+                assertThat(rows.getString(4)).isEqualTo("강남구");
+                for (int column = 5; column <= 9; column++) assertThat(rows.getObject(column)).isNull();
             }
-            assertThatThrownBy(() -> sql.executeUpdate("INSERT INTO user_products(user_id,category,created_at,updated_at) VALUES (1,'AIR_CONDITIONER',NOW(),NOW())"))
-                    .isInstanceOf(java.sql.SQLException.class);
-            for (String table : new String[]{"user_products", "chat_messages", "chat_conversations", "app_users", "flyway_schema_history"}) {
-                sql.execute("DROP TABLE " + table);
-            }
+            resetDisposableDatabase();
             DatabaseMigration.migrate(URL, USER, PASSWORD, "classpath:db/migration");
             try (var rows = sql.executeQuery("SELECT COUNT(*) FROM user_products")) {
                 assertThat(rows.next()).isTrue();
