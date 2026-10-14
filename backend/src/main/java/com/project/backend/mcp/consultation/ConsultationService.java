@@ -17,8 +17,9 @@ public class ConsultationService {
     private final ConversationRepository conversations;
     private final AppUserRepository users;
     private final UserProductService products;
+    private final com.project.backend.mcp.tool.ToolDataCatalog catalog;
     private static final JsonMapper JSON=JsonMapper.builder().build();
-    public ConsultationService(ConversationRepository conversations,AppUserRepository users,UserProductService products){this.conversations=conversations;this.users=users;this.products=products;}
+    public ConsultationService(ConversationRepository conversations,AppUserRepository users,UserProductService products,com.project.backend.mcp.tool.ToolDataCatalog catalog){this.conversations=conversations;this.users=users;this.products=products;this.catalog=catalog;}
     @Transactional(readOnly=true) public Snapshot snapshot(String email,Long id){return snapshot(owned(email,id));}
     private Snapshot snapshot(Conversation conversation){return new Snapshot(conversation.getId(),conversation.getCategory(),conversation.getProductId(),conversation.getLatestInput(),state(conversation),conversation.getContextRevision());}
     public static ConsultationState state(Conversation c){return c.getConsultationContext()==null?ConsultationState.start():JSON.readValue(c.getConsultationContext(),ConsultationState.class);}
@@ -37,8 +38,8 @@ public class ConsultationService {
         var safety=RiskRules.detect(input,conversation.getCategory());
         // 이미 확정한 위험은 새로운 의심 문장으로 해제하지 않음
         if("CONFIRMED".equals(old.riskStatus())&&safety!=null&&!safety.emergency())safety=null;
-        String error=old.errorCode();var matcher=Pattern.compile("(?i)(?<![A-Z0-9])(OE|UE|IE|FE|LE|PE|DE|CE|TE|SE|HC-E\\d+)(?![A-Z0-9])").matcher(input);
-        if(matcher.find())error=matcher.group().toUpperCase(Locale.ROOT);
+        String error=old.errorCode();String detected=ErrorCodeParser.find(catalog,conversation.getCategory(),input);
+        if(detected!=null)error=detected;
         var next=new ConsultationState(safety==null?old.riskStatus():safety.emergency()?"CONFIRMED":"SUSPECT",
                 safety==null?old.riskCase():safety.code(),safety==null?old.riskQuestionNo():0,error,old.symptomCode(),old.doneSteps(),old.currentStep(),false,old.dialogue(),safety==null?old.selfCare():SelfCareState.start());
         if(!Objects.equals(selected,conversation.getProductId())||!Objects.equals(error,old.errorCode()))next=new ConsultationState(next.riskStatus(),next.riskCase(),next.riskQuestionNo(),error,null,List.of(),0,false);

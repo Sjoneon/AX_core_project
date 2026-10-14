@@ -28,6 +28,27 @@ def must_not_reach(test):
 
 
 class NineToolTests(unittest.IsolatedAsyncioTestCase):
+    async def test_followup_reasons_and_no_data_explanation_survive_the_read_only_adapter(self):
+        requests = []
+
+        def handler(request):
+            body = json.loads(request.content)
+            requests.append(body)
+            return httpx.Response(200, json=envelope('prepare_service_handoff', data={
+                'reason': body['reason'], 'delivery_status': 'PREPARED_ONLY',
+                'self_care_outcome': 'NOT_VERIFIED', 'route': {'apply_url': 'https://example.invalid/TEST_ONLY'}}))
+
+        async with Client(create_server('http://backend.test', lambda: 'scoped-user', httpx.MockTransport(handler))) as client:
+            for reason in ('NOT_VERIFIED', 'NO_SELF_CARE', 'PRECONDITION_UNCONFIRMED'):
+                result = await client.call_tool('prepare_service_handoff', {'conversation_id': 7, 'reason': reason})
+                value = result.structured_content
+                if 'result' in value:
+                    value = value['result']
+                self.assertEqual(value['data']['reason'], reason)
+                self.assertEqual(value['data']['delivery_status'], 'PREPARED_ONLY')
+                self.assertIs(value['independent_action_allowed'], False)
+        self.assertEqual(len(requests), 3)
+
     async def test_discovery_and_all_nine_calls_use_scoped_auth(self):
         requests = []
 

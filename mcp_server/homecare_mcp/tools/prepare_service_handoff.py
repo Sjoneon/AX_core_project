@@ -8,7 +8,7 @@ from homecare_mcp.backend_client import BackendClient
 from homecare_mcp.models import Envelope
 from homecare_mcp.tools.read_only import READ_ONLY_ANNOTATIONS
 
-HandoffReason = Literal["RISK", "NOT_RESOLVED", "UNCLASSIFIED", "OUT_OF_SCOPE", "INSUFFICIENT_EVIDENCE"]
+HandoffReason = Literal["RISK", "NOT_RESOLVED", "UNCLASSIFIED", "OUT_OF_SCOPE", "INSUFFICIENT_EVIDENCE", "NOT_VERIFIED", "NO_SELF_CARE", "PRECONDITION_UNCONFIRMED"]
 
 
 def register(mcp: FastMCP, backend: BackendClient) -> None:

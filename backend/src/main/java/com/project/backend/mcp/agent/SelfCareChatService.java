@@ -9,12 +9,18 @@ import com.project.backend.conversation.ConversationService;
 import com.project.backend.mcp.audit.ToolCallRecord;
 import com.project.backend.mcp.consultation.*;
 import com.project.backend.mcp.tool.*;
+import com.project.backend.warranty.WarrantyModels;
+import com.project.backend.warranty.WarrantyService;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Atomic self-care state/result/history writes; no external model call inside the transaction. */
 @Service
 public class SelfCareChatService {
     private final ToolBackend tools;private final ConsultationService consultations;private final ConversationService history;
-    public SelfCareChatService(ToolBackend tools,ConsultationService consultations,ConversationService history){this.tools=tools;this.consultations=consultations;this.history=history;}
+    private final AgentLimits limits;private final ToolDataCatalog catalog;private final WarrantyService warranty;
+    private static final JsonMapper JSON=JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
+    public SelfCareChatService(ToolBackend tools,ConsultationService consultations,ConversationService history,AgentLimits limits,ToolDataCatalog catalog,WarrantyService warranty){this.tools=tools;this.consultations=consultations;this.history=history;this.limits=limits;this.catalog=catalog;this.warranty=warranty;}
     @Transactional
     public ChatResponse answer(Long id,String email,Map<String,Object> args,boolean condition){
         var before=tools.execute("get_diagnostic_plan",email,map("conversation_id",id),ToolSupport.number(args,"context_version"));
@@ -32,10 +38,23 @@ public class SelfCareChatService {
     }
     private ChatResponse save(ConsultationService.Snapshot s,String email,String input,ToolEnvelope result){
         result.meta().put("selection_source","POLICY_FALLBACK");result.meta().put("execution_source","SELF_CARE_POLICY");
-        var outputs=mapOf(result);String reply=DiagnosticGuidance.format(result);
-        var calls=List.of(ToolCallRecord.success("get_diagnostic_plan",Map.of(),"POLICY_FALLBACK",result,0));
-        history.saveExchange(s.id(),email,input,reply,s.category(),List.of(),null,outputs,calls);
-        return new ChatResponse(reply,s.id(),List.of(),null,outputs);
+        var outputs=new LinkedHashMap<String,ToolEnvelope>();outputs.put("get_diagnostic_plan",result);
+        var calls=new ArrayList<ToolCallRecord>();calls.add(ToolCallRecord.success("get_diagnostic_plan",Map.of(),"POLICY_FALLBACK",result,0));
+        long started=System.nanoTime();
+        RepairFollowupPolicy.complete(s,outputs,(name,args)->{
+            if(calls.size()>=limits.maxToolCalls()||System.nanoTime()-started>limits.totalTimeout().toNanos())return null;
+            long invoked=System.nanoTime();var bounded=new LinkedHashMap<>(args);bounded.put("conversation_id",s.id());
+            var next=tools.execute(name,email,bounded,s.version());next.meta().put("selection_source","POLICY_FALLBACK");next.meta().put("execution_source","SELF_CARE_FOLLOWUP_POLICY");
+            calls.add(ToolCallRecord.success(name,args,"POLICY_FALLBACK",next,java.time.Duration.ofNanos(System.nanoTime()-invoked).toMillis()));return next;
+        },catalog.route);
+        var checked=outputs.get("check_warranty");var coverage=checked==null?null:JSON.convertValue(checked.data(),WarrantyModels.Result.class);
+        var lines=new ArrayList<String>();lines.add(DiagnosticGuidance.format(result));
+        if(coverage!=null)lines.add(warranty.explain(coverage));
+        var centers=outputs.get("find_service_centers");if(centers!=null)lines.add("등록 제품 배송지역의 센터와 공식 접수 경로를 준비했어요. 운영·접수 가능 여부는 공식 페이지에서 확인해 주세요.");
+        var handoff=outputs.get("prepare_service_handoff");if(handoff!=null)lines.add(handoff.data().get("summary_text")+"\n상담 요약 준비이며 외부 전송·예약은 하지 않았습니다.");
+        if(outputs.containsKey("followup"))lines.add("일부 후속 조회를 마치지 못했어요. 공식 상담 경로를 이용하거나 다음 대화에서 다시 문의해 주세요.");
+        String reply=String.join("\n\n",lines);
+        history.saveExchange(s.id(),email,input,reply,s.category(),List.of(),coverage,outputs,calls);
+        return new ChatResponse(reply,s.id(),List.of(),coverage,outputs);
     }
-    private static Map<String,ToolEnvelope> mapOf(ToolEnvelope result){return Map.of("get_diagnostic_plan",result);}
 }

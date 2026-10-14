@@ -101,6 +101,16 @@
     "insufficient_evidence": "NO_DATA for known models; NEEDS_INPUT with missing model_code when the model is unconfirmed.",
     "safety_scope": "Safety uses the same model/category exclusions as other facts. UNDETERMINED is eligible only for verified category-common scope."
   },
+  "repair_followup_contract": {
+    "cause_candidates": "At most two canonical manufacturer cause descriptions after model/category/review filters; never diagnoses or actions.",
+    "supported_candidates": "Cost inputs supported by an applicable canonical cause, reviewed error mapping, or explicit USER_PART_REQUEST. A customer part-price request does not confirm failure.",
+    "cost_gate": "candidate_set_id + category allow-list + supported candidate + confidence >= 0.5 + domestic same-part calibrationCases >= 3. Missing inputs return NO_DATA and missing_information.",
+    "review_gate": "At least three unique VERIFIED paid REFERENCE cases for the exact registered model/error, valid dates, and visit_fee_included=true. VALIDATION, other-model and duplicate cases are excluded.",
+    "inquiry": "One REPAIR_DETAIL question stored in consultation dialogue. Exact error/symptom reply retains COST intent. Explicit visit time/month are saved; conflicting values remain unknown.",
+    "routes": "COST: candidates -> estimate -> warranty, then centers/handoff when no range and no pending question. Terminal self-care: warranty -> centers -> handoff. NOT_VERIFIED is never NOT_RESOLVED.",
+    "limits": "All policy calls share the 5-call/2-per-tool/20-second MCP limits. An unfinished followup is PARTIAL; server-selected calls are POLICY_FALLBACK, never MODEL.",
+    "booking": "PREPARED_ONLY; no external transmission or reservation."
+  },
   "diagnostic_result_contract": {
     "approval": "Explicit application-reviewed plan, exact registered model and error/symptom; never bulk approved_model_codes. Not manufacturer approval.",
     "preconditions": "NEEDS_INPUT / CONFIRM_PRECONDITION with one question {id,text,source}, plan_scope and condition_answers; steps=[] until every answer is YES.",
@@ -1254,7 +1264,7 @@
     },
     {
       "name": "get_repair_candidates",
-      "description": "매핑·허용 부품 그룹과 REFERENCE 후기만 조회한다. 검증 후기·국내 호환 미확인 전용 부품은 제외한다.",
+      "description": "제조사 근거의 원인 후보 최대 2개, 비용에 연결할 supported_candidates와 허용 부품 그룹을 조회한다.\n명시적 부품 비용 문의(USER_PART_REQUEST)는 고장 진단과 구분한다. 후보 묶음은 상담·제품·자료 버전에 묶인다.\nREFERENCE 후기만 사용하고 VALIDATION·다른 모델·미검증 자료는 근거에서 제외한다.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -1381,7 +1391,7 @@
     },
     {
       "name": "estimate_repair_cost",
-      "description": "서버 허용 후보의 참고용 예상 수리비 범위(중앙·80% 범위)와 신뢰도를 계산한다. 견적이 아니다.\n평일 출장비 기준이며 time_slot과 month(6~8월)는 수리비 표의 출장비 가산만 더한다. 후보들은 대안이며 합산하지 않는다.\n매핑이 없으면 확신도 0.5 이상일 때만 사용한다. 가격·보증은 서버 자료에서 읽고 무상 여부는 판정하지 않는다.",
+      "description": "서버 허용 후보의 참고용 예상 수리비 범위(중앙·80% 범위)와 신뢰도를 계산한다. 견적이 아니다.\n평일 출장비 기준이며 time_slot과 month(6~8월)는 수리비 표의 출장비 가산만 더한다. 후보들은 대안이며 합산하지 않는다.\nsupported_candidates와 일치하고 확신도 0.5 이상·국내 같은 부품 사례 3건 이상인 후보만 계산한다.\n자료가 부족하면 NO_DATA와 부족한 정보를 반환한다. 가격·보증은 서버 자료에서 읽고 무상 여부는 판정하지 않는다.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -1740,7 +1750,10 @@
               "NOT_RESOLVED",
               "UNCLASSIFIED",
               "OUT_OF_SCOPE",
-              "INSUFFICIENT_EVIDENCE"
+              "INSUFFICIENT_EVIDENCE",
+              "NOT_VERIFIED",
+              "NO_SELF_CARE",
+              "PRECONDITION_UNCONFIRMED"
             ],
             "type": "string"
           }

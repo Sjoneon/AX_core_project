@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.project.backend.mcp.retrieval.KnowledgeRetriever;
 import com.project.backend.mcp.consultation.ConsultationService;
 import com.project.backend.mcp.tool.*;
 import com.project.backend.product.UserProduct;
@@ -16,21 +18,30 @@ public class GetRepairCandidatesTool implements HomeCareTool {
     static final String[] CAVEATS={"부품 후보는 원인 확정이 아닙니다. 실제 고장 부품은 엔지니어 점검 후 정해집니다.","부품 그룹은 수리비 추정용이며 실물 부품 호환을 확정하지 않습니다."};
     private final ToolSupport support;
     private final ToolDataCatalog catalog;
-    public GetRepairCandidatesTool(ToolSupport support,ToolDataCatalog catalog){this.support=support;this.catalog=catalog;}
+    private final KnowledgeRetriever retriever;
+    @Autowired public GetRepairCandidatesTool(ToolSupport support,ToolDataCatalog catalog,KnowledgeRetriever retriever){this.support=support;this.catalog=catalog;this.retriever=retriever;}
+    public GetRepairCandidatesTool(ToolSupport support,ToolDataCatalog catalog){this(support,catalog,KnowledgeRetriever.lexical(catalog));}
     public String name(){return "get_repair_candidates";}
     public ToolEnvelope execute(String email,ConsultationService.Snapshot s,Map<String,Object> args){
-        var basis=Basis.of("LOW",List.of(PARTS),CAVEATS);
-        if("SUSPECT".equals(s.state().riskStatus()))return support.result(s,"BLOCKED_BY_SAFETY",null,List.of(),basis,"위험 확인을 먼저 마쳐 주세요.");
+        var basis=Basis.of("LOW",List.of(PARTS,KNOWLEDGE,MODELS,"homecare/knowledge-structured.json","homecare/repair-cases.json"),CAVEATS);
+        if(List.of("SUSPECT","CONFIRMED").contains(s.state().riskStatus()))return support.result(s,"BLOCKED_BY_SAFETY",null,List.of(),basis,"위험 확인을 먼저 마쳐 주세요.");
         var product=support.product(email,s);
+        var selected=RepairCandidatePolicy.select(catalog,retriever,s,product==null?RepairCandidatePolicy.modelFromInput(catalog,s):model(product.warranty().modelName()));
         var permitted=allowedParts(s);String error=s.state().errorCode();
         var mapped=error==null?List.<Map<String,Object>>of():permitted.stream().filter(p->strings(p,"targetCodes").contains(error)).limit(2).toList();
         var cases=catalog.repairCases.stream().filter(x->s.category().name().equals(text(x,"category"))).filter(x->"REFERENCE".equals(text(x,"use_type")))
+                .filter(x->product!=null&&model(product.warranty().modelName()).equals(text(x,"model_code")))
+                .filter(x->"VERIFIED".equals(text(x,"verification_status"))&&!text(x,"id").isBlank())
                 .filter(x->Objects.equals(x.get("error_code"),s.state().errorCode())&&s.state().errorCode()!=null).limit(5).toList();
         var data=map("candidate_set_id",candidateSet(s,product),"selection_source",!mapped.isEmpty()?"MAPPING":permitted.isEmpty()?cases.size()>=3?"REVIEW_RANGE":"DEFAULT_NOTICE":"NEEDS_AGENT_SELECTION",
                 "mapped_candidates",mapped.stream().map(GetRepairCandidatesTool::brief).toList(),"allowed_candidates",permitted.stream().map(GetRepairCandidatesTool::brief).toList(),
                 "reference_cases",cases,"minimum_review_count",3,"agent_confidence_threshold",0.5,"product_confirmed",product!=null,
                 "case_filter_notes",List.of("VALIDATION 제외","부품 코드들은 그룹 추정용이며 국내 실물 부품 호환을 확정하지 않음"));
-        return support.result(s,permitted.isEmpty()&&cases.isEmpty()?"NO_DATA":"OK",data,List.of(costEvidence()),basis);
+        data.put("cause_candidates",selected.causes());data.put("supported_candidates",selected.supported());data.put("minimum_part_case_count",RepairCandidatePolicy.MINIMUM_CASES);
+        data.put("selection_source",selected.supported().isEmpty()?"INSUFFICIENT_EVIDENCE":selected.supported().getFirst().get("basis"));
+        data.put("missing_information",selected.supported().isEmpty()?List.of("증상·오류와 부품 그룹의 연결 근거 또는 비용을 문의할 정확한 부품명"):List.of());
+        var evidence=new ArrayList<>(selected.evidence());evidence.add(costEvidence());
+        return support.result(s,permitted.isEmpty()&&cases.isEmpty()?"NO_DATA":"OK",data,evidence,basis);
     }
     /** Parts of the consultation category that estimate_repair_cost may accept. */
     public List<Map<String,Object>> allowedParts(ConsultationService.Snapshot s){return catalog.parts.stream().filter(p->s.category().name().equals(text(p,"category"))).toList();}

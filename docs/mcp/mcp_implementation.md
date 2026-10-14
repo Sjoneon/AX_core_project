@@ -15,8 +15,8 @@
 | `get_product_context` | 본인 등록 제품 목록과 상담에서 직접 선택한 제품 조회 | 자동 선택하지 않음 |
 | `get_diagnostic_plan` | 위험 차단, 승인된 모델·오류의 자가검진을 한 단계씩 조회 | TR15WV5/UE/세탁물 뭉침 1건. 선행 조건 6개 확인 후 현재 단계 1개, 나머지는 `NOT_VERIFIED` |
 | `check_warranty` | 품질보증(구입일 기준)과 주요 부품 보증을 분리, 부품보유기간(제조일 기준)을 별도 블록으로 | 구입일이 없으면 `NEEDS_INPUT`. 부품보유기간은 B30 원본 확인 전까지 `UNAVAILABLE` |
-| `get_repair_candidates` | 품목의 부품 코드·이름과 `candidate_set_id` | 4품목 32개 그룹. 등록 제품 없이도 동작. 국내 SKU 호환을 확정하지 않음 |
-| `estimate_repair_cost` | 참고용 예상 범위(중앙·80% 범위), 신뢰도, 시간대·월 출장비 가산, 고정 고지문 | 견적·무상 판정 아님. 보증은 문장으로만 안내하고 0원으로 바꾸지 않음 |
+| `get_repair_candidates` | 근거 원인 최대 2개·비용 입력·허용 부품과 `candidate_set_id` | 부품 가격 문의와 고장 원인 구분. 목록 포함만으로 부품 고장을 추정하지 않음 |
+| `estimate_repair_cost` | 연결 근거·확신도·국내 사례 3건 확인 후 참고 범위·신뢰도·방문 가산 | 미충족은 NO_DATA. 비용 대안을 합산하거나 보증·출장비 미확인을 0원으로 바꾸지 않음 |
 | `find_service_centers` | 제품 배송지 시·군·구 → 시·도 → NONE, 공식 경로 조회 | 공식 확인한 센터 3곳만 시드. 거리순·전국 전체 자료가 아님 |
 | `prepare_service_handoff` | 확인한 사실을 복사할 요약과 공식 접수 경로로 구성 | `PREPARED_ONLY`. 외부 전송·예약·전화 발신 없음 |
 
@@ -85,6 +85,8 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 - v3는 국내 LG 유상 20건 검증에서 중앙 절대오차 11.2%, 80% 범위 적중 80%였다. 같은 20건으로 등급·범위를 골랐으므로 새 사례 오차는 더 클 수 있다(비용 결과 `caveats`에 포함).
 - 부품보유기간: 변환본 T5 기록에 `parts_holding_period` 문장이 있으나 식기세척기 품목 공통 5년(T5-004)과 모델별 7년(T5-009 등)이 충돌한다. B30 원본(`knowledge_effective_B30.jsonl`, `checksums_B30.json`)으로 확인하기 전까지 값을 제공하지 않는다.
 - `repair-cases.json=[]`이고 `approved-plans.json`에는 TR15WV5/UE/세탁물 뭉침 조건부 계획 1건이 있다. 센터는 대치·분당·북수원 3곳이다.
+
+6단계의 [원인·비용·보증·공식 서비스 연결](repair_followup.md)은 문의·상태에 따른 필수/보완 호출을 POLICY_FALLBACK으로 기록한다. 원인 후보의 부품 연결 근거가 부족하면 확인 질문을 한 번 진행한다. 자가조치 미해결·조치 불가·실행 미승인은 실제 사유를 유지해 보증·센터·전송 전 요약으로 연결한다. 보완 호출도 기존 호출 수/시간 한도를 공유한다.
 
 ## 웹 API
 

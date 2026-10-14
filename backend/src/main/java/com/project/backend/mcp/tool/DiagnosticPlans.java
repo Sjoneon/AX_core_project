@@ -32,4 +32,16 @@ public final class DiagnosticPlans {
         if(conditions(plan).stream().anyMatch(q->!"YES".equals(answers.get(text(q,"id")))))return List.of();
         return steps(plan).stream().filter(step->!s.state().doneSteps().contains(text(step,"step_code"))).limit(1).toList();
     }
+    public static String outcome(ToolDataCatalog catalog,ConsultationService.Snapshot s,String model){
+        if(List.of("SUSPECT","CONFIRMED").contains(s.state().riskStatus()))return "RISK";
+        if(s.productId()==null)return "PRODUCT_NEEDED";if(s.state().closed())return "RESOLVED";
+        var selected=select(catalog,s,model);if(selected.isEmpty())return "NOT_VERIFIED";
+        var plan=selected.get();var answers=answers(catalog,s,model,plan);
+        for(var q:conditions(plan)){
+            String answer=answers.get(text(q,"id"));if("YES".equals(answer))continue;
+            return answer==null?"PRECONDITIONS_PENDING":"NO".equals(answer)?"PRECONDITION_NOT_MET":"PRECONDITION_UNCONFIRMED";
+        }
+        if(steps(plan).isEmpty())return "NO_SELF_CARE";
+        return pendingSteps(catalog,s,model).isEmpty()?"ALL_DONE":"IN_PROGRESS";
+    }
 }

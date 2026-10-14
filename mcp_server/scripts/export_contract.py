@@ -50,6 +50,15 @@ async def main():
             'caveats':'fixed data-interpretation notices; warnings stay situational',
             'independent_action_allowed':'always false; the MCP adapter rejects any other value'},
         'knowledge_result_contract': KNOWLEDGE_RESULT_CONTRACT,
+        'repair_followup_contract': {
+            'cause_candidates': 'At most two canonical manufacturer cause descriptions after model/category/review filters; never diagnoses or actions.',
+            'supported_candidates': 'Cost inputs supported by an applicable canonical cause, reviewed error mapping, or explicit USER_PART_REQUEST. A customer part-price request does not confirm failure.',
+            'cost_gate': 'candidate_set_id + category allow-list + supported candidate + confidence >= 0.5 + domestic same-part calibrationCases >= 3. Missing inputs return NO_DATA and missing_information.',
+            'review_gate': 'At least three unique VERIFIED paid REFERENCE cases for the exact registered model/error, valid dates, and visit_fee_included=true. VALIDATION, other-model and duplicate cases are excluded.',
+            'inquiry': 'One REPAIR_DETAIL question stored in consultation dialogue. Exact error/symptom reply retains COST intent. Explicit visit time/month are saved; conflicting values remain unknown.',
+            'routes': 'COST: candidates -> estimate -> warranty, then centers/handoff when no range and no pending question. Terminal self-care: warranty -> centers -> handoff. NOT_VERIFIED is never NOT_RESOLVED.',
+            'limits': 'All policy calls share the 5-call/2-per-tool/20-second MCP limits. An unfinished followup is PARTIAL; server-selected calls are POLICY_FALLBACK, never MODEL.',
+            'booking': 'PREPARED_ONLY; no external transmission or reservation.'},
         'diagnostic_result_contract': {
             'approval': 'Explicit application-reviewed plan, exact registered model and error/symptom; never bulk approved_model_codes. Not manufacturer approval.',
             'preconditions': 'NEEDS_INPUT / CONFIRM_PRECONDITION with one question {id,text,source}, plan_scope and condition_answers; steps=[] until every answer is YES.',

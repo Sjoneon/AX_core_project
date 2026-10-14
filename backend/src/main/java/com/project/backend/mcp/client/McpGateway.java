@@ -95,6 +95,7 @@ public class McpGateway {
             };
         }
         /** A call chosen by server policy rather than the model; it counts toward the same limits. */
+        public boolean canInvoke(String name){return definitions.containsKey(name)&&calls.size()<limits.maxToolCalls()&&perTool.getOrDefault(name,0)<limits.maxCallsPerTool()&&System.nanoTime()<deadline;}
         public ToolEnvelope invoke(String name,Map<String,Object> args){return invoke(name,args,"POLICY_FALLBACK");}
         public ToolEnvelope invoke(String name,Map<String,Object> args,String selection){
             if(!definitions.containsKey(name))throw new ToolCallException("TOOL_NOT_ALLOWED");

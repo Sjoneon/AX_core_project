@@ -1,12 +1,12 @@
 # 남은 작업: HomeCare AI MCP 도구 보완 (2026-10-13 21:20 기준)
 
-2026-10-14 갱신: 상담 기능의 현재 작업 순서는 [완료 계획](mcp_completion_plan.md)을 따른다. 제조사 지식 1,542건의 구조화는 [1단계 기록](manufacturer_data_structure.md), MCP 검색 연결·캐시·실제 임베딩 평가는 [2단계 기록](manufacturer_retrieval.md), 증상 분류·대화 상태·실제 해석 38개 평가는 [3단계 기록](symptom_interpretation.md), 최종 답변 구성 14개 평가는 [4단계 기록](grounded_answer_generation.md)에 남겼다. 5단계의 TR15WV5/UE 조건 확인·단계 진행·결과 이력은 [5단계 기록](approved_self_care.md)에 남겼다. 6~8단계는 후속 작업이다. 아래의 2026-10-13 기록은 당시 운영/환경 후속 항목이며, 상담 기능 전체 완료를 뜻하지 않는다.
+2026-10-15 갱신: 상담 기능의 현재 작업 순서는 [완료 계획](mcp_completion_plan.md)을 따른다. 제조사 지식 1,542건의 구조화는 [1단계 기록](manufacturer_data_structure.md), MCP 검색 연결·캐시·실제 임베딩 평가는 [2단계 기록](manufacturer_retrieval.md), 증상 분류·대화 상태·실제 해석 38개 평가는 [3단계 기록](symptom_interpretation.md), 최종 답변 구성 14개 평가는 [4단계 기록](grounded_answer_generation.md)에 남겼다. 5단계의 TR15WV5/UE 조건 확인·단계 진행·결과 이력은 [5단계 기록](approved_self_care.md)에 남겼다. 6단계의 비용·보증·공식 서비스 후속 연결은 [6단계 기록](repair_followup.md)에 남겼다. 7~8단계는 후속 작업이다. 아래의 2026-10-13 기록은 당시 운영/환경 후속 항목이며, 상담 기능 전체 완료를 뜻하지 않는다.
 
 원래 작업 지시(1~12장)와 승인된 결정 1~9는 그대로 지킨다. 코드·테스트·문서 작업은 끝났고, 아래는 사용자 승인·외부 환경이 필요한 일과 이 PC에서 실행하지 못한 검증이다. 운영 DB 마이그레이션, `terraform apply`, main 푸시는 사용자 승인 없이 하지 않는다.
 
 ## 1. PR CI로 확인할 검증 (2026-10-13 환경 기록)
 
-2026-10-15 현재 로컬 Java 266개 중 264개·Python 20개·프론트엔드 10개·lint·build·JAR 빌드는 통과했다. 아래의 Node 미실행 표기는 당시 기록이며 MySQL 2개·Docker·Terraform·Linux 운영 검증은 별도다.
+2026-10-15 현재 로컬 Java 286개 중 284개·Python 21개·프론트엔드 10개·lint·build·JAR 빌드는 통과했다. 아래의 Node 미실행 표기는 당시 기록이며 MySQL 2개·Docker·Terraform·Linux 운영 검증은 별도다.
 - `frontend`: `npm run lint`, `npm run build` (변경: `src/components/ToolResults.jsx` 비용 카드·안전 주의·안내 기준).
 - `backend`: `gradlew mysqlSchemaTest mysqlTest`(MySQL 8.4에 V001→V005 적용 후 `ddl-auto=validate` 기동).
 - Docker: `docker build mcp_server`(digest 고정 베이스), MCP 컨테이너 health 스모크, `ops/checks/test-proxy.py`(`/api/tools` 404, 429).

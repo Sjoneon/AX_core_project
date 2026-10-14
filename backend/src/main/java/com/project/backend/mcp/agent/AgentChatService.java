@@ -98,13 +98,13 @@ public class AgentChatService {
                 var approved=approvedSteps(email,s);
                 var interpreted=interpreter.interpret(s.category(),request.message(),s.state().dialogue(),recent,approved);
                 String displayed=previous==null||recent.isEmpty()||!Objects.equals(recent.getLast().contextVersion(),previous.version())||!Objects.equals(previous.productId(),s.productId())?null:recent.getLast().displayedStep();
-                var transition=DialogueRouter.route(s.category(),s.state(),request.message(),interpreted,approved,displayed);
+                var transition=RepairInquiryRouter.route(catalog,s,previous,request.message(),DialogueRouter.route(s.category(),s.state(),request.message(),interpreted,approved,displayed));
                 if(DiagnosticPlans.select(catalog,s,consultations.selectedModel(email,s)).isPresent()&&!Set.of("COST","WARRANTY","SERVICE","OUT_OF_SCOPE","CATEGORY_MISMATCH").contains(transition.state().dialogue().intent()))
                     return selfCare.dialogue(s,email,request.message(),transition.state());
                 s=consultations.applyDialogue(email,s.id(),s.version(),transition.state());
                 outputs.put("consultation",dialogueResult(s));
                 reply=transition.reply();
-                if(reply==null)reply=agent(request,email,authorization,s,outputs,calls);
+                if(reply==null||"UNCLASSIFIED".equals(s.state().dialogue().intent()))reply=agent(request,email,authorization,s,outputs,calls);
             }
             if(outputs.containsKey("safety"))outputs.get("safety").meta().put("risk_source",assessment.source());
             var warrantyResult=warrantyOf(outputs.get("check_warranty"));
@@ -174,21 +174,31 @@ public class AgentChatService {
         try{session=gateway.open(authorization,s);}
         catch(RuntimeException error){return unavailable(s,outputs,"MCP_UNAVAILABLE",error);}
         try(session){
-            try{
-                model.prompt().system(SYSTEM.formatted(limits.maxToolCalls())).user(prompt(email,s,request.message()))
-                        .toolCallbacks(session.callbacks()).call().content();
-            }catch(RuntimeException error){
-                var fatal=fatal(error);if(fatal!=null)throw fatal;
-                if(session.results.isEmpty()){calls.addAll(session.calls);return unavailable(s,outputs,"MODEL_UNAVAILABLE",error);}
-                LOG.warn("homecare_agent_partial reason=MODEL_UNAVAILABLE cause={}",error.getClass().getSimpleName());
+            boolean prescribed=Set.of("COST","SERVICE","UNCLASSIFIED").contains(s.state().dialogue().intent());
+            if("COST".equals(s.state().dialogue().intent())){
+                String code=RepairCandidatePolicy.modelFromInput(catalog,s);
+                if(code!=null)policyFallback(session,"lookup_model",map("model_code",code));
             }
-            if(session.results.isEmpty())policyFallback(session,"get_product_context");
-            if(request.message().matches("(?s).*(보증|무상).*")&&!session.results.containsKey("check_warranty"))policyFallback(session,"check_warranty");
-            // 증상 자료 검색 뒤 누락된 제품 확인·자가검진 조회 보완 (동일 호출 제한 적용)
-            if(session.results.containsKey("search_knowledge")&&!session.results.containsKey("estimate_repair_cost")&&!session.results.containsKey("prepare_service_handoff")){
-                String next=s.productId()==null?"get_product_context":"get_diagnostic_plan";
-                if(!session.results.containsKey(next))policyFallback(session,next);
+            if(!prescribed){
+                try{
+                    model.prompt().system(SYSTEM.formatted(limits.maxToolCalls())).user(prompt(email,s,request.message()))
+                            .toolCallbacks(session.callbacks()).call().content();
+                }catch(RuntimeException error){
+                    var fatal=fatal(error);if(fatal!=null)throw fatal;
+                    if(session.results.isEmpty()){calls.addAll(session.calls);return unavailable(s,outputs,"MODEL_UNAVAILABLE",error);}
+                    LOG.warn("homecare_agent_partial reason=MODEL_UNAVAILABLE cause={}",error.getClass().getSimpleName());
+                }
+                if(session.results.isEmpty())policyFallback(session,s.state().errorCode()!=null||s.state().symptomCode()!=null?"search_knowledge":"get_product_context");
+                if(Set.of("SYMPTOM","ERROR_CODE").contains(s.state().dialogue().intent())&&!session.results.containsKey("search_knowledge")&&!session.results.containsKey("get_diagnostic_plan"))
+                    policyFallback(session,"search_knowledge");
+                if(request.message().matches("(?s).*(보증|무상).*")&&!session.results.containsKey("check_warranty"))policyFallback(session,"check_warranty");
+                // 증상 자료 검색 뒤 누락된 제품 확인·자가검진 조회 보완 (동일 호출 제한 적용)
+                if(session.results.containsKey("search_knowledge")&&!session.results.containsKey("estimate_repair_cost")&&!session.results.containsKey("prepare_service_handoff")){
+                    String next=s.productId()==null?"get_product_context":"get_diagnostic_plan";
+                    if(!session.results.containsKey(next))policyFallback(session,next);
+                }
             }
+            RepairFollowupPolicy.complete(s,session.results,(name,args)->policyFallback(session,name,args),catalog.route);
             calls.addAll(session.calls);outputs.putAll(session.results);
             if(session.results.isEmpty()&&session.calls.stream().anyMatch(c->"TOOL_UNAVAILABLE".equals(c.errorCode())))return unavailable(s,outputs,"MCP_UNAVAILABLE",null);
             String fixed=format(outputs,warrantyOf(outputs.get("check_warranty")));
@@ -212,8 +222,12 @@ public class AgentChatService {
         }
     }
     private void policyFallback(McpGateway.Session session,String name){
-        try{var result=session.invoke(name,Map.of());result.meta().put("selection_source","POLICY_FALLBACK");LOG.info("HomeCare tool {} selected by POLICY_FALLBACK",name);}
-        catch(McpGateway.ToolCallException error){if(McpGateway.FATAL.contains(error.code()))throw error;}
+        policyFallback(session,name,Map.of());
+    }
+    private ToolEnvelope policyFallback(McpGateway.Session session,String name,Map<String,Object> args){
+        if(!session.canInvoke(name))return null;
+        try{var result=session.invoke(name,args);result.meta().put("selection_source","POLICY_FALLBACK");LOG.info("HomeCare tool {} selected by POLICY_FALLBACK",name);return result;}
+        catch(McpGateway.ToolCallException error){if(McpGateway.FATAL.contains(error.code()))throw error;return null;}
     }
     private static McpGateway.ToolCallException fatal(Throwable error){
         for(var cause=error;cause!=null;cause=cause.getCause())
@@ -284,10 +298,24 @@ public class AgentChatService {
                     lines.add("참고로 품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준이라 서로 다른 기간이에요. 부품보유기간은 확인된 자료가 아직 없어 따로 안내하지 않아요.");
                 }
                 case "get_diagnostic_plan"->lines.add(DiagnosticGuidance.format(result));
-                case "get_repair_candidates"->{if(!results.containsKey("estimate_repair_cost"))lines.add("이 품목의 수리 부품 후보를 확인했어요. 실제 고장 부품은 점검 후 정해져요.");}
+                case "get_repair_candidates"->{
+                    if(data.get("cause_candidates") instanceof List<?> causes&&!causes.isEmpty()){
+                        lines.add("제조사 자료의 원인 후보·상황이며 실제 원인은 아직 확인되지 않았어요.");
+                        for(var raw:causes){var cause=(Map<?,?>)raw;lines.add("원인 후보: "+cause.get("description"));}
+                    }
+                    if(data.get("supported_candidates") instanceof List<?> candidates)for(var raw:candidates){var candidate=(Map<?,?>)raw;
+                        if("USER_PART_REQUEST".equals(candidate.get("basis")))lines.add(candidate.get("name")+" 그룹의 비용 문의로 이해했어요. 이 부품의 고장을 확인한 결과는 아닙니다.");
+                    }
+                    if(!results.containsKey("estimate_repair_cost"))lines.add("실제 고장 부품은 공식 점검 후 정해집니다.");
+                }
                 case "estimate_repair_cost"->lines.addAll(cost(data));
                 case "find_service_centers"->lines.add(result.status().equals("NEEDS_INPUT")?needsProduct():"배송지역 기준의 센터와 공식 접수 경로를 준비했습니다. 운영시간과 접수 가능 제품은 공식 페이지에서 확인하세요.");
                 case "prepare_service_handoff"->{if(data.get("summary_text")!=null)lines.add(data.get("summary_text")+"\n공식 채널에 전달할 요약이며 아직 전송하지 않았습니다.");}
+                case "consultation"->{
+                    if(data.get("question") instanceof DialogueState.Question q&&"REPAIR_DETAIL".equals(q.id()))lines.add(q.text());
+                    if("UNCLASSIFIED".equals(data.get("intent")))lines.add("증상을 특정하지 못했어요. 원인·조치·수리비를 임의로 정하지 않고 공식 점검을 통해 확인해 주세요.");
+                }
+                case "followup"->lines.add("일부 후속 조회를 마치지 못했어요. 공식 상담 경로를 이용하거나 다음 대화에서 다시 문의해 주세요.");
                 case "get_product_context"->{if(result.status().equals("NEEDS_INPUT"))lines.add(needsProduct());}
                 default->{ }
             }
@@ -310,6 +338,7 @@ public class AgentChatService {
         var lines=new ArrayList<String>();
         var alternatives=data.get("alternatives") instanceof List<?> list?list:List.of();
         if(alternatives.isEmpty())lines.add("지금 정보로는 수리비 범위를 계산하지 못했어요. 공식 점검 후 정확한 비용을 확인해 주세요.");
+        if(data.get("missing_information") instanceof List<?> missing)for(var reason:missing)lines.add(reason.toString());
         for(Object raw:alternatives){
             var alternative=(Map<?,?>)raw;var range=(Map<?,?>)alternative.get("expected_range");
             String part=alternative.get("part_name")==null?"수리 후기 참고":alternative.get("part_name").toString();

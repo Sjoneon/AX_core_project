@@ -6,6 +6,8 @@
 
 `get_diagnostic_plan`은 조건 확인 전 `NEEDS_INPUT` 질문 1개와 빈 단계를 반환하고, 확인 후 현재 승인 단계만 조회합니다. 등록 계획은 TR15WV5/UE/세탁물 뭉침 1건이며 진동은 미승인입니다. 사용자 응답과 이력 저장은 [Spring 상담 API](../docs/mcp/approved_self_care.md)가 처리합니다. MCP 도구는 계속 읽기 전용입니다.
 
+6단계는 [원인 후보·비용·보증·공식 서비스 연결](../docs/mcp/repair_followup.md)에 정리했습니다. 비용 입력은 후보 묶음·연결 근거·확신도·국내 사례 수를 확인하고 자료 부족은 NO_DATA로 반환합니다. 새 연결 사유 NOT_VERIFIED·NO_SELF_CARE·PRECONDITION_UNCONFIRMED를 보존하며 실제 예약·전송을 수행하지 않습니다.
+
 ## 폴더 구조
 
 ```text
