@@ -8,22 +8,24 @@ export function apiUrl(path) {
 
 export function useAuthenticatedRequest(session, onLogout) {
   return useCallback(async (path, options = {}) => {
+    const { rawResponse = false, ...fetchOptions } = options
     const response = await fetch(apiUrl(path), {
-      ...options,
+      ...fetchOptions,
       headers: {
         'Content-Type': 'application/json',
+        ...fetchOptions.headers,
         Authorization: `Bearer ${session.accessToken}`,
       },
       signal: options.signal || AbortSignal.timeout(35_000),
     })
-    const data = await response.json().catch(() => null)
     if (response.status === 401) {
       onLogout('로그인이 만료되었습니다. 다시 로그인해 주세요.')
       throw new Error('다시 로그인해 주세요.')
     }
     if (!response.ok) {
+      const data = await response.json().catch(() => null)
       throw new Error(data?.message || '요청을 처리하지 못했습니다. 서버 실행 상태를 확인해 주세요.')
     }
-    return data
+    return rawResponse ? response : response.json().catch(() => null)
   }, [session.accessToken, onLogout])
 }

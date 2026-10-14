@@ -1,6 +1,9 @@
 package com.project.backend.chat;
 
 import java.util.List;
+import java.util.Map;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -8,11 +11,17 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
+import org.springframework.http.codec.ServerSentEvent;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import com.project.backend.chat.dto.ChatRequest;
 import com.project.backend.chat.dto.ChatResponse;
 import com.project.backend.chat.exception.ChatUnavailableException;
 import com.project.backend.conversation.ConversationService;
+import com.project.backend.conversation.dto.ChatContext;
 import com.project.backend.conversation.ProductCategory;
 import com.project.backend.rag.ManualRetriever;
 import com.project.backend.rag.RagSource;
@@ -55,25 +64,12 @@ public class ChatService {
         String reply;
         List<RagSource> sources;
         try {
-            var previousQuestions = chatContext.messages().stream().filter(message -> message.role().equals("user"))
-                    .map(message -> message.content()).toList();
-            var result = retriever.retrieve(request.message(), category, previousQuestions);
+            var result = retrieve(request, chatContext);
             sources = result.documents().stream().map(RagSource::from).toList();
             if (result.directReply() != null) {
                 reply = result.directReply();
             } else {
-                String context = result.documents().stream().map(document -> document.getText())
-                        .collect(Collectors.joining("\n\n---\n\n"));
-                List<Message> history = chatContext.messages().stream()
-                        .<Message>map(message -> message.role().equals("user")
-                                ? new UserMessage(message.content()) : new AssistantMessage(message.content()))
-                        .toList();
-                reply = chatClient.prompt()
-                        .system(SYSTEM_PROMPT + "\n<manual_context>\n" + context + "\n</manual_context>")
-                        .messages(history)
-                        .user("상담 제품 카테고리: " + (category == null ? "미선택" : category.getLabel())
-                                + "\n고객 문의: " + request.message())
-                        .call().content();
+                reply = prompt(request, chatContext, result).call().content();
             }
         } catch (RuntimeException exception) {
             throw new ChatUnavailableException(exception);
@@ -86,5 +82,68 @@ public class ChatService {
         Long conversationId = conversationService.saveExchange(
                 request.conversationId(), email, request.message(), reply, category, sources);
         return new ChatResponse(reply, conversationId, sources);
+    }
+
+    public Flux<ServerSentEvent<Object>> stream(ChatRequest request, String email) {
+        // Validate ownership and category before committing the streaming response.
+        var chatContext = conversationService.loadChatContext(request.conversationId(), email, request.category());
+        return Flux.just(event("start", Map.of()))
+                .concatWith(Flux.defer(() -> {
+                    var result = retrieve(request, chatContext);
+                    var sources = result.documents().stream().map(RagSource::from).toList();
+                    var modelCompleted = new AtomicBoolean(result.directReply() != null);
+                    Flux<String> chunks = result.directReply() == null
+                            ? prompt(request, chatContext, result).stream().chatResponse().mapNotNull(response -> {
+                                var generation = response.getResult();
+                                if (generation == null) return null;
+                                if ("STOP".equalsIgnoreCase(generation.getMetadata().getFinishReason())) {
+                                    modelCompleted.set(true);
+                                }
+                                return generation.getOutput().getText();
+                            })
+                            : Flux.just(result.directReply());
+                    var reply = new StringBuilder();
+                    return chunks.timeout(Duration.ofSeconds(30))
+                            .filter(chunk -> !chunk.isEmpty())
+                            .map(chunk -> {
+                                reply.append(chunk);
+                                return event("delta", Map.of("content", chunk));
+                            })
+                            .concatWith(Mono.fromCallable(() -> {
+                                if (!modelCompleted.get() || reply.toString().isBlank()) {
+                                    throw new ChatUnavailableException(null);
+                                }
+                                Long id = conversationService.saveExchange(request.conversationId(), email,
+                                        request.message(), reply.toString(), chatContext.category(), sources);
+                                return event("done", new ChatResponse(reply.toString(), id, sources));
+                            }).subscribeOn(Schedulers.boundedElastic()));
+                }).subscribeOn(Schedulers.boundedElastic()))
+                .timeout(Duration.ofSeconds(40))
+                .onErrorResume(exception -> Flux.just(event("error",
+                        Map.of("message", new ChatUnavailableException(exception).getMessage()))));
+    }
+
+    private ServerSentEvent<Object> event(String name, Object data) {
+        return ServerSentEvent.builder(data).event(name).build();
+    }
+
+    private ManualRetriever.Result retrieve(ChatRequest request, ChatContext chatContext) {
+        var previousQuestions = chatContext.messages().stream().filter(message -> message.role().equals("user"))
+                .map(message -> message.content()).toList();
+        return retriever.retrieve(request.message(), chatContext.category(), previousQuestions);
+    }
+
+    private ChatClient.ChatClientRequestSpec prompt(ChatRequest request, ChatContext chatContext, ManualRetriever.Result result) {
+        String context = result.documents().stream().map(document -> document.getText())
+                .collect(Collectors.joining("\n\n---\n\n"));
+        List<Message> history = chatContext.messages().stream()
+                .<Message>map(message -> message.role().equals("user")
+                        ? new UserMessage(message.content()) : new AssistantMessage(message.content()))
+                .toList();
+        return chatClient.prompt()
+                .system(SYSTEM_PROMPT + "\n<manual_context>\n" + context + "\n</manual_context>")
+                .messages(history)
+                .user("상담 제품 카테고리: " + (chatContext.category() == null ? "미선택" : chatContext.category().getLabel())
+                        + "\n고객 문의: " + request.message());
     }
 }

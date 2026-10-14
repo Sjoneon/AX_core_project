@@ -62,6 +62,9 @@ def main():
             health = docker('exec', proxy, 'wget', '-qO-', 'http://127.0.0.1/internal-health')
             assert json.loads(health)['status'] == 'UP'
             cases = [
+                ('OPTIONS', '/api/chat/stream', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'POST',
+                                                'Access-Control-Request-Headers': 'authorization,content-type'}, 204, True),
+                ('POST', '/api/chat/stream', {'Origin': ORIGIN}, 401, True),
                 ('OPTIONS', '/api/chat', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'POST',
                                          'Access-Control-Request-Headers': 'authorization,content-type'}, 204, True),
                 ('GET', '/api/conversations', {'Origin': ORIGIN}, 401, True),
@@ -93,7 +96,7 @@ def main():
             assert response.status == 308
             assert response.getheader('Location') == 'https://43.202.80.116/api/conversations?test=1'
             connection.close()
-            print('PASS: trusted local TLS, health, HTTPS redirect and ten CORS/preflight/error cases.')
+            print(f'PASS: trusted local TLS, health, HTTPS redirect and {len(cases)} CORS/preflight/error cases.')
         finally:
             for name in (proxy, backend):
                 subprocess.run(['docker', 'rm', '-f', name], capture_output=True)
