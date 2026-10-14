@@ -237,5 +237,8 @@
 .tool-result dd { margin: 0; }
 .tool-result button, .tool-actions button { border: 1px solid #9aacbb; border-radius: 6px; padding: 8px 14px; background: white; cursor: pointer; font-size: 16px; }
 .tool-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.tool-route { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }
+.knowledge-branch { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.message-sources li { margin: 4px 0; overflow-wrap: anywhere; }
 .safety-card { padding: 12px; margin-top: 12px; border: 2px solid #cc3737; border-radius: 8px; background: #fff3f3; }
 .tool-route { margin-top: 12px; }

@@ -31,7 +31,7 @@ export default function ToolCallTrace({ request, conversationId, message }) {
   return (
     <section className="tool-result" aria-label="개발용 MCP 도구 호출 확인">
       <h3>개발용 MCP 도구 호출 확인 <small>DEV 전용</small></h3>
-      <p>상담 전체 호출 이력입니다. 메시지 ID로 답변을 구분하며, 원본 JSON은 마지막 답변의 tools입니다.</p>
+      <p>상담 전체 호출 이력입니다. 메시지 ID로 답변을 구분하며, 마지막 답변의 원본을 아래에서 확인할 수 있습니다.</p>
       {!current && <p className="loading" role="status">도구 호출 이력 확인 중…</p>}
       {current && result.error && <p className="error" role="alert">{result.error}</p>}
       {current && !result.error && calls.length === 0 && <p>저장된 도구 호출 이력이 없습니다.</p>}
@@ -60,6 +60,10 @@ export default function ToolCallTrace({ request, conversationId, message }) {
       <details className="message-sources">
         <summary>원본 tools JSON</summary>
         <pre className="source-content">{JSON.stringify(message.tools || {}, null, 2)}</pre>
+      </details>
+      <details className="message-sources">
+        <summary>원본 답변과 검색 근거</summary>
+        <pre className="source-content">{JSON.stringify({ content: message.content, sources: message.sources || [] }, null, 2)}</pre>
       </details>
     </section>
   )

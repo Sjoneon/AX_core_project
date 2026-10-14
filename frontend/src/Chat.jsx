@@ -5,9 +5,7 @@ import Brand from './components/Brand.jsx'
 import Icon from './components/Icon.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { PRODUCTS, productName } from './data/products.js'
-import WarrantyResult from './components/WarrantyResult.jsx'
-import RiskQuestion from './components/RiskQuestion.jsx'
-import ToolResults from './components/ToolResults.jsx'
+import ConsultationMessage from './components/ConsultationMessage.jsx'
 import ToolCallTrace from './components/ToolCallTrace.jsx'
 
 export default function Chat({ session, onLogout, isActive, onMyPage }) {
@@ -328,25 +326,9 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                     {message.role === 'assistant' && <span className="assistant-avatar"><Icon name="spark" size={19} /></span>}
                     <div className="message-content">
                       <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
-                      <p className="message-bubble">{message.content}</p>
-                      {message.role === 'assistant' && <RiskQuestion safety={message.tools?.safety} active={message === messages.at(-1)} disabled={isBusy} onAnswer={answerRisk} />}
-                      {message.role === 'assistant' && message.tools?.consultation?.data?.question && <div className="tool-actions" aria-label="증상 확인">
-                        {message.tools.consultation.data.question.options.map((option) => <button type="button" key={option} disabled={message !== messages.at(-1) || isBusy} onClick={(event) => sendMessage(event, option)}>{option}</button>)}
-                      </div>}
-                      {message.role === 'assistant' && message.warranty && <WarrantyResult result={message.warranty} />}
-                      {message.role === 'assistant' && <ToolResults tools={message.tools} active={message === messages.at(-1) && !isBusy} onAnswerSelfCare={answerSelfCare} />}
-                      {message.role === 'assistant' && message.sources?.length > 0 && (
-                        <div className="message-sources" aria-label="답변 생성에 전달한 검색 근거">
-                          <p>검색 근거 · 적용 조건 확인 필요</p>
-                          {message.sources.map((source) => (
-                            <details key={source.documentId}>
-                              <summary>{source.documentId} · {source.title}</summary>
-                              <small>{productName(source.category)} · 버전 {source.version} · {source.file}</small>
-                              <p className="source-content">{source.content}</p>
-                            </details>
-                          ))}
-                        </div>
-                      )}
+                      {message.role === 'assistant'
+                        ? <ConsultationMessage message={message} active={message === messages.at(-1)} disabled={isBusy || retired} onAnswerRisk={answerRisk} onSelectSymptom={sendMessage} onAnswerSelfCare={answerSelfCare} />
+                        : <p className="message-bubble">{message.content}</p>}
                     </div>
                   </article>
                 ))}

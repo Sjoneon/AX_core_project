@@ -24,6 +24,8 @@
 
 6단계 최종 검사(2026-10-15): Java 286개 중 284개 통과·MySQL 마이그레이션 2개 건너뜀, `bootJar` 성공. Python MCP 21개, 프론트엔드 10개·lint·build 통과. 실제 discovery 계약을 재생성했다. 실제 FastMCP·Spring JWT/API·H2와 패키지 자료를 사용했으며 실제 OpenAI 품질·실물 수리·운영 배포 평가는 포함하지 않는다.
 
+7단계 화면 검사(2026-10-15): 프론트엔드 22개·lint·build 통과. 새 답변과 이력에서 설명·조건·출처를 표시하고 자가검진·검색 근거의 중복, 과거 JSON·내부 메타데이터 노출을 제거했다. 실제 Edge의 로컬 데이터로 응답 버튼 전달 값·복사 성공/실패·390px/1280px 표시를 확인했다. DB 원문·MCP 계약은 변경하지 않았으며 실제 모델·전체 API 상담 평가는 별도다. [표시 정책과 검증 범위](../mcp/consultation_display.md)를 참고한다.
+
 ## 1. 자동 테스트 재현
 
 아래 명령은 저장소 루트에서 실행한다. 다른 터미널에서 시작할 때는 먼저 실제 체크아웃 폴더로 이동한다(현재 작업 폴더: `C:\Users\Roneon\Desktop\core_project_2`). Java 21을 설치하고 `JAVA_HOME`을 해당 JDK로 설정해야 한다. `java -version`으로 버전을 확인한다. Python은 [MCP README](../../mcp_server/README.md)에 따라 만든 저장소 내 `mcp_server/.venv`를 사용한다. 운영 이미지는 Python 3.12이며, 기존 로컬 검증 기록은 Python 3.13.2 기준이다. OpenAI 키·운영 DB는 필요 없다. JUnit은 H2와 모의 OpenAI, 테스트용 실제 FastMCP HTTP 프로세스를 사용한다.
@@ -55,11 +57,14 @@ Python은 실패 없는 `OK`, Java는 실패 0과 `BUILD SUCCESSFUL`을 확인�
 
 ```powershell
 Set-Location .\frontend
+npm test
 npm run lint
 npm run build
 ```
 
 화면 검사 블록도 저장소 루트에서 시작한다. 앞의 테스트 블록을 같은 터미널에서 실행했다면 `Set-Location ..`로 루트에 돌아온 뒤 실행한다. `node_modules`가 없으면 먼저 `npm ci`를 실행한다. lint와 build 통과는 브라우저의 실제 상호작용·고객 이해도까지 검증한 것은 아니다. 다른 PC에서 MCP 가상환경을 만드는 방법은 [MCP README](../../mcp_server/README.md)에 있다.
+
+7단계 로컬 브라우저 검사는 `frontend`에서 `npm run test:display:browser`로 실행한다. Windows는 설치된 Edge를 기본으로 쓰며 다른 브라우저는 `BROWSER_EXECUTABLE`에 실행 파일 경로를 지정한다. 실제 화면 컴포넌트와 로컬 응답 데이터를 사용하고 외부 HTTPS 요청은 차단한다. 계정·백엔드·OpenAI 호출 없이 표시와 버튼만 검사한다. 실제 상담 화면에서도 새 답변·후속 응답·이력 조회에 같은 설명·조건·출처가 표시되는지, 중복 근거·원본 JSON·파일 경로가 없는지 확인한다.
 
 ## 2. 화면과 실제 Agent 확인
 
