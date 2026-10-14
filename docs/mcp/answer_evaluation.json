@@ -1,0 +1,19 @@
+{
+  "scope":"Predefined synthetic final-answer cases. Real model with canonical local manual projections, cost table and warranty service. This is separate from live Agent tool-selection evaluation.",
+  "cases":[
+    {"id":"vibration","category":"WASHER","model":"FX24ENER","query":"탈수할 때 많이 흔들려요","symptom":"VIBRATION","reference":true,"expected_text":"제품 수평이 맞지 않는 경우","forbidden":["수평을 맞춘다","고정볼트를 제거하세요","고장으로 확정"]},
+    {"id":"moving","category":"WASHER","model":"FX24ENER","query":"세탁기 본체가 원래 자리에서 움직여요","symptom":"VIBRATION","reference":true},
+    {"id":"other_model","category":"WASHER","model":"FX25WSQR","query":"탈수할 때 흔들려요","symptom":"VIBRATION","reference":true},
+    {"id":"legacy_model","category":"WASHER","model":"F24WDWPR","query":"세탁기 진동이 심해요","symptom":"VIBRATION","reference":true},
+    {"id":"drain_error","category":"WASHER","model":"F24WDWPR","query":"OE 배수가 안 돼요","symptom":"DRAIN","reference":true,"forbidden":["1 m 이하로 설치하세요","호스 꺾임을 펴세요","이물을 제거하세요"]},
+    {"id":"fill_error","category":"WASHER","model":"F24WDWPR","query":"IE 급수가 안 돼요","symptom":"FILL","reference":true},
+    {"id":"missing","category":"WASHER","model":"FX24ENER","query":"화성 지하실의 달빛 전자부품 이상","symptom":"POWER","no_reference":true},
+    {"id":"unknown_model","category":"WASHER","model":"UNKNOWN_TEST_MODEL","query":"세탁기가 흔들려요","symptom":"VIBRATION","no_reference":true},
+    {"id":"warranty_washer","kind":"warranty","category":"WASHER","model":"FX24ENER","query":"보증이 남았나요"},
+    {"id":"warranty_fridge","kind":"warranty","category":"REFRIGERATOR","model":"TEST_ONLY_FRIDGE","query":"주요 부품 보증을 알려 주세요"},
+    {"id":"warranty_dryer","kind":"warranty","category":"DRYER","model":"TEST_ONLY_DRYER","query":"품질보증기간을 알려 주세요"},
+    {"id":"warranty_dishwasher","kind":"warranty","category":"DISHWASHER","model":"TEST_ONLY_DISHWASHER","query":"보증 적용 조건이 궁금해요"},
+    {"id":"cost_washer","kind":"cost","category":"WASHER","model":"FX24ENER","query":"수리비가 얼마인가요","part":"W01"},
+    {"id":"cost_second_part","kind":"cost","category":"WASHER","model":"FX24ENER","query":"원인 후보의 참고 비용","part":"W02"}
+  ]
+}

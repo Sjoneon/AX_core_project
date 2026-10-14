@@ -56,12 +56,16 @@ public class AgentChatService {
     private final ToolBackend policyTools;private final ToolDataCatalog catalog;private final AgentLimits limits;
     private final RiskAssessmentService risks;
     private final MessageInterpreter interpreter;
+    private final AnswerContext.Builder answerContext;
+    private final GroundedAnswerGenerator answers;
     public AgentChatService(ChatClient.Builder builder,McpGateway gateway,ConsultationService consultations,ConversationService history,
             WarrantyService warranty,ToolBackend policyTools,ToolDataCatalog catalog,AgentLimits limits){
         this.model=builder.build();this.gateway=gateway;this.consultations=consultations;this.history=history;this.warranty=warranty;
         this.policyTools=policyTools;this.catalog=catalog;this.limits=limits;
         this.risks=new RiskAssessmentService(this.model);
         this.interpreter=new MessageInterpreter(this.model);
+        this.answerContext=new AnswerContext.Builder(catalog);
+        this.answers=new GroundedAnswerGenerator(this.model,limits.toolTimeout());
     }
     public ChatResponse chat(ChatRequest request,String email,String authorization){
         if(request.category()==null&&request.conversationId()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"품목을 선택해 주세요.");
@@ -150,7 +154,7 @@ public class AgentChatService {
         calls.add(ToolCallRecord.success(name,args,"SAFETY_POLICY",result,Duration.ofNanos(System.nanoTime()-started).toMillis()));
         return result;
     }
-    /** Returns a fixed reply when the agent path is unavailable, otherwise null so the reply is assembled from tool results. */
+    /** Select tools, then compose a separately validated final answer inside the remaining session budget. */
     private String agent(ChatRequest request,String email,String authorization,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
         McpGateway.Session session;
         try{session=gateway.open(authorization,s);}
@@ -173,7 +177,24 @@ public class AgentChatService {
             }
             calls.addAll(session.calls);outputs.putAll(session.results);
             if(session.results.isEmpty()&&session.calls.stream().anyMatch(c->"TOOL_UNAVAILABLE".equals(c.errorCode())))return unavailable(s,outputs,"MCP_UNAVAILABLE",null);
-            return null;
+            String fixed=format(outputs,warrantyOf(outputs.get("check_warranty")));
+            GroundedAnswerGenerator.Result answer;
+            String selectedModel=consultations.selectedModel(email,s);
+            try{
+                var searched=outputs.get("search_knowledge");
+                boolean safetyNotice=searched!=null&&searched.data()!=null&&searched.data().get("safety_notices") instanceof List<?> notices&&!notices.isEmpty();
+                if(safetyNotice||outputs.values().stream().anyMatch(o->"BLOCKED_BY_SAFETY".equals(o.status())))
+                    answer=GroundedAnswerGenerator.fallback(fixed,"SAFETY_GUIDANCE_REQUIRED",System.nanoTime());
+                else{
+                    var context=answerContext.build(s,selectedModel,outputs,fixed);
+                    answer=answers.generate(context,session.remaining(),fixed);
+                }
+            }catch(RuntimeException invalid){answer=GroundedAnswerGenerator.fallback(fixed,"INVALID_EVIDENCE",System.nanoTime());}
+            outputs.put("answer_generation",ToolEnvelope.policy(answer.mode().equals("MODEL_GROUNDED")?"OK":"ERROR",
+                    map("mode",answer.mode(),"reason",answer.reason(),"fact_ids",answer.factIds(),"evidence_ids",answer.evidenceIds()),
+                    map("context_version",s.version(),"elapsed_ms",answer.elapsedMs(),"trace_id",UUID.randomUUID().toString()),List.of()));
+            LOG.info("homecare_answer mode={} reason={} elapsed_ms={}",answer.mode(),answer.reason(),answer.elapsedMs());
+            return answer.reply();
         }
     }
     private void policyFallback(McpGateway.Session session,String name){
@@ -243,7 +264,8 @@ public class AgentChatService {
                 case "lookup_model"->lines.addAll(lookup(result,data));
                 case "search_knowledge"->{
                     if(data.get("safety_notices") instanceof List<?> notices&&!notices.isEmpty())first.add("안전 주의: 관련 안전 문서가 있어요. 다른 안내보다 먼저 확인하고, 이상하면 사용을 멈춰 주세요.");
-                    lines.add(result.status().equals("NO_DATA")?"이 모델·질문에 맞는 확인된 근거를 찾지 못했어요.":"질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.");
+                    boolean found=data.get("documents") instanceof List<?> documents&&!documents.isEmpty()||data.get("safety_notices") instanceof List<?> notices&&!notices.isEmpty();
+                    lines.add(!found?"이 모델·질문에 맞는 확인된 근거를 찾지 못했어요.":"질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.");
                     if(data.get("model_code")==null&&!results.containsKey("get_product_context"))lines.add("정확한 안내를 위해 제품 라벨에 있는 모델명을 알려 주세요.");
                 }
                 case "check_warranty"->{

@@ -51,7 +51,8 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 
 ## 답변 생성과 장애 대체
 
-- LLM은 메시지 구조화와 도구 선택에 쓰고, 최종 답변은 서버가 질문·도구 결과로 조립한다. 금액·기간·날짜는 도구 결과에 있는 값만 쓴다(E2E 테스트가 답변의 모든 숫자를 도구 결과와 대조한다). 근거 기반 최종 문장 생성은 4단계다.
+- LLM은 메시지 구조화·도구 선택과 최종 문단 구성에 쓴다. 4단계의 `AnswerContext/GroundedAnswerGenerator`가 검증된 설명의 참조·문단·연결 문장을 생성하고 서버가 본문을 복원한다. 금액·기간·날짜·연락처는 서버의 도구 안내 문장 그대로 유지한다. [구성·검증·14개 실제 모델 평가](grounded_answer_generation.md)를 참고한다.
+- 생성 결과는 `tools.answer_generation`의 `MODEL_GROUNDED`와 `FIXED_FALLBACK`, 사유·근거 ID·생성 시간으로 구분한다. 생성·근거 검증 실패와 시간 초과에는 기존 고정 안내를 사용한다. 최종 생성은 도구를 호출하지 않고 기존 MCP 세션의 남은 예산과 기본 5초 제한을 사용한다.
 - 안전 문장은 항상 맨 앞에 둔다. 모델 코드를 찾지 못하면 라벨 확인을 요청하고, 구입일이 없으면 구입일을 묻는다. 품질보증(구입일)과 부품보유(제조일)는 다른 기간이라고 설명한다.
 - 수리비는 "참고용 예상 범위(견적 아님)", 신뢰도, 평일 출장비 28,000원 기준, 고지문을 함께 말한다.
 - MCP 연결·초기화 실패와 OpenAI 장애 때는 LLM 없이 고정 안내, LG전자 고객센터, 출장 예약 링크로 답하고 상담은 저장한다(`agent_fallback`). 로그에는 trace_id·사유·예외 클래스만 남긴다. 비에이전트 `ChatService`는 가상 테스트 매뉴얼 기반이라 대체 경로로 쓰지 않는다.
@@ -76,7 +77,7 @@ React → /api/chat → Spring Agent → Java MCP Client → FastMCP /mcp (내�
 
 - LG B30 전체 사실 1,659건 중 현재 로컬에 들어온 1,542건을 사용한다. 기존 검수에서 발견한 누락 117건(김치냉장고 97건 포함)은 구조화 작업으로 복원되지 않았다. 각 기록의 `effective_model_lists`·`current_QA_review`·`latest_applicability_update`·`procedure_supplements`·`use_policy`는 원본 파일에 그대로 남아 있다. Spring이 기동 시 읽어 적용 판정에 쓴다(최신 적용 목록 우선, 제외 모델 제거).
 - 2026-10-14에 기존 원본 1,542건을 변경 없이 보존하고 `structure_knowledge.py`로 `knowledge-structured.json` 1,542건을 생성했다. 검색 본문 `searchText`와 화면 본문 `displayText`를 분리하고 원인별 분기·선행 조건·그림/실물 제약·보완 관계를 보존한다. `search_knowledge`와 자가검진 `references`는 구조화 결과를 사용하며 원본 래퍼 JSON을 반환하지 않는다. 기존 저장 상담 표시 정리는 후속 작업이다. [대상 자료·원문 대조·생성/검증 기록](manufacturer_data_structure.md)을 참고한다.
-- 같은 날 2단계에서 제조사 전용 `KnowledgeRetriever/KnowledgeVectorIndex`를 MCP 경로에 연결했다. 1,542개 사실을 임베딩하고 `SimpleVectorStore`의 모델 후보 ID 필터·버전별 디스크 캐시·2초 대체 경로를 사용한다. 실제 임베딩 평가 33개와 구현 검사를 통과했다. [검색·캐시·비용·평가 기록](manufacturer_retrieval.md)을 참고한다. 자연어 상담 상태는 3단계에서 연결했으며, 기존 저장 상담 표시 정리와 최종 답변 생성은 후속 단계다.
+- 같은 날 2단계에서 제조사 전용 `KnowledgeRetriever/KnowledgeVectorIndex`를 MCP 경로에 연결했다. 1,542개 사실을 임베딩하고 `SimpleVectorStore`의 모델 후보 ID 필터·버전별 디스크 캐시·2초 대체 경로를 사용한다. 실제 임베딩 평가 33개와 구현 검사를 통과했다. [검색·캐시·비용·평가 기록](manufacturer_retrieval.md)을 참고한다. 자연어 상담 상태는 3단계, 검증된 근거를 사용하는 최종 답변 구성은 4단계에서 연결했다. 기존 저장 상담 표시 정리는 후속 단계다.
 - 수리비는 `한국기준_예상수리비_표_v3.csv`(SHA-256이 매니페스트 `costSha256`과 일치)를 `backend/scripts/build_homecare_data.py`로 변환했다. 33개 중 D02 '히터(미국 전기식)'는 CSV 신뢰도 열에 "제외(미국형 전기식 건조기 전용 부품)"로 표시돼 32개를 쓴다.
 - 출장비 가산은 CSV 열을 그대로 쓴다. 야간·휴일 +5,000원, 6~8월 평일 +5,000원, 6~8월 야간·휴일 +10,000원(야간 가산과 중복 합산하지 않음)이다. 패키지 `model_v3.py`의 `SURCHARGE`와 `normalize.py`의 출장비 28,000/33,000/33,000/38,000원으로 해석을 확인했다. 고정 가산이므로 중앙·하한·상한에 같은 금액을 더한다.
 - v3는 국내 LG 유상 20건 검증에서 중앙 절대오차 11.2%, 80% 범위 적중 80%였다. 같은 20건으로 등급·범위를 골랐으므로 새 사례 오차는 더 클 수 있다(비용 결과 `caveats`에 포함).

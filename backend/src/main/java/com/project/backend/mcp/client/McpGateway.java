@@ -64,6 +64,8 @@ public class McpGateway {
                 .filter(t->!List.of("SUSPECT").contains(snapshot.state().riskStatus())||List.of("lookup_model","get_product_context","search_knowledge","prepare_service_handoff").contains(t.name()))
                 .filter(t->!"CONFIRMED".equals(snapshot.state().riskStatus())||!t.name().equals("get_diagnostic_plan"))
                 .map(this::callback).toList();}
+        /** Final answer generation uses the remainder of the existing request's tool/agent budget. */
+        public Duration remaining(){return Duration.ofNanos(Math.max(0,deadline-System.nanoTime()));}
         private ToolCallback callback(McpSchema.Tool tool){
             Map<String,Object> schema=JSON.convertValue(tool.inputSchema(),new TypeReference<>(){});
             Map<String,Object> props=(Map<String,Object>)schema.get("properties");

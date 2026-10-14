@@ -99,6 +99,13 @@ tasks.register('evaluateMessageInterpretation', JavaExec) {
     mainClass = 'com.project.backend.mcp.consultation.MessageInterpretationEvaluation'
 }
 
+tasks.register('evaluateGroundedAnswer', JavaExec) {
+    description = 'Evaluates grounded answer generation using synthetic canonical facts and the configured model.'
+    group = 'verification'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.project.backend.mcp.agent.GroundedAnswerEvaluation'
+}
+
 tasks.register('migrationTest', Test) {
 	description = 'Verifies SQL upgrades, data preservation and failed migrations on disposable MySQL.'
 	group = 'verification'

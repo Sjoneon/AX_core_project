@@ -56,6 +56,8 @@ class McpIntegrationTests {
     static final Deque<Function<String,String>> script=new ConcurrentLinkedDeque<>();
     static final Deque<String> interpretations=new ConcurrentLinkedDeque<>();
     static final List<String> interpretationRequests=Collections.synchronizedList(new ArrayList<>());
+    static final Deque<Function<String,String>> answerScript=new ConcurrentLinkedDeque<>();
+    static final List<String> answerRequests=Collections.synchronizedList(new ArrayList<>());
     static HttpServer modelServer;
     static int mcpPort;
     @LocalServerPort int backendPort;
@@ -87,6 +89,9 @@ class McpIntegrationTests {
                 interpretationRequests.add(input);
                 String decision=interpretations.poll();
                 message=JSON.writeValueAsString(map("role","assistant","content",decision==null?fixtureInterpretation(input):decision));
+            }else if(input.contains("HomeCare GroundedAnswerGenerator")){
+                answerRequests.add(input);var step=answerScript.poll();
+                message=JSON.writeValueAsString(map("role","assistant","content",step==null?fixtureAnswer(input):step.apply(input)));
             }else{
                 modelCalls.incrementAndGet();modelRequests.add(input);
                 var step=script.poll();message=step==null?INVENTED:step.apply(input);
@@ -124,7 +129,16 @@ class McpIntegrationTests {
         throw new AssertionError("MCP server did not start");
     }
     @AfterAll void stopServer(){if(python!=null)python.destroyForcibly();if(modelServer!=null)modelServer.stop(0);}
-    @BeforeEach void reset(){script.clear();interpretations.clear();interpretationRequests.clear();modelCalls.set(0);modelRequests.clear();}
+    @BeforeEach void reset(){script.clear();interpretations.clear();interpretationRequests.clear();answerScript.clear();answerRequests.clear();modelCalls.set(0);modelRequests.clear();}
+    static String fixtureAnswer(String request){
+        var messages=JSON.readTree(request).get("messages");var input=JSON.readTree(messages.get(messages.size()-1).get("content").asText());
+        var paragraphs=new ArrayList<Map<String,Object>>();
+        for(var fact:input.get("facts")){
+            String id=fact.get("id").asText();
+            paragraphs.add(map("opening",paragraphs.isEmpty()&&!id.equals("TOOL_GUIDANCE")?"확인된 내용부터 말씀드릴게요.":"","fact_ids",List.of(id)));
+        }
+        return JSON.writeValueAsString(map("paragraphs",paragraphs));
+    }
     /** Scripted classification fixture; transport tests do not measure model classification accuracy. */
     static String fixtureInterpretation(String request){
         var messages=JSON.readTree(request).get("messages");
@@ -479,5 +493,34 @@ class McpIntegrationTests {
         assertThat(history.detail(state.id(),owner).messages()).hasSize(4);
         assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("consultation").data()).containsEntry("self_care_reply","RESOLVED");
         assertThat(modelCalls.get()).isZero();
+    }
+    @Test void generatedVibrationReplyUsesCanonicalConditionsAndPreservesMissingApproval(){
+        String email="answer-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
+        products.create(email,new UserProductService.Create("설명 검증 세탁기",input,"서울","강남구"));
+        script.add(call("search_knowledge",map("query","탈수할 때 많이 흔들려요")));
+        var response=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
+        assertThat(response.reply()).contains("확인된 내용부터 말씀드릴게요","운송용 고정볼트가 남은 경우","제품 수평이 맞지 않는 경우","실제 원인은 아직 확인되지","직접 실행할 조치가 확인되지");
+        assertThat(response.reply()).doesNotContain("제거하세요","수평을 맞춘다","터보샷 소음","{{");
+        assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
+        assertThat(answerRequests).hasSize(1);assertThat(answerRequests.getFirst()).doesNotContain("action_summary","actionDescriptions","current_QA_review","Bearer ",email);
+        assertThat(history.toolCalls(response.conversationId(),email)).hasSize(2);
+        assertThat(history.detail(response.conversationId(),email).messages().getLast().content()).isEqualTo(response.reply());
+        assertThat(history.detail(response.conversationId(),email).messages().getLast().tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
+    }
+    @Test void ungroundedFinalPriceFallsBackToVerifiedToolSentences(CapturedOutput output){
+        script.add(call("get_repair_candidates",Map.of()));script.add(estimate(map("candidate_ids",List.of("W01"),"confidence",0.8)));
+        answerScript.add(input->JSON.writeValueAsString(map("paragraphs",List.of(map("text","수리비는 0원이고 무상입니다. {{TOOL_GUIDANCE}}","fact_ids",List.of("TOOL_GUIDANCE"))))));
+        var response=agent.chat(new ChatRequest("배수 수리비가 얼마인가요?",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","FIXED_FALLBACK").containsEntry("reason","VALIDATION_FAILED");
+        assertThat(response.reply()).contains("120,120원","견적이 아닙니다").doesNotContain("수리비는 0원이고");
+        assertNumbersComeFromTools(response);assertThat(output.getAll()).doesNotContain("수리비는 0원이고","배수 수리비가 얼마인가요?",owner);
+    }
+    @Test void unresolvedKnowledgeExplainsMissingFactsWithoutInventedCauses(){
+        interpretations.add(decision("SYMPTOM",null,List.of(map("code","POWER","confidence",.9)),List.of(),null));
+        script.add(call("search_knowledge",map("query","화성 지하실의 달빛 전자부품 이상")));
+        var response=agent.chat(new ChatRequest("전원이 안 켜져요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(response.reply()).contains("확인된 설명 근거가 부족");
+        assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
     }
 }
