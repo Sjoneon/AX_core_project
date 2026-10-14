@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the running service (backend, nginx and, from the MCP release on, mcp), backend replacement and API persistence."""
+"""운영 컨테이너 상태·백엔드 교체·API 데이터 보존 검증(MCP 릴리스는 mcp 포함)"""
 import json
 import re
 import secrets
@@ -19,6 +19,7 @@ def command(*args):
 
 
 def request(path, payload=None, token=None, method=None):
+    """인증값이 제공되면 Bearer 헤더를 포함한 API 응답 조회(204는 None 반환)"""
     headers = {'Content-Type': 'application/json'}
     if token:
         headers['Authorization'] = 'Bearer ' + token
@@ -29,6 +30,7 @@ def request(path, payload=None, token=None, method=None):
 
 
 def wait_for_health():
+    """프록시 health 확인(최대 60회, 실패 시 2초 간격 재시도)"""
     for _ in range(60):
         try:
             if request('/actuator/health')['status'] == 'UP':
@@ -42,6 +44,7 @@ def wait_for_health():
 def main():
     import pymysql
 
+    # 현재 릴리스의 Compose 구성과 컨테이너 상태 확인
     release = Path('/opt/homecare/current').resolve()
     files = ['-f', str(release / 'compose.prod.yaml')]
     if (release / 'compose.mcp.yaml').exists():
@@ -65,7 +68,7 @@ def main():
             assert container['Config']['User'] == '10001:10001'
             assert container['HostConfig']['Memory'] == 1073741824
         elif service == 'mcp':
-            # Internal only: no published port, non-root, no capabilities, 256 MB.
+            # MCP 내부 통신·비루트 실행·capability 제거·메모리 상한 256 MiB 검증
             assert not container['HostConfig']['PortBindings']
             assert container['Config']['User'] == '10001:10001'
             assert container['HostConfig']['CapDrop'] == ['ALL']
@@ -76,6 +79,7 @@ def main():
             assert set(container['HostConfig']['PortBindings']) == {'80/tcp', '443/tcp'}
             assert container['HostConfig']['Memory'] == 134217728
     assert services == expected
+    # 공개 API 인증과 내부·관리 경로 차단 확인
     for path, status in (('/api/conversations', 401), ('/', 404), ('/actuator/env', 404), ('/mcp', 404),
                          ('/api/tools/lookup_model', 404)):
         try:
@@ -87,6 +91,7 @@ def main():
     values = dict(line.split('=', 1) for line in Path('/opt/homecare/config/runtime.env').read_text().splitlines())
     host = re.fullmatch(r'jdbc:mysql://([a-z0-9.-]+):3306/project_db\?.+',
                         values['SPRING_DATASOURCE_URL'])[1]
+    # 이번 실행만의 임시 회원·상담 생성과 데이터 보존 검증
     email = 'service-verify-' + uuid.uuid4().hex + '@example.com'
     password = secrets.token_urlsafe(24)
     with pymysql.connect(host=host, database='project_db', user=values['SPRING_DATASOURCE_USERNAME'],

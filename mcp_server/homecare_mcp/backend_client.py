@@ -1,4 +1,4 @@
-"""HTTP client for the Spring tool API. Spring owns all domain logic; this layer only forwards."""
+"""Spring 도구 API의 HTTP 요청 전달(도메인 로직은 Spring에서 처리)"""
 from __future__ import annotations
 
 import logging
@@ -18,6 +18,12 @@ LOG = logging.getLogger("homecare_mcp.tools")
 
 
 def resolve_backend_origin(backend_url: str | None = None) -> str:
+    """백엔드 HTTP(S) 주소 조회
+
+    backend_url이 없으면 HOMECARE_BACKEND_URL을 사용합니다.
+    환경 변수의 기본값은 http://127.0.0.1:8080입니다.
+    HTTP(S) 접두사가 없으면 ValueError를 발생시킵니다.
+    """
     origin = (backend_url or os.environ.get("HOMECARE_BACKEND_URL", "http://127.0.0.1:8080")).rstrip("/")
     if not origin.startswith(("http://", "https://")):
         raise ValueError("HOMECARE_BACKEND_URL must be an HTTP(S) origin")
@@ -25,6 +31,7 @@ def resolve_backend_origin(backend_url: str | None = None) -> str:
 
 
 class BackendClient:
+    """요청별 JWT를 전달하는 Spring 도구 API 클라이언트"""
     def __init__(self, origin: str, token_provider: Callable[[], str],
                  transport: httpx.AsyncBaseTransport | None = None):
         self.origin = origin
@@ -32,7 +39,13 @@ class BackendClient:
         self.transport = transport
 
     async def post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """인증된 Spring API 요청과 JSON 응답 조회
+
+        X-HomeCare-Context-Version이 제공되면 백엔드 요청에도 전달합니다.
+        인증·소유권·상담 상태 오류를 ToolError로 변환하고 응답 본문은 노출하지 않습니다.
+        """
         headers = {"Authorization": "Bearer " + self.token_provider()}
+        # 상담 버전 헤더가 제공되면 백엔드 요청에 전달
         incoming = {k.lower(): v for k, v in get_http_headers(include={CONTEXT_VERSION_HEADER.lower()}).items()}
         if CONTEXT_VERSION_HEADER.lower() in incoming:
             headers[CONTEXT_VERSION_HEADER] = incoming[CONTEXT_VERSION_HEADER.lower()]
@@ -53,10 +66,15 @@ class BackendClient:
         except ToolError:
             raise
         except (httpx.HTTPError, ValueError) as error:
-            # Never return upstream bodies, request headers, or credentials to the client.
+            # 백엔드 응답 본문·요청 헤더·인증값의 클라이언트 노출 방지
             raise ToolError("TOOL_UNAVAILABLE: 근거 데이터를 확인하지 못했습니다.") from error
 
     async def call_tool(self, name: str, conversation_id: int, **args: Any) -> Envelope:
+        """상담 도구 호출과 공통 결과 계약 검증
+
+        conversation_id가 1 미만이거나 결과 계약이 다르면 ToolError를 발생시킵니다.
+        호출 로그에는 도구명·상태·오류 코드·소요 시간 등만 기록합니다.
+        """
         if conversation_id < 1:
             raise ToolError("INVALID_ARGUMENT: 상담 ID가 필요합니다.")
         started = time.monotonic()
@@ -67,7 +85,7 @@ class BackendClient:
             except ValueError as error:
                 raise ToolError("INVALID_RESULT: 도구 결과 계약을 확인해 주세요.") from error
         except ToolError as error:
-            # Only the error code is logged, never arguments, tokens or backend bodies.
+            # 오류 코드만 기록(인자·토큰·백엔드 응답 본문 제외)
             LOG.info("homecare_tool_call trace_id=none tool=%s status=ERROR error_code=%s elapsed_ms=%d",
                      name, str(error).split(":", 1)[0], _elapsed(started))
             raise

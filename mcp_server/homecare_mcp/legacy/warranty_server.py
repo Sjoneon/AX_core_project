@@ -1,6 +1,7 @@
-"""Standalone warranty MCP kept for compatibility. New agents use homecare_mcp.server.
+"""기존 보증 조회 MCP 서버(호환용)
 
-Run: python -m homecare_mcp.legacy.warranty_server
+새 Agent는 homecare_mcp.server를 사용합니다.
+실행: python -m homecare_mcp.legacy.warranty_server
 """
 from __future__ import annotations
 
@@ -19,6 +20,7 @@ from homecare_mcp.tools.read_only import READ_ONLY_ANNOTATIONS
 
 def create_server(backend_url: str | None = None, token_provider: Callable[[], str] = request_token,
                   transport: httpx.AsyncBaseTransport | None = None) -> FastMCP:
+    """기존 보증 조회 MCP 서버 생성(호환용)"""
     upstream = resolve_backend_origin(backend_url)
     server = FastMCP("HomeCare Warranty", mask_error_details=True)
 
@@ -45,7 +47,7 @@ def create_server(backend_url: str | None = None, token_provider: Callable[[], s
         except ToolError:
             raise
         except (httpx.HTTPError, ValueError) as error:
-            # Never return upstream bodies, request headers, or credentials to the client.
+            # 백엔드 응답 본문·요청 헤더·인증값의 클라이언트 노출 방지
             raise ToolError("WARRANTY_UNAVAILABLE: 보증 정보를 확인하지 못했습니다.") from error
 
     return server

@@ -6,10 +6,27 @@ AWS CLI 2.37.12를 SSM으로 설치했습니다. Docker 자동 시작과 json-fi
 
 5단계에서 `backend`, `nginx` 두 컨테이너를 상시 배포했습니다. 운영 컨테이너 로그는
 CloudWatch와 제한된 로컬 캐시를 사용합니다. 배포·검증·상태 확인은
-[운영 컨테이너 안내](SERVICE_DEPLOYMENT.md)를 참고합니다.
+[운영 컨테이너 안내](docs/service_deployment.md)를 참고합니다.
 6단계에서 IP 인증서 기반 HTTPS·정확한 Vercel origin CORS·인증서 자동 갱신을 적용했습니다.
-[HTTPS·CORS 안내](HTTPS_CORS.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
-7단계 워크플로와 릴리스·복원 정책은 [CI/CD 안내](CI_CD.md)를 참고합니다.
+[HTTPS·CORS 안내](docs/https_cors.md)에 기존 Vercel 프로젝트의 CLI 배포도 기록했습니다.
+7단계 워크플로와 릴리스·복원 정책은 [CI/CD 안내](docs/ci_cd.md)를 참고합니다.
+
+## 폴더 구조
+
+| 폴더 | 내용 | 실행 시점 |
+|---|---|---|
+| `compose/` | `compose.prod.yaml`(운영), `compose.mcp.yaml`(MCP 추가), `compose.acme.yaml`(첫 인증서 발급용) | 배포마다 |
+| `deploy/` | `ci-release.py`(CI), `deploy-service.sh`·`write-runtime-env.py`(EC2), `start-service.sh`(수동 시작) | 배포마다 |
+| `checks/` | `test-proxy.py`(CI 프록시 검사), `verify-service.py`(배포 후 수동 점검) | CI·수동 |
+| `setup/` | `bootstrap-ec2.sh`, `register-parameters.py`, `setup-https.sh`, `renew-nginx.sh`(인증서 갱신 훅) | 서버 최초 구축 |
+| `rds/` | `prepare-rds-tls.sh`, `run-rds-initialization.py`, `initialize-rds.py`, `verify-rds.py`, `sql/` | DB 최초 구축·스키마 |
+| `records/` | `STAGE5_RELEASE.json`, `STAGE6_RELEASE.json` 수동 배포 기록 | 실행과 무관 |
+| `docs/` | 단계별 운영 문서 | — |
+| `tests/` | 위 스크립트의 단위 테스트 | CI |
+
+`ci-release.py`는 `compose.prod.yaml`, `deploy-service.sh`, `write-runtime-env.py`, `verify-service.py`를
+폴더 구분 없이 릴리스 묶음 최상위에 담습니다. 그래서 EC2의 `/opt/homecare/releases/<id>/`와
+`/usr/local/lib/homecare/` 경로는 저장소 폴더 구조와 관계없이 그대로입니다.
 
 ## 폴더 구조
 
@@ -54,7 +71,7 @@ Terraform이 `/homecare/prod/` 아래에 일반 String 파라미터 7개를 관�
 | `SPRING_DATASOURCE_URL` | RDS 주소, `sslMode=VERIFY_IDENTITY`, 명시적 RDS CA truststore |
 
 DB 앱 계정·스키마와 RDS CA truststore는 4단계에서 준비·검증했습니다.
-[RDS 초기화 안내](RDS_INITIALIZATION.md)에 초기 SQL·권한·TLS와 재실행 절차를 기록했습니다.
+[RDS 초기화 안내](docs/rds_initialization.md)에 초기 SQL·권한·TLS와 재실행 절차를 기록했습니다.
 truststore 비밀번호 `changeit`은 공개 CA 인증서를 담은 파일의 설정이며 DB 비밀번호가 아닙니다.
 검증 컨테이너에 호스트의 공개 CA truststore를 `/app/config/rds-truststore.p12`에
 읽기 전용으로 연결했습니다. 5단계 상시 앱 배포에서도 같은 경로를 사용합니다.

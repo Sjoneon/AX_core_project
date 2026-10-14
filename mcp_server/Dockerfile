@@ -1,4 +1,4 @@
-# Exact version and multi-arch digest (Docker Hub python:3.12.15-slim-bookworm, 2026-10-06).
+# Python 이미지 버전·다중 아키텍처 digest 고정(Docker Hub, 2026-10-06)
 FROM python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
 WORKDIR /app
 COPY requirements.txt .

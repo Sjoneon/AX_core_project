@@ -1,4 +1,4 @@
-"""Warranty input/output mirrors of Spring WarrantyModels. Field names follow the Java JSON contract."""
+"""Spring WarrantyModels와 동일한 JSON 필드의 보증 입력·응답 스키마"""
 from __future__ import annotations
 
 from datetime import date
@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 Category = Literal["REFRIGERATOR", "WASHER", "DRYER", "DISHWASHER"]
 
 
+# 제품 품목·날짜·증빙 조건의 보증 조회 입력 스키마
 class WarrantyInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     category: Category
@@ -22,6 +23,7 @@ class WarrantyInput(BaseModel):
     domesticNewHousehold: bool = False
 
 
+# 제품 전체 또는 주요 부품의 보증 판정 응답
 class WarrantyRow(BaseModel):
     model_config = ConfigDict(extra="forbid")
     policyId: str
@@ -38,6 +40,7 @@ class WarrantyRow(BaseModel):
     conditions: list[str]
 
 
+# 제품 전체·주요 부품 보증과 정책 출처의 조회 결과
 class WarrantyResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     category: Category

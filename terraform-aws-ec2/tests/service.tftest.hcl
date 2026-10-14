@@ -75,6 +75,10 @@ run "service_security_and_topology" {
     error_message = "Release image tags must be immutable and repositories must not force-delete images."
   }
   assert {
+    condition     = toset(keys(aws_ecr_repository.service)) == toset(["backend", "nginx", "mcp"]) && contains(keys(aws_cloudwatch_log_group.runtime), "mcp")
+    error_message = "The MCP container needs its own immutable ECR repository and log group."
+  }
+  assert {
     condition     = aws_s3_bucket_public_access_block.releases.block_public_acls && aws_s3_bucket_public_access_block.releases.block_public_policy && aws_s3_bucket_public_access_block.releases.ignore_public_acls && aws_s3_bucket_public_access_block.releases.restrict_public_buckets && aws_s3_bucket_versioning.releases.versioning_configuration[0].status == "Enabled"
     error_message = "Release files must be private and versioned."
   }

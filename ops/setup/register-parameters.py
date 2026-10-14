@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create missing production SecureString parameters without printing secret values."""
+"""누락된 운영 SecureString 등록(기존 값 보존, 비밀값 출력 제외)"""
 import argparse
 import base64
 import json
@@ -20,12 +20,14 @@ def aws(region, *arguments):
 
 
 def main():
+    """AWS 계정 확인 후 누락된 SecureString만 등록"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--region', default='ap-northeast-2')
     parser.add_argument('--prefix', default='/homecare/prod')
     parser.add_argument('--account-id', default='528215464049')
     parser.add_argument('--env-file', type=Path, default=Path(__file__).resolve().parents[2] / 'backend/.env')
     args = parser.parse_args()
+    # 대상 AWS 계정과 기존 파라미터 확인
     if aws(args.region, 'sts', 'get-caller-identity')['Account'] != args.account_id:
         raise SystemExit('AWS account does not match the expected account.')
     listed = aws(args.region, 'ssm', 'describe-parameters', '--parameter-filters',
@@ -33,6 +35,7 @@ def main():
     existing = {parameter['Name']: parameter['Type'] for parameter in listed['Parameters']}
     key_name = f'{args.prefix}/OPENAI_API_KEY'
     openai_key = None
+    # OPENAI_API_KEY가 없으면 로컬 환경 파일에서 등록값 조회
     if key_name not in existing:
         for line in args.env_file.read_text().splitlines():
             if line.strip().startswith('OPENAI_API_KEY='):
@@ -46,6 +49,7 @@ def main():
         'JWT_SECRET': lambda: base64.b64encode(secrets.token_bytes(32)).decode(),
         'SPRING_DATASOURCE_PASSWORD': lambda: secrets.token_urlsafe(32),
     }
+    # 기존 SecureString 보존, 누락된 값만 생성·등록
     for key, generate in values.items():
         name = f'{args.prefix}/{key}'
         if name in existing:
@@ -55,6 +59,7 @@ def main():
             continue
         payload = {'Name': name, 'Type': 'SecureString', 'Tier': 'Standard',
                    'Value': generate(), 'Overwrite': False}
+        # 비밀값을 임시 파일로 전달하고 등록 후 삭제
         fd, temporary = tempfile.mkstemp(prefix='homecare-parameter-', suffix='.json')
         try:
             with os.fdopen(fd, 'w') as stream:

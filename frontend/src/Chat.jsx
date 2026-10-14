@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuthenticatedRequest } from './api.js'
+import { requestChat } from './chatStream.js'
 import Brand from './components/Brand.jsx'
 import Icon from './components/Icon.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { PRODUCTS, productName } from './data/products.js'
+import WarrantyResult from './components/WarrantyResult.jsx'
+import RiskQuestion from './components/RiskQuestion.jsx'
+import ToolResults from './components/ToolResults.jsx'
+import ToolCallTrace from './components/ToolCallTrace.jsx'
 
 export default function Chat({ session, onLogout, isActive, onMyPage }) {
   const [messages, setMessages] = useState([])
@@ -24,12 +29,17 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
   const historyDialogRef = useRef(null)
   const deleteDialogRef = useRef(null)
   const sendingRef = useRef(false)
+  const streamAbortRef = useRef(null)
+  const streamStateRef = useRef({ supported: true })
+  const stickToBottomRef = useRef(true)
   const isBusy = isSending || isLoading || isDeleting
   const started = messages.length > 0
   const retired = category === 'AIR_CONDITIONER'
   const selectedProduct = PRODUCTS.find((product) => product.id === category) || PRODUCTS[0]
 
   const request = useAuthenticatedRequest(session, onLogout)
+
+  useEffect(() => () => streamAbortRef.current?.abort(), [])
 
   const loadHistory = useCallback(async (signal) => {
     try {
@@ -65,7 +75,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     if (!isActive) return
     const conversation = conversationRef.current
     if (!isBusy && !mobileOpen && !deleteTarget && !retired) inputRef.current.focus({ preventScroll: true })
-    conversation.scrollTop = messages.length ? conversation.scrollHeight : 0
+    if (stickToBottomRef.current) conversation.scrollTop = messages.length ? conversation.scrollHeight : 0
   }, [messages, isBusy, mobileOpen, deleteTarget, isActive, retired])
 
   useEffect(() => {
@@ -84,6 +94,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     setError('')
     try {
       const data = await request(`/api/conversations/${id}`)
+      stickToBottomRef.current = true
       setConversationId(data.id)
       setCategory(data.category || '')
       setMessages(data.messages)
@@ -111,33 +122,50 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     setError('')
     setIsSending(true)
     setDraft('')
-    setMessages((previous) => [...previous, { id: crypto.randomUUID(), role: 'user', content: message }])
+    stickToBottomRef.current = true
+    const userId = crypto.randomUUID()
+    const assistantId = crypto.randomUUID()
+    const controller = new AbortController()
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(120_000)])
+    streamAbortRef.current = controller
+    let partialReply = ''
+    setMessages((previous) => [...previous, { id: userId, role: 'user', content: message }])
 
     try {
-      const data = await request('/api/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message, conversationId, category: category || null }),
-        signal: AbortSignal.timeout(120_000),
+      const data = await requestChat(request, { message, conversationId, category: category || null }, {
+        signal, streamState: streamStateRef.current,
+        onDelta: (chunk) => {
+          if (controller.signal.aborted || !chunk) return
+          partialReply += chunk
+          const content = partialReply
+          setMessages((previous) => previous.some((item) => item.id === assistantId)
+            ? previous.map((item) => item.id === assistantId ? { ...item, content } : item)
+            : [...previous, { id: assistantId, role: 'assistant', content }])
+        },
       })
-      if (typeof data?.reply !== 'string' || !data.reply.trim()) {
-        throw new Error('답변이 비어 있습니다. 다시 시도해 주세요.')
-      }
-      setMessages((previous) => [...previous, { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [] }])
+      if (controller.signal.aborted) return
+      setMessages((previous) => [
+        ...previous.filter((item) => item.id !== assistantId),
+        { id: assistantId, role: 'assistant', content: data.reply, sources: data.sources || [], warranty: data.warranty || null, tools: data.tools || {} },
+      ])
       setConversationId(data.conversationId)
       await loadHistory()
     } catch (exception) {
-      setMessages((previous) => previous.slice(0, -1))
+      if (controller.signal.aborted) return
+      setMessages((previous) => previous.filter((item) => item.id !== userId && item.id !== assistantId))
       setDraft(message)
       setError(
-        exception.name === 'TimeoutError'
+        exception.name === 'TimeoutError' || signal.reason?.name === 'TimeoutError'
           ? '응답 시간이 초과되었습니다. 다시 시도해 주세요.'
           : exception instanceof TypeError
             ? '서버에 연결하지 못했습니다. 서버 실행 상태를 확인해 주세요.'
             : exception.message,
       )
+      await loadHistory()
     } finally {
+      streamAbortRef.current = null
       sendingRef.current = false
-      setIsSending(false)
+      if (!controller.signal.aborted) setIsSending(false)
     }
   }
 
@@ -153,6 +181,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
   }
 
   function resetConversation() {
+    stickToBottomRef.current = true
     setConversationId(null)
     setCategory('')
     setMessages([])
@@ -202,6 +231,31 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     onRetry: retryHistory, onDelete: beginDelete, isBusy, isLoading, error: historyError,
   }
 
+  async function answerRisk(answer, contextVersion) {
+    if (isBusy || sendingRef.current || !conversationId) return
+    sendingRef.current = true
+    setIsSending(true)
+    setError('')
+    stickToBottomRef.current = true
+    try {
+      const data = await request(`/api/conversations/${conversationId}/risk-answer`, {
+        method: 'POST', body: JSON.stringify({ answer, context_version: contextVersion }),
+      })
+      if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('위험 확인 답변을 가져오지 못했습니다.')
+      const label = { YES: '예', NO: '아니요', UNSURE: '모르겠어요' }[answer]
+      setMessages((previous) => [...previous,
+        { id: crypto.randomUUID(), role: 'user', content: label },
+        { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [], warranty: data.warranty || null, tools: data.tools || {} },
+      ])
+      await loadHistory()
+    } catch (exception) {
+      setError(exception instanceof TypeError ? '서버에 연결하지 못했습니다.' : exception.message)
+    } finally {
+      sendingRef.current = false
+      setIsSending(false)
+    }
+  }
+
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">상담 화면으로 이동</a>
@@ -222,7 +276,10 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
             <div><span className="toolbar-icon"><Icon name={started ? category : 'chat'} size={21} /></span><h1>{started ? `${productName(category)} 상담` : '가전 상담'}</h1><span className="toolbar-label">{isLoading ? '불러오는 중' : isSending ? '답변 작성 중' : retired ? '기록 조회' : started ? '상담 중' : '새 상담'}</span></div>
             <span className="toolbar-help">{retired ? '기존 기록을 조회할 수 있어요' : '모델명 없이 카테고리로 시작해요'}</span>
           </div>
-          <div className="chat-scroll" ref={conversationRef} aria-busy={isBusy}>
+          <div className="chat-scroll" ref={conversationRef} aria-busy={isBusy} onScroll={(event) => {
+            const { scrollHeight, scrollTop, clientHeight } = event.currentTarget
+            stickToBottomRef.current = scrollHeight - scrollTop - clientHeight < 80
+          }}>
             {!started ? (
               <div className="welcome">
                 <div className="welcome-mark"><Icon name="spark" size={32} /></div>
@@ -252,9 +309,12 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                     <div className="message-content">
                       <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
                       <p className="message-bubble">{message.content}</p>
+                      {message.role === 'assistant' && <RiskQuestion safety={message.tools?.safety} active={message === messages.at(-1)} disabled={isBusy} onAnswer={answerRisk} />}
+                      {message.role === 'assistant' && message.warranty && <WarrantyResult result={message.warranty} />}
+                      {message.role === 'assistant' && <ToolResults tools={message.tools} conversationId={conversationId} request={request} active={message === messages.at(-1) && !isBusy} />}
                       {message.role === 'assistant' && message.sources?.length > 0 && (
                         <div className="message-sources" aria-label="답변 생성에 전달한 검색 근거">
-                          <p>검색 근거 · 가상 테스트 매뉴얼</p>
+                          <p>검색 근거 · 적용 조건 확인 필요</p>
                           {message.sources.map((source) => (
                             <details key={source.documentId}>
                               <summary>{source.documentId} · {source.title}</summary>
@@ -270,15 +330,16 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                 {isSending && <p className="loading" role="status">HomeCare AI가 답변을 작성하고 있어요…</p>}
               </div>
             )}
+            {import.meta.env.DEV && <ToolCallTrace request={request} conversationId={conversationId} message={messages.filter((message) => message.role === 'assistant').at(-1)} />}
           </div>
           <div className="composer-area">
             {error && <p className="error" role="alert">{error}</p>}
             <form className="chat-form" onSubmit={sendMessage}>
               <label className="sr-only" htmlFor="chat-message">제품 증상 또는 질문</label>
               <textarea id="chat-message" ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={handleKeyDown} placeholder={retired ? '에어컨 상담은 지원 종료되었습니다. 기존 기록만 조회할 수 있어요.' : started ? '궁금한 점을 이어서 입력해 주세요.' : category ? `예: ${selectedProduct.example}` : '어떤 증상인지 편하게 적어주세요.'} maxLength={4000} readOnly={isBusy || retired} disabled={retired} required rows={2} aria-describedby="composer-hint" />
-              <div className="composer-controls"><span className="character-count">{draft.length.toLocaleString()} / 4,000</span><button className="send-button" type="submit" disabled={isBusy || retired || !draft.trim() || (!started && !category)}>{retired ? '지원 종료' : isSending ? '응답 기다리는 중' : started ? '보내기' : '상담 시작'}<Icon name="send" size={19} /></button></div>
+              <div className="composer-controls"><span className="character-count">{draft.length.toLocaleString()} / 4,000</span><button className="send-button" type="submit" disabled={isBusy || retired || !draft.trim() || (!started && !category)}>{retired ? '지원 종료' : isSending ? '답변 받는 중' : started ? '보내기' : '상담 시작'}<Icon name="send" size={19} /></button></div>
             </form>
-            <div className="composer-help" id="composer-hint"><span>{retired ? '새 상담 시작을 눌러 지원하는 품목을 선택해 주세요.' : !started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>가상 매뉴얼 기반 테스트 상담입니다.</span></div>
+            <div className="composer-help" id="composer-hint"><span>{retired ? '새 상담 시작을 눌러 지원하는 품목을 선택해 주세요.' : !started && !category ? '먼저 위에서 제품을 선택해 주세요.' : 'Enter 전송 · Shift + Enter 줄바꿈'}</span><span>보증·비용은 적용 조건 확인이 필요합니다.</span></div>
           </div>
         </main>
       </div>

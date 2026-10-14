@@ -19,7 +19,7 @@ resource "aws_ssm_parameter" "runtime" {
 }
 
 resource "aws_cloudwatch_log_group" "runtime" {
-  for_each          = toset(["backend", "nginx", "deploy"])
+  for_each          = toset(["backend", "nginx", "mcp", "deploy"])
   name              = "${local.parameter_prefix}/${each.key}"
   retention_in_days = 14
 }

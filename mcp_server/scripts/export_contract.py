@@ -1,6 +1,6 @@
-"""Export the actual nine-tool discovery schema, without credentials or backend calls.
+"""실제 도구 9개의 discovery 계약 내보내기(인증값·백엔드 호출 제외)
 
-Run from mcp_server: python -m scripts.export_contract
+mcp_server에서 실행: python -m scripts.export_contract
 """
 import asyncio
 import json
@@ -9,6 +9,7 @@ from fastmcp import Client
 from homecare_mcp.server import create_server
 
 async def main():
+    """실제 등록 도구의 JSON 계약 생성·저장"""
     async with Client(create_server()) as client:
         tools=await client.list_tools()
     contract={

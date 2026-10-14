@@ -7,7 +7,6 @@ test "$(id -u)" = 0
 test -r "$release_dir/compose.prod.yaml"
 test -r "$release_dir/compose.mcp.yaml"
 test -r "$release_dir/images.env"
-test -r "$release_dir/migrate-database.py"
 test -r /opt/homecare/config/rds-truststore.p12
 test -r /etc/letsencrypt/live/homecare-api/fullchain.pem
 test -r /etc/letsencrypt/live/homecare-api/privkey.pem
@@ -26,7 +25,7 @@ compose() {
     local directory=$1
     shift
     local files=(-f "$directory/compose.prod.yaml")
-    # Releases with the MCP container carry compose.mcp.yaml; restoring an older release restores its two containers.
+    # MCP 정의가 있으면 병합하고 이전 릴리스 복구 시 해당 컨테이너 구성 사용
     if [[ -r "$directory/compose.mcp.yaml" ]]; then
         files+=(-f "$directory/compose.mcp.yaml")
     fi
@@ -76,22 +75,20 @@ if [[ "$previous" == "$release_dir" ]]; then
     exit 0
 fi
 
-# Prepare everything before replacing the running containers or runtime.env.
+# 컨테이너·runtime.env 교체 전 설정과 이미지 사전 준비
 python3 "$release_dir/write-runtime-env.py" --output "$release_dir/runtime.prepared.env"
 compose "$release_dir" config --quiet
 aws ecr get-login-password --region ap-northeast-2 |
     docker login --username AWS --password-stdin \
         528215464049.dkr.ecr.ap-northeast-2.amazonaws.com >/dev/null
 compose "$release_dir" pull
-backend_image=$(sed -n 's/^BACKEND_IMAGE=//p' "$release_dir/images.env")
-python3 "$release_dir/migrate-database.py" --image "$backend_image"
 if [[ -n "$previous" ]]; then
     test -r "$previous/compose.prod.yaml"
     test -r "$previous/images.env"
     install -m 600 /opt/homecare/config/runtime.env "$previous/runtime.snapshot.env"
 fi
 
-# From this point a failure restores both the previous images and runtime.env.
+# 교체 시작 후 실패하면 이전 이미지와 runtime.env 복구
 changed=1
 install -m 600 "$release_dir/runtime.prepared.env" /opt/homecare/config/.runtime-next
 mv -f /opt/homecare/config/.runtime-next /opt/homecare/config/runtime.env

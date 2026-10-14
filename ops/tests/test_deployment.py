@@ -1,4 +1,4 @@
-"""Run the deployment transaction against disposable files and fake AWS/Docker."""
+"""임시 파일과 모의 AWS·Docker를 사용한 배포·복구 검증(개발/테스트용)"""
 import importlib.util
 import io
 import json
@@ -36,7 +36,7 @@ class DeploymentTests(unittest.TestCase):
                 for file in ('compose.prod.yaml', 'write-runtime-env.py', 'migrate-database.py'):
                     (directory / file).touch()
                 (directory / 'images.env').write_text('BACKEND_IMAGE=test-image\n')
-                # The previous release predates the MCP container; the new one carries compose.mcp.yaml.
+                # MCP가 없는 이전 릴리스와 MCP 정의가 있는 새 릴리스 구성
                 if name == 'new' and mcp:
                     (directory / 'compose.mcp.yaml').touch()
             if previous:
@@ -45,8 +45,8 @@ class DeploymentTests(unittest.TestCase):
             script.write_text((OPS / 'deploy/deploy-service.sh').read_text()
                               .replace('/opt/homecare', str(home))
                               .replace('/etc/letsencrypt/live/homecare-api', str(cert))
-                              .replace('mv -Tf ', 'mv -f '))  # macOS has no GNU -T.
-            # macOS mv follows directory symlinks; use a small atomic rename shim.
+                              .replace('mv -Tf ', 'mv -f '))  # macOS의 GNU -T 미지원 대응
+            # macOS mv의 디렉터리 symlink 추적을 피하는 원자적 교체 모의 구현
             bin_dir = root / 'bin'
             bin_dir.mkdir()
             shim = f'''#!{sys.executable}
@@ -96,7 +96,7 @@ elif name=='docker':
         promotion = next(i for i, call in enumerate(calls) if call[0] == 'mv' and call[-1].endswith('/current'))
         self.assertLess(health, promotion)
         self.assertNotIn('test-secret', result.stdout + result.stderr)
-        # pull and up use the merged backend + nginx + mcp definition of the new release.
+        # 새 릴리스의 backend·nginx·mcp 병합 정의로 pull·up 실행 검증
         for action in ('pull', 'up'):
             call = next(call for call in calls if call[0] == 'docker' and action in call)
             self.assertIn(next(arg for arg in call if arg.endswith('/releases/new/compose.mcp.yaml')), call)
@@ -174,9 +174,9 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(any(call.args[0][:2] in (['docker', 'build'], ['docker', 'push'])
                              for call in run.call_args_list))
         wait.assert_called_once_with('command', 'instance')
-        # EC2 runs these by name from /opt/homecare/releases/<id>/, so the archive must stay flat.
+        # EC2 파일명 참조에 맞는 릴리스 최상위 파일 목록 검증
         self.assertEqual(sorted(archived), ['compose.mcp.yaml', 'compose.prod.yaml', 'deploy-service.sh', 'images.env',
-                                        'migrate-database.py', 'release.json', 'verify-service.py', 'write-runtime-env.py'])
+                                            'migrate-database.py', 'release.json', 'verify-service.py', 'write-runtime-env.py'])
         self.assertIn('MCP_IMAGE=registry.example/mcp@sha256:' + 'a' * 64, images_env[0])
 
     @patch.object(ci_release.subprocess, 'run')

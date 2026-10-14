@@ -16,15 +16,15 @@ JWT는 이메일과 회원 ID를 함께 검증합니다. 업데이트 전에 발
 현재 로컬 `ddl-auto=update` 설정은 그대로입니다. `ddl-auto=validate`로 실행하는 DB에는 V006 적용이 필요합니다.
 이번 코드 업데이트에서 실제 DB 마이그레이션은 실행하지 않았습니다. `migrateDatabase`는 명시적으로 실행하는 별도 진입점이며, 이미 수동으로 V002~V005를 적용한 DB는 기존 이력 확인 없이 자동 baseline하지 않습니다.
 
-MCP 도구 9개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
+MCP 도구 8개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
 `GET /api/warranty/policies`, `POST /api/warranty/check`는 기존 JWT 인증을 사용하며,
 4개 품목의 확인된 정책으로 날짜·비용 항목을 분리합니다.
 상담에서도 `check_warranty` 도구를 사용할 수 있고 구조화 결과를 메시지 이력에 저장합니다.
-[MCP 실행과 테스트](../mcp_server/README.md)를 참고하세요.
+[설계·실행·자료 제한](../docs/mcp/mcp_implementation.md), [MCP 실행과 테스트](../mcp_server/README.md), [보증 정책](../docs/mcp/warranty_implementation.md)을 참고하세요.
 기존 운영 DB에는 배포 전에 V002 → V003 → V004 → V005를 한 번 적용해야 합니다. 실제 migration과 배포는 실행하지 않았습니다.
 
 사용자 계정과 대화 내역은 MySQL에 저장하고, 로그인 시 발급한 JWT로 API를 인증합니다.
-새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정하면 실제 MCP 프로세스 연동 검사도 실행합니다. 설정이 없으면 이 연동 검사만 건너뜁니다.
+새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. 전체 JUnit 실행 전 `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정해야 합니다.
 
 ## 실행
 
@@ -330,7 +330,7 @@ docker build -t core-backend:local .
 Docker 빌드에는 `build/libs/app.jar`만 전달하며 `.env`와 소스·캐시는 제외합니다.
 `compose.yaml`은 `backend` 서비스의 로컬 단독 실행용입니다. EC2에서는
 `../ops/compose/compose.prod.yaml`의 `backend`, `nginx` 두 서비스를 사용하며
-앱 포트는 호스트에 공개하지 않습니다. [운영 배포 안내](../ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
+앱 포트는 호스트에 공개하지 않습니다. [운영 배포 안내](../ops/docs/service_deployment.md)를 참고합니다.
 
 공식 문서: [Spring AI 시작하기](https://docs.spring.io/spring-ai/reference/getting-started.html),
 [ChatClient](https://docs.spring.io/spring-ai/reference/api/chatclient.html),

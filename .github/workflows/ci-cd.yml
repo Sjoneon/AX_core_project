@@ -31,6 +31,16 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - name: MCP dependencies and tests
+        run: |
+          python3 -m venv "$RUNNER_TEMP/homecare-mcp"
+          "$RUNNER_TEMP/homecare-mcp/bin/python" -m pip install -r mcp_server/requirements.txt
+          echo "HOMECARE_TEST_PYTHON=$RUNNER_TEMP/homecare-mcp/bin/python" >> "$GITHUB_ENV"
+          cd mcp_server
+          "$RUNNER_TEMP/homecare-mcp/bin/python" -m unittest discover -s tests -t . -q
+          # The committed discovery contract must match the tools in code.
+          "$RUNNER_TEMP/homecare-mcp/bin/python" -m scripts.export_contract
+          git diff --exit-code -- ../docs/mcp/mcp-tools.contract.json
       - name: Backend tests and JAR
         working-directory: backend
         run: ./gradlew --no-daemon test bootJar
@@ -38,7 +48,8 @@ jobs:
         working-directory: backend
         run: |
           docker compose -p homecare-ci -f compose.mysql-test.yaml up -d --wait --wait-timeout 180
-          ./gradlew --no-daemon migrationTest mysqlTest
+          # Keep migration regression checks and verify the MCP schema before disposable API tests.
+          ./gradlew --no-daemon migrationTest mysqlSchemaTest mysqlTest
       - name: Remove test database
         if: always()
         working-directory: backend
@@ -54,10 +65,20 @@ jobs:
       - name: Deployment scripts and Docker images
         run: |
           python3 -m unittest discover -s ops/tests -v
-          for script in ops/*.sh; do bash -n "$script"; done
+          for script in ops/*.sh ops/*/*.sh; do bash -n "$script"; done
           docker build --platform linux/amd64 -t homecare-backend:ci backend
           docker build --platform linux/amd64 -t homecare-nginx:ci proxy
-          python3 ops/test-proxy.py --image homecare-nginx:ci
+          docker build --platform linux/amd64 -t homecare-mcp:ci mcp_server
+          python3 ops/checks/test-proxy.py --image homecare-nginx:ci
+          # The MCP image must start as uid 10001 on a read-only filesystem and pass its own health check.
+          docker run -d --name homecare-mcp-ci --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+            -e HOMECARE_BACKEND_URL=http://127.0.0.1:9 -e HOMECARE_MCP_ALLOWED_HOSTS=mcp homecare-mcp:ci
+          for attempt in $(seq 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' homecare-mcp-ci)" = healthy ] && break
+            sleep 2
+          done
+          docker inspect -f '{{.State.Health.Status}} {{.Config.User}}' homecare-mcp-ci | grep -qx 'healthy 10001:10001'
+          docker rm -f homecare-mcp-ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-jar
@@ -100,4 +121,5 @@ jobs:
           ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
           ECR_BACKEND_REPOSITORY: ${{ vars.ECR_BACKEND_REPOSITORY }}
           ECR_NGINX_REPOSITORY: ${{ vars.ECR_NGINX_REPOSITORY }}
-        run: python3 ops/ci-release.py
+          ECR_MCP_REPOSITORY: ${{ vars.ECR_MCP_REPOSITORY }}
+        run: python3 ops/deploy/ci-release.py

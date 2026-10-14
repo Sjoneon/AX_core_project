@@ -203,3 +203,39 @@
   .assistant-avatar { width: 29px; height: 29px; border-radius: 10px; }
   .auth-card { padding: 30px 24px; }
 }
+.warranty-panel { margin-bottom: 12px; padding: 12px 16px; border: 1px solid #ccd9e5; border-radius: 12px; background: #f8fbfe; color: #23334a; max-height: 60vh; overflow-y: auto; }
+.warranty-panel > summary { cursor: pointer; font-weight: 700; font-size: 17px; }
+.warranty-panel p, .warranty-result p { line-height: 1.6; }
+.warranty-panel fieldset { border: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.warranty-panel label { display: flex; flex-direction: column; gap: 5px; font-size: 15px; }
+.warranty-panel input:not([type=checkbox]), .warranty-panel select { width: 100%; min-height: 42px; border: 1px solid #bacbd8; border-radius: 6px; padding: 8px; background: white; font: inherit; }
+.warranty-panel .warranty-check { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+.warranty-check input { width: 20px; height: 20px; flex-shrink: 0; }
+.warranty-panel button { grid-column: 1 / -1; justify-content: center; }
+.warranty-result { margin-top: 16px; font-size: 17px; }
+.warranty-headline { font-weight: 700; }
+.warranty-row { padding: 14px; margin: 10px 0; background: white; border: 1px solid #d7e2ec; border-radius: 8px; }
+.warranty-row-heading { display: flex; justify-content: space-between; gap: 12px; }
+.warranty-status { font-weight: 700; }
+.warranty-status.in_warranty { color: #18664a; }
+.warranty-status.expired { color: #9d4b2b; }
+.warranty-fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.warranty-fees div { background: #f1f5f9; padding: 8px; border-radius: 6px; }
+.warranty-fees dt { font-size: 14px; color: #54657a; }
+.warranty-fees dd { margin: 6px 0 0; font-size: 15px; }
+.warranty-row li, .warranty-result li { margin: 6px 0; line-height: 1.5; }
+@media (max-width: 640px) { .warranty-panel fieldset { grid-template-columns: 1fr; } .warranty-fees { grid-template-columns: 1fr; } }
+.consultation-controls, .tool-result { padding: 12px 16px; margin: 8px 0; border: 1px solid #d7e2ec; border-radius: 10px; background: #f8fbfd; font-size: 16px; line-height: 1.6; }
+.consultation-controls summary { cursor: pointer; font-weight: 600; }
+.consultation-controls label { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: center; }
+.consultation-controls select { padding: 8px; max-width: 100%; border: 1px solid #b7c8d7; border-radius: 6px; background: white; }
+.tool-result h3 { margin: 0 0 12px; font-size: 18px; }
+.tool-result h3 small { font-weight: 400; font-size: 14px; }
+.tool-result p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-result article { border-top: 1px solid #d7e2ec; padding: 10px 0; }
+.tool-result dl > div { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+.tool-result dd { margin: 0; }
+.tool-result button, .tool-actions button { border: 1px solid #9aacbb; border-radius: 6px; padding: 8px 14px; background: white; cursor: pointer; font-size: 16px; }
+.tool-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.safety-card { padding: 12px; margin-top: 12px; border: 2px solid #cc3737; border-radius: 8px; background: #fff3f3; }
+.tool-route { margin-top: 12px; }

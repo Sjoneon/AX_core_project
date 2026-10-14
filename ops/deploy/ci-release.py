@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish this CI run's images and wait for an EC2 deployment to finish."""
+"""CI 이미지 게시와 EC2 배포 결과 확인"""
 import hashlib
 import json
 import os
@@ -24,6 +24,7 @@ def aws(*args):
 
 
 def image_digest(repository, tag):
+    """ECR 이미지 digest 조회(태그가 없으면 None 반환)"""
     result = subprocess.run(
         ['aws', 'ecr', 'describe-images', '--repository-name', repository,
          '--image-ids', f'imageTag={tag}', '--output', 'json'], capture_output=True, text=True,
@@ -39,7 +40,8 @@ def image_digest(repository, tag):
 
 
 def wait_for_deployment(command_id, instance_id):
-    deadline = time.monotonic() + 1320
+    """SSM 배포 결과 대기와 종료 상태·응답 코드 검증"""
+    deadline = time.monotonic() + 1320  # SSM 결과 대기 기준 22분
     while time.monotonic() < deadline:
         try:
             result = aws('ssm', 'get-command-invocation', '--command-id', command_id,
@@ -53,7 +55,7 @@ def wait_for_deployment(command_id, instance_id):
         if status in ('Pending', 'InProgress', 'Delayed', 'Cancelling'):
             time.sleep(5)
             continue
-        # Scripts print only health/deployment information, never env files or app logs.
+        # 비밀값 출력 없는 health·배포 결과 확인
         print(result.get('StandardOutputContent', ''), flush=True)
         print(result.get('StandardErrorContent', ''), flush=True)
         if status != 'Success' or result.get('ResponseCode') != 0:
@@ -99,7 +101,7 @@ def main():
 
         release = work / 'release'
         release.mkdir()
-        # The release archive stays flat; EC2 scripts address these files by name.
+        # EC2의 파일명 참조를 위한 릴리스 최상위 배치
         for source in ('compose/compose.prod.yaml', 'compose/compose.mcp.yaml', 'deploy/deploy-service.sh',
                        'deploy/write-runtime-env.py', 'checks/verify-service.py', 'migrate-database.py'):
             shutil.copyfile(ROOT / 'ops' / source, release / Path(source).name)

@@ -28,6 +28,7 @@ mcp_server/
 │  │  └─ read_only.py            # 공통 읽기 전용 annotations
 │  └─ legacy/warranty_server.py  # 이전 보증 단독 MCP 호환 엔트리
 ├─ scripts/export_contract.py    # discovery 계약 → docs/mcp/mcp-tools.contract.json
+├─ scripts/smoke_client.py       # 실제 HTTP MCP 도구·인증·소유권 확인 (LLM 제외)
 └─ tests/                        # test_server.py · test_warranty_server.py
 ```
 
@@ -39,7 +40,7 @@ mcp_server/
 |---|---|
 | `lookup_model` | 고객이 말한 모델 코드를 판매 코드와 정확히 일치할 때만 조회한다. 원문을 보존하고 접미사(예: `RD21ESE.AKOR`)를 자르지 않는다. 등록 전에도 쓴다. |
 | `search_knowledge` | 상담 모델의 제조사 근거 후보. 안전 주의 문서를 먼저, 제외·다른 모델 문서는 빼고, 모델 목록 없는 문서는 '적용 미판정'으로 표시한다. |
-| `get_product_context` | 본인의 등록 제품과 확정 상태. 자동 선택하지 않는다. |
+| `get_product_context` | 본인의 등록 제품과 확정 상태. 같은 품목의 제품이 하나면 상담 시작 시 자동 연결하며, 여러 개면 입력한 모델명·표시 이름으로 구분한다. |
 | `get_diagnostic_plan` | 승인된 자가검진 단계만 하나씩. 승인이 없으면 원문 후보만. |
 | `check_warranty` | 품질보증(구입일 기준)과 부품보유(제조일 기준)를 나눠 반환. 부품보유기간은 B30 원본 확인 전까지 `UNAVAILABLE`. |
 | `get_repair_candidates` | 품목의 부품 코드·이름과 `candidate_set_id`. 등록 제품이 없어도 된다. |
@@ -51,7 +52,7 @@ mcp_server/
 
 ## 로컬 실행
 
-Python 3.12, Java 21을 사용한다. PowerShell 첫 터미널:
+운영 이미지는 Python 3.12, 현재 PC의 기존 venv는 Python 3.13.2이며 Java 21을 사용한다. `.venv`와 요구 패키지가 이미 있으면 생성·설치 명령은 건너뛴다. PowerShell 첫 터미널:
 
 ```powershell
 cd mcp_server
@@ -62,16 +63,40 @@ $env:HOMECARE_BACKEND_URL='http://127.0.0.1:8080'
 .\.venv\Scripts\python -m homecare_mcp
 ```
 
-둘째 터미널에서 기존 backend DB/JWT/OpenAI 환경을 사용한다:
+둘째 터미널에서 `backend/.env`의 DB/JWT/OpenAI 설정을 사용한다. 이 PC의 로컬 DB는 `homecare_ai`이며 `.env.example`의 `project_db`와 다르다. 기존 DB 계정·비밀번호와 OpenAI 키는 `.env`에 직접 입력한다. 키가 없으면 `your-openai-api-key` 자리표시 값을 유지하고 실제 OpenAI 검증만 보류한다.
 
 ```powershell
 cd backend
+$env:JAVA_HOME='C:\Users\Roneon\.jdks\openjdk-21.0.1'
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
 $env:HOMECARE_AGENT_ENABLED='true'
 $env:HOMECARE_MCP_URL='http://127.0.0.1:8000'
-.\gradlew.bat bootRun
+.\gradlew.bat bootRun --offline --no-daemon
 ```
 
-프론트엔드에서 로그인하고 품목 선택 → 모델명·증상 문의 → (필요하면) 보증 양식 조회/제품 저장 → 비용·A/S 문의를 진행한다. MCP 주소는 서버 설정이며 사용자 인자로 받지 않는다. `/health`는 서버 프로세스 준비 여부이고 DB/실 OpenAI 접속 검증이 아니다.
+Java 설정은 해당 터미널에만 적용한다. 캐시가 없으면 `--offline`을 뺀다. 세 번째 터미널은 `frontend`에서 Node 24의 `node -v`를 확인하고 `npm ci` → `npm run dev`를 실행한다. `.env.local` 없이 Vite의 `/api` 프록시를 사용한다.
+
+프론트엔드에서 로그인하고 DB에 저장된 제품을 선택해 모델명·증상·비용·A/S 문의를 진행한다. 추가 수동 제품 등록·수정은 기존 마이페이지에서 한다. 상담 화면의 별도 보증 입력·등록 양식은 사용하지 않는다. MCP 주소는 서버 설정이며 사용자 인자로 받지 않는다. `/health`는 서버 프로세스 준비 여부이고 DB/실 OpenAI 접속 검증이 아니다.
+
+## LLM 없는 HTTP MCP 스모크 확인
+
+테스트 계정 2개와 각 계정의 상담을 준비한다. 첫 계정에는 구매일·배송지역이 있는 세탁기 `FX24ENER`를 등록하고 상담에 연결한다. MCP를 중지한 상태로 `/api/chat`에 `FX24ENER 세탁기 OE 배수 오류 수리비를 확인하고 비교용 모델 코드 RD21ESE.AKOR도 확인해 주세요.`를 보내면 모델 호출 없이 `MCP_UNAVAILABLE` 응답과 상담이 저장된다. 두 번째 계정도 위험 신호가 없는 문장으로 상담을 만든 뒤 MCP를 다시 실행한다. 두 모델 코드는 첫 계정의 최신 문장에 있어야 모델 출처 검증을 통과한다. 자세한 준비 순서는 [검증 가이드](../docs/guides/verification_guide.md)의 2장을 따른다.
+
+로그인 응답과 상담 응답을 셸 변수로만 보관하고 다음 환경 변수를 설정한다. JWT·상담 ID를 출력하거나 파일에 저장하지 않는다.
+
+```powershell
+Set-Location .\mcp_server
+$env:HOMECARE_SMOKE_TOKEN=$login.accessToken
+$env:HOMECARE_SMOKE_CONVERSATION_ID=[string]$ownChat.conversationId
+$env:HOMECARE_SMOKE_FOREIGN_CONVERSATION_ID=[string]$foreignChat.conversationId
+try {
+    & .\.venv\Scripts\python.exe -X utf8 -m scripts.smoke_client
+} finally {
+    Remove-Item Env:HOMECARE_SMOKE_TOKEN, Env:HOMECARE_SMOKE_CONVERSATION_ID, Env:HOMECARE_SMOKE_FOREIGN_CONVERSATION_ID -ErrorAction SilentlyContinue
+}
+```
+
+기본 출력은 도구·status·confidence·오류 코드 요약이다. `--verbose`는 인증값·상담 ID를 지운 결과 본문도 표시한다. 도구 9개와 `readOnlyHint`, 정확한 모델·접미사 보존, 실제 후보 묶음으로 계산한 비용, 보증·센터·전달 요약, 무인증·타 사용자 상담 거부를 확인한다. 자료 부족의 `NO_DATA`·`NOT_VERIFIED`는 계약상 정상일 수 있으며 비용 후보가 없어 계산을 건너뛰면 종료 코드 1로 미완료를 알린다. 종료 코드 2는 환경 변수 설정 오류다.
 
 ## 보안 설정
 

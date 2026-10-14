@@ -1,12 +1,12 @@
-"""Model-facing argument types. Spring validates the same rules again on every call."""
+"""모델에 노출하는 도구 입력 타입(Spring에서도 호출별 재검증)"""
 from __future__ import annotations
 
 from typing import Annotated, Literal
 
 from pydantic import Field
 
-# The original input is passed through unchanged so Spring can preserve it. After trimming outer spaces it must be
-# 1-40 letters, digits or . - / (Spring upper-cases it and never cuts suffixes such as RD21ESE.AKOR).
+# Spring에 모델 코드 원문 전달(공백 제외 영문·숫자·.-/ 1~40자)
+# Spring에서 대문자로 정규화하고 RD21ESE.AKOR 등의 접미사 보존
 ModelCode = Annotated[str, Field(min_length=1, max_length=64, pattern=r"^\s*[A-Za-z0-9./-]{1,40}\s*$",
                                  description="고객이 말한 모델 코드 원문. 자르거나 고치지 않는다.")]
 ProductCategoryInput = Literal["WASHER", "DRYER", "REFRIGERATOR", "DISHWASHER",

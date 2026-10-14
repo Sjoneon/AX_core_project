@@ -1,4 +1,4 @@
-"""One module per MCP tool. Registration order is the discovery order exported to the contract."""
+"""MCP 도구별 모듈 등록(등록 순서가 discovery 계약 순서)"""
 from __future__ import annotations
 
 from fastmcp import FastMCP
@@ -31,5 +31,6 @@ TOOL_NAMES = tuple(module.__name__.rsplit(".", 1)[-1] for module in TOOL_MODULES
 
 
 def register_tools(mcp: FastMCP, backend: BackendClient) -> None:
+    """TOOL_MODULES 순서로 MCP 도구 등록"""
     for module in TOOL_MODULES:
         module.register(mcp, backend)

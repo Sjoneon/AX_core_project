@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise HTTPS, redirects, CORS, the /api/tools block and rate limits using disposable local Nginx containers."""
+"""임시 Nginx 컨테이너의 HTTPS·리디렉션·CORS·도구 API 차단·호출 제한 검증(개발/테스트용)"""
 import http.client
 import argparse
 import json
@@ -21,6 +21,7 @@ def docker(*args):
 
 
 def main():
+    """임시 컨테이너로 프록시 경로와 요청 제한 검증"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--image', default='homecare-nginx:stage6')
     args = parser.parse_args()
@@ -82,7 +83,7 @@ def main():
                     assert response.read() == b''
                     assert 'Authorization' in response.getheader('Access-Control-Allow-Headers')
                 connection.close()
-            # The internal tool API is never reachable from the internet, however the path is spelled.
+            # 경로 표기 변형을 포함한 외부 도구 API 접근 차단 검증
             for path in ('/api/tools/search_knowledge', '/api/tools', '/api//tools/lookup_model', '/api/%74ools/lookup_model'):
                 connection = http.client.HTTPSConnection('127.0.0.1', 18443, context=context, timeout=5)
                 connection.request('POST', path, body='{}', headers={'Origin': ORIGIN, 'Content-Type': 'application/json'})
@@ -90,7 +91,7 @@ def main():
                 assert response.status == 404, (path, response.status)
                 response.read()
                 connection.close()
-            # Per-IP limits: POST /api/chat allows a burst of 10 after the first request, /api/auth/ a burst of 5.
+            # IP별 burst 한도 검증(POST /api/chat 10, /api/auth/ 5)
             for path, allowed in (('/api/chat', 11), ('/api/auth/login', 6)):
                 statuses = []
                 for _ in range(allowed + 4):
@@ -99,7 +100,7 @@ def main():
                     response = connection.getresponse()
                     statuses.append(response.status)
                     if response.status == 429:
-                        # The browser can still read the rejection because CORS headers are added "always".
+                        # 제한 응답에도 CORS 헤더 유지(always 설정)
                         assert response.getheader('Access-Control-Allow-Origin') == ORIGIN
                     response.read()
                     connection.close()

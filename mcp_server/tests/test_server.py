@@ -89,7 +89,7 @@ class NineToolTests(unittest.IsolatedAsyncioTestCase):
         async with Client(create_server('http://backend.test', lambda: 'user', httpx.MockTransport(handler))) as client:
             for code in (' fx24ener ', 'RD21ESE.AKOR'):
                 await client.call_tool('lookup_model', {'conversation_id': 7, 'model_code': code})
-        # Spring trims and upper-cases; the adapter never shortens or rewrites the customer's code.
+        # MCP 원문 전달과 Spring 정규화·접미사 보존 검증
         self.assertEqual([body['model_code'] for body in received], [' fx24ener ', 'RD21ESE.AKOR'])
 
     async def test_http_mode_without_token_is_rejected_before_backend(self):

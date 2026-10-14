@@ -1,0 +1,1775 @@
+{
+  "format_version": "3.0.0",
+  "title": "HomeCare AI MCP executable contract",
+  "status": "NINE_TOOLS_IMPLEMENTED",
+  "created_date": "2026-10-13",
+  "timezone": "Asia/Seoul",
+  "runtime": {
+    "spring_ai": "2.0.1",
+    "java_mcp_sdk": "2.0.0",
+    "fastmcp": "3.4.7",
+    "transport": "Streamable HTTP / stdio"
+  },
+  "context_contract": {
+    "authentication": "Request-scoped existing HomeCare user JWT (Authorization Bearer)",
+    "ownership": "Spring owned conversation and product repositories",
+    "context_version": "X-HomeCare-Context-Version header; result meta.context_version",
+    "agent_hidden_input_properties": [
+      "conversation_id",
+      "request",
+      "region_override"
+    ],
+    "candidate_binding": "SHA256(conversation ID, context revision, product ID/revision or 0, data version)",
+    "model_code_provenance": "Spring accepts only a code typed in the latest customer message or the registered product model",
+    "no_model_overrides": [
+      "user_id",
+      "email",
+      "token",
+      "prices",
+      "policy period",
+      "as-of date",
+      "purchase date",
+      "region"
+    ],
+    "transport_security": "Strict Host/Origin validation; allowed hosts 127.0.0.1/localhost plus HOMECARE_MCP_ALLOWED_HOSTS"
+  },
+  "common_result_fields": {
+    "source": "data_version, verified data files and fact IDs (evidence IDs)",
+    "confidence": "HIGH | MEDIUM | LOW | UNDETERMINED",
+    "caveats": "fixed data-interpretation notices; warnings stay situational",
+    "independent_action_allowed": "always false; the MCP adapter rejects any other value"
+  },
+  "notes": [
+    "tools are exported from actual FastMCP discovery; annotations are MCP standard fields.",
+    "Spring Agent strips the user-only properties before exposing tools to the LLM.",
+    "check_warranty supports conversation_id (Agent) OR request (manual compatibility), never both.",
+    "The check_warranty union output has a FastMCP result wrapper; Java unwraps it.",
+    "Common Envelope.data is tool-specific JSON; financial and warranty values are validated/calculated by Spring, not JSON Schema alone.",
+    "Search results are candidates: EXCLUDED/other-model records are dropped, records without a model list are UNDETERMINED.",
+    "estimate_repair_cost returns reference ranges (weekday visit fee basis) plus cost-table visit surcharges; never a quote or a waiver decision.",
+    "Parts retention (manufacture-date basis) stays UNAVAILABLE until the B30 originals are verified.",
+    "Tool implementation does not mean complete production data: approved-plans/reviews are empty, center seed has only 3 entries."
+  ],
+  "tools": [
+    {
+      "name": "lookup_model",
+      "description": "고객이 말한 모델 코드를 판매 코드와 정확히 일치할 때만 조회한다. 제품 등록 전에도 쓸 수 있다.\n원문을 보존하고 접미사를 자르거나 비슷한 코드로 바꾸지 않는다. 결과는 후보이며 부품 호환·무상 보증을 뜻하지 않는다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          },
+          "model_code": {
+            "description": "고객이 말한 모델 코드 원문. 자르거나 고치지 않는다.",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^\\s*[A-Za-z0-9./-]{1,40}\\s*$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "model_code"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "search_knowledge",
+      "description": "상담 모델과 주제로 제조사 근거 후보를 찾는다. 안전 주의 문서를 먼저 돌려준다.\nmodel_code가 없으면 등록 제품 모델을 쓰고, 둘 다 없으면 모델별 문서는 판정하지 않는다.\n모델 목록이 없는 문서는 '적용 미판정'이며, 검색 후보는 조치·무상 보증 승인이 아니다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "topic": {
+            "default": "MANUAL",
+            "enum": [
+              "MANUAL",
+              "WARRANTY",
+              "SAFETY",
+              "SERVICE"
+            ],
+            "type": "string"
+          },
+          "top_k": {
+            "default": 3,
+            "maximum": 5,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "model_code": {
+            "anyOf": [
+              {
+                "description": "고객이 말한 모델 코드 원문. 자르거나 고치지 않는다.",
+                "maxLength": 64,
+                "minLength": 1,
+                "pattern": "^\\s*[A-Za-z0-9./-]{1,40}\\s*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "conversation_id",
+          "query"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "get_product_context",
+      "description": "본인의 등록 제품과 확정 상태를 조회한다. 자동 선택·등록·수정하지 않는다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "get_diagnostic_plan",
+      "description": "확정 제품의 증상·오류별 자가검진 계획을 조회한다. 위험 또는 실행 미승인 조치를 차단한다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "check_warranty",
+      "description": "제품 전체 보증과 주요 부품별 별도 보증을 계산한다. 날짜·기간·무상 항목을 추측하지 않는다.\nAgent는 conversation_id를 사용한다. request는 사용자가 직접 확인한 보증 조회의 호환 입력이다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "request": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "enum": [
+                      "REFRIGERATOR",
+                      "WASHER",
+                      "DRYER",
+                      "DISHWASHER"
+                    ],
+                    "type": "string"
+                  },
+                  "modelName": {
+                    "anyOf": [
+                      {
+                        "maxLength": 100,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "purchaseDate": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "deliveryDate": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "productionDate": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "coreVariant": {
+                    "anyOf": [
+                      {
+                        "maxLength": 50,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "productType": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "GENERAL",
+                          "UNKNOWN"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "proofAvailable": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "domesticNewHousehold": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "category"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "OK",
+                      "NEEDS_INPUT",
+                      "PARTIAL",
+                      "NO_DATA",
+                      "NOT_VERIFIED",
+                      "BLOCKED_BY_SAFETY",
+                      "ERROR"
+                    ],
+                    "type": "string"
+                  },
+                  "data": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "evidence": {
+                    "items": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "missing_fields": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "warnings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "error": {
+                    "anyOf": [
+                      {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "meta": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "source": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "confidence": {
+                    "enum": [
+                      "HIGH",
+                      "MEDIUM",
+                      "LOW",
+                      "UNDETERMINED"
+                    ],
+                    "type": "string"
+                  },
+                  "caveats": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "independent_action_allowed": {
+                    "const": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "status",
+                  "data",
+                  "evidence",
+                  "missing_fields",
+                  "warnings",
+                  "error",
+                  "meta",
+                  "source",
+                  "confidence",
+                  "caveats",
+                  "independent_action_allowed"
+                ],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "enum": [
+                      "REFRIGERATOR",
+                      "WASHER",
+                      "DRYER",
+                      "DISHWASHER"
+                    ],
+                    "type": "string"
+                  },
+                  "modelName": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "asOfDate": {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "basisDate": {
+                    "anyOf": [
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "basisSource": {
+                    "enum": [
+                      "PURCHASE",
+                      "DELIVERY",
+                      "NEEDS_DATE"
+                    ],
+                    "type": "string"
+                  },
+                  "productWarranty": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "policyId": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "enum": [
+                          "PRODUCT",
+                          "CORE_PART"
+                        ],
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "variant": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "periodMonths": {
+                        "anyOf": [
+                          {
+                            "type": "integer"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "expiresOn": {
+                        "anyOf": [
+                          {
+                            "format": "date",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "periodStatus": {
+                        "enum": [
+                          "IN_WARRANTY",
+                          "EXPIRED",
+                          "UNKNOWN"
+                        ],
+                        "type": "string"
+                      },
+                      "applicability": {
+                        "enum": [
+                          "USER_DECLARED_CONDITIONAL",
+                          "NEEDS_CONFIRMATION"
+                        ],
+                        "type": "string"
+                      },
+                      "partFee": {
+                        "enum": [
+                          "CONDITIONAL_FREE",
+                          "PAID",
+                          "CONFIRM_REQUIRED"
+                        ],
+                        "type": "string"
+                      },
+                      "laborFee": {
+                        "enum": [
+                          "CONDITIONAL_FREE",
+                          "PAID",
+                          "CONFIRM_REQUIRED"
+                        ],
+                        "type": "string"
+                      },
+                      "visitFee": {
+                        "enum": [
+                          "CONDITIONAL_FREE",
+                          "PAID",
+                          "CONFIRM_REQUIRED"
+                        ],
+                        "type": "string"
+                      },
+                      "conditions": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "policyId",
+                      "scope",
+                      "name",
+                      "variant",
+                      "periodMonths",
+                      "expiresOn",
+                      "periodStatus",
+                      "applicability",
+                      "partFee",
+                      "laborFee",
+                      "visitFee",
+                      "conditions"
+                    ],
+                    "type": "object"
+                  },
+                  "partWarranties": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "policyId": {
+                          "type": "string"
+                        },
+                        "scope": {
+                          "enum": [
+                            "PRODUCT",
+                            "CORE_PART"
+                          ],
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "variant": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "periodMonths": {
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "expiresOn": {
+                          "anyOf": [
+                            {
+                              "format": "date",
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "periodStatus": {
+                          "enum": [
+                            "IN_WARRANTY",
+                            "EXPIRED",
+                            "UNKNOWN"
+                          ],
+                          "type": "string"
+                        },
+                        "applicability": {
+                          "enum": [
+                            "USER_DECLARED_CONDITIONAL",
+                            "NEEDS_CONFIRMATION"
+                          ],
+                          "type": "string"
+                        },
+                        "partFee": {
+                          "enum": [
+                            "CONDITIONAL_FREE",
+                            "PAID",
+                            "CONFIRM_REQUIRED"
+                          ],
+                          "type": "string"
+                        },
+                        "laborFee": {
+                          "enum": [
+                            "CONDITIONAL_FREE",
+                            "PAID",
+                            "CONFIRM_REQUIRED"
+                          ],
+                          "type": "string"
+                        },
+                        "visitFee": {
+                          "enum": [
+                            "CONDITIONAL_FREE",
+                            "PAID",
+                            "CONFIRM_REQUIRED"
+                          ],
+                          "type": "string"
+                        },
+                        "conditions": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "policyId",
+                        "scope",
+                        "name",
+                        "variant",
+                        "periodMonths",
+                        "expiresOn",
+                        "periodStatus",
+                        "applicability",
+                        "partFee",
+                        "laborFee",
+                        "visitFee",
+                        "conditions"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "headline": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "policyVersion": {
+                    "type": "string"
+                  },
+                  "sourceUrl": {
+                    "type": "string"
+                  },
+                  "policyVerifiedOn": {
+                    "format": "date",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "category",
+                  "modelName",
+                  "asOfDate",
+                  "basisDate",
+                  "basisSource",
+                  "productWarranty",
+                  "partWarranties",
+                  "headline",
+                  "notes",
+                  "policyVersion",
+                  "sourceUrl",
+                  "policyVerifiedOn"
+                ],
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "x-fastmcp-wrap-result": true
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "get_repair_candidates",
+      "description": "매핑·허용 부품 그룹과 REFERENCE 후기만 조회한다. 검증 후기·국내 호환 미확인 전용 부품은 제외한다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "estimate_repair_cost",
+      "description": "서버 허용 후보의 참고용 예상 수리비 범위(중앙·80% 범위)와 신뢰도를 계산한다. 견적이 아니다.\n평일 출장비 기준이며 time_slot과 month(6~8월)는 수리비 표의 출장비 가산만 더한다. 후보들은 대안이며 합산하지 않는다.\n매핑이 없으면 확신도 0.5 이상일 때만 사용한다. 가격·보증은 서버 자료에서 읽고 무상 여부는 판정하지 않는다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          },
+          "candidate_set_id": {
+            "type": "string"
+          },
+          "candidate_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "type": "array"
+          },
+          "confidence": {
+            "default": 0,
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "time_slot": {
+            "default": "WEEKDAY",
+            "enum": [
+              "WEEKDAY",
+              "NIGHT_HOLIDAY",
+              "평일",
+              "야간·휴일"
+            ],
+            "type": "string"
+          },
+          "month": {
+            "anyOf": [
+              {
+                "description": "방문 예정 월(1~12). 고객이 말했을 때만 넣는다.",
+                "maximum": 12,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "product_category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "WASHER",
+                  "DRYER",
+                  "REFRIGERATOR",
+                  "DISHWASHER",
+                  "세탁기",
+                  "건조기",
+                  "냉장고",
+                  "김치냉장고",
+                  "식기세척기"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "conversation_id",
+          "candidate_set_id",
+          "candidate_ids"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "find_service_centers",
+      "description": "제품 배송지의 시·군·구→시·도 센터 최대 3곳과 공식 경로를 조회한다. 지역 변경은 사용자 선택만 사용한다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          },
+          "region_override": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "sido": {
+                    "maxLength": 20,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sigungu": {
+                    "maxLength": 30,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sido",
+                  "sigungu"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "conversation_id"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    },
+    {
+      "name": "prepare_service_handoff",
+      "description": "확인된 상담 사실만으로 복사할 요약과 공식 연결 경로를 준비한다. 전송·예약·전화 발신은 하지 않는다.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation_id": {
+            "type": "integer"
+          },
+          "reason": {
+            "enum": [
+              "RISK",
+              "NOT_RESOLVED",
+              "UNCLASSIFIED",
+              "OUT_OF_SCOPE",
+              "INSUFFICIENT_EVIDENCE"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversation_id",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": false,
+        "description": "source names data files and fact IDs; caveats are fixed interpretation notices; warnings are situational.\n\nindependent_action_allowed is always false: a result never approves an action, free repair or part fit.",
+        "properties": {
+          "status": {
+            "enum": [
+              "OK",
+              "NEEDS_INPUT",
+              "PARTIAL",
+              "NO_DATA",
+              "NOT_VERIFIED",
+              "BLOCKED_BY_SAFETY",
+              "ERROR"
+            ],
+            "type": "string"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "missing_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW",
+              "UNDETERMINED"
+            ],
+            "type": "string"
+          },
+          "caveats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "independent_action_allowed": {
+            "const": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status",
+          "data",
+          "evidence",
+          "missing_fields",
+          "warnings",
+          "error",
+          "meta",
+          "source",
+          "confidence",
+          "caveats",
+          "independent_action_allowed"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "_meta": {
+        "fastmcp": {
+          "tags": []
+        }
+      }
+    }
+  ]
+}

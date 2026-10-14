@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the app against RDS on EC2; clean up only this run's container and data."""
+"""EC2 앱과 RDS 연동 검증(이번 실행의 컨테이너·데이터만 정리)"""
 import argparse
 import json
 import re
@@ -30,6 +30,7 @@ def request(path, payload=None, token=None):
 
 
 def wait_for_health():
+    """검증용 앱 health 확인(최대 60회, 실패 시 2초 간격 재시도)"""
     for _ in range(60):
         try:
             if request('/actuator/health')['status'] == 'UP':

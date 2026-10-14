@@ -31,14 +31,40 @@ public class ConsultationService {
         if(conversation.getCategory()!=null&&!conversation.getCategory().isSupported())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"에어컨 상담은 지원 종료되었습니다.");
         var old=state(conversation);if(old.closed())throw new ResponseStatusException(HttpStatus.CONFLICT,"CLOSED");
         Long selected=productId!=null?productId:conversation.getProductId();
+        // 같은 품목의 등록 제품이 하나면 자동 연결, 여러 개면 입력한 모델명·표시 이름으로 구분
+        if(selected==null)selected=automaticProduct(email,conversation.getCategory(),input);
         if(selected!=null&&products.owned(email,selected).getCategory()!=conversation.getCategory())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"제품 품목이 다릅니다.");
         var safety=RiskRules.detect(input,conversation.getCategory());
+        // 이미 확정한 위험은 새로운 의심 문장으로 해제하지 않음
+        if("CONFIRMED".equals(old.riskStatus())&&safety!=null&&!safety.emergency())safety=null;
         String error=old.errorCode();var matcher=Pattern.compile("(?i)(?<![A-Z0-9])(OE|UE|IE|FE|LE|PE|DE|CE|TE|SE|HC-E\\d+)(?![A-Z0-9])").matcher(input);
         if(matcher.find())error=matcher.group().toUpperCase(Locale.ROOT);
         var next=new ConsultationState(safety==null?old.riskStatus():safety.emergency()?"CONFIRMED":"SUSPECT",
                 safety==null?old.riskCase():safety.code(),safety==null?old.riskQuestionNo():0,error,old.symptomCode(),old.doneSteps(),old.currentStep(),false);
         if(!Objects.equals(selected,conversation.getProductId())||!Objects.equals(error,old.errorCode()))next=new ConsultationState(next.riskStatus(),next.riskCase(),next.riskQuestionNo(),error,null,List.of(),0,false);
         conversation.setConsultation(selected,input,JSON.writeValueAsString(next));return snapshot(conversation);
+    }
+    private Long automaticProduct(String email,ProductCategory category,String input){
+        var candidates=products.list(email).stream().filter(p->p.warranty().category()==category).toList();
+        var codes=new HashSet<String>();
+        var tokens=Pattern.compile("(?i)(?<![A-Z0-9./-])[A-Z0-9][A-Z0-9./-]{0,39}(?![A-Z0-9./-])").matcher(input);
+        while(tokens.find()){
+            String code=tokens.group().toUpperCase(Locale.ROOT).replaceAll("[./-]+$","");
+            if(code.matches(".*[A-Z].*")&&code.matches(".*[0-9].*"))codes.add(code);
+        }
+        // 고객이 다른 모델을 입력하면 보유 제품으로 대체하지 않음 (SKU 접미사 보존)
+        if(!codes.isEmpty()){
+            if(codes.size()!=1)return null;
+            var matched=candidates.stream().filter(p->codes.contains(normalizedModel(p.warranty().modelName()))).toList();
+            return matched.size()==1?matched.getFirst().id():null;
+        }
+        var named=candidates.stream().filter(p->p.displayName()!=null&&p.displayName().strip().length()>=2&&input.contains(p.displayName().strip())).toList();
+        if(!named.isEmpty())return named.size()==1?named.getFirst().id():null;
+        return candidates.size()==1?candidates.getFirst().id():null;
+    }
+    private static String normalizedModel(String input){return input==null?"":input.strip().toUpperCase(Locale.ROOT);}
+    @Transactional(readOnly=true) public String selectedModel(String email,Snapshot snapshot){
+        return snapshot.productId()==null?null:products.owned(email,snapshot.productId()).warranty().modelName();
     }
     @Transactional public Snapshot confirmProduct(String email,Long id,Long productId){
         var c=owned(email,id);var p=products.owned(email,productId);if(p.getCategory()!=c.getCategory())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"제품 품목이 다릅니다.");
@@ -47,10 +73,20 @@ public class ConsultationService {
         c.setConsultation(productId,c.getLatestInput(),JSON.writeValueAsString(s));return snapshot(c);
     }
     @Transactional public Snapshot riskAnswer(String email,Long id,String answer){
+        return riskAnswer(email,id,answer,null);
+    }
+    @Transactional public Snapshot riskAnswer(String email,Long id,String answer,Long expectedVersion){
         var c=owned(email,id);var s=state(c);if(!"SUSPECT".equals(s.riskStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"위험 확인 질문이 없습니다.");
+        if(expectedVersion!=null&&c.getContextRevision()!=expectedVersion)throw new ResponseStatusException(HttpStatus.CONFLICT,"위험 확인 질문이 변경됐습니다. 최신 질문에 답해 주세요.");
         if(answer==null||!List.of("YES","NO","UNSURE").contains(answer))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"위험 응답을 확인해 주세요.");
         int next=s.riskQuestionNo()+1;String status="NO".equals(answer)?next>=RiskRules.questions(s.riskCase()).size()?"DISMISSED":"SUSPECT":"CONFIRMED";
         var changed=new ConsultationState(status,s.riskCase(),next,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed());
+        c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(changed));return snapshot(c);
+    }
+    @Transactional public Snapshot clearDetectedRisk(String email,Long id,long expectedVersion){
+        var c=owned(email,id);var s=state(c);
+        if(c.getContextRevision()!=expectedVersion||!"SUSPECT".equals(s.riskStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"상담 상태가 변경됐습니다.");
+        var changed=new ConsultationState("CLEAR",null,0,s.errorCode(),s.symptomCode(),s.doneSteps(),s.currentStep(),s.closed());
         c.setConsultation(c.getProductId(),c.getLatestInput(),JSON.writeValueAsString(changed));return snapshot(c);
     }
     @Transactional public void discardEmpty(String email,Long id){var c=owned(email,id);conversations.delete(c);}

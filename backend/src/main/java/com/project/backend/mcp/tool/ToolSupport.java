@@ -36,7 +36,7 @@ public class ToolSupport {
                 map("data_version",catalog.version,"files",basis.files(),"fact_ids",facts),basis.confidence(),List.copyOf(caveats),false);
     }
     public ToolEnvelope needsProduct(ConsultationService.Snapshot s){
-        return result(s,"NEEDS_INPUT",map("interaction","CONFIRM_PRODUCT"),List.of(),Basis.of("UNDETERMINED",List.of()).missing("product_id"),"비용·조치 안내 전에 상담 제품을 직접 확인해 주세요.");
+        return result(s,"NEEDS_INPUT",map("interaction","CONFIRM_PRODUCT"),List.of(),Basis.of("UNDETERMINED",List.of()).missing("product_id"),"마이페이지의 등록 제품 정보를 확인하고, 여러 제품이 있으면 표시 이름이나 모델명을 대화로 알려 주세요.");
     }
     public UserProduct product(String email,ConsultationService.Snapshot s){return s.productId()==null?null:products.owned(email,s.productId());}
     public static Map<String,Object> evidence(String id,String type,String source,String date){return map("evidence_id",id,"source_type",type,"source_ref",source,"base_date",date,"applicability_status","CONDITIONAL");}

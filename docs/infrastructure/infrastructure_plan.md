@@ -4,13 +4,13 @@
 
 > 1~8단계의 기본 구축·검증을 완료했습니다. Vercel Git·동일 커밋 승격 검사·운영 대시보드와 실제 브라우저 AI 상담·별도 RDS 백업 복구를 확인했습니다. 이메일·예산 알림은 사용자 요청으로 생략합니다. RDS 자동 백업은 현재 무료 플랜에서 1일을 유지합니다.
 
-3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](ops/README.md)를 참고합니다.
+3단계 완료: EC2의 Docker·Compose·AWS CLI, IAM·OIDC·로그 권한, GitHub production 환경과 일반 설정을 준비했습니다. 사용자 승인 후 앱 비밀값 3개를 SecureString으로 등록하고 EC2 역할로 복호화해 운영 환경 파일을 생성했습니다. [실행 환경 안내](../../ops/README.md)를 참고합니다.
 
-4단계 완료: 버전 관리하는 초기 SQL로 RDS를 초기화하고 세 앱 테이블의 CRUD만 가능한 앱 계정을 생성했습니다. 실제 Spring Boot의 스키마·TLS 검증과 재시작 후 상담 데이터·JWT 유지, 임시 관리자 권한 제거를 확인했습니다. [RDS 초기화 안내](ops/RDS_INITIALIZATION.md)를 참고합니다.
+4단계 완료: 버전 관리하는 초기 SQL로 RDS를 초기화하고 세 앱 테이블의 CRUD만 가능한 앱 계정을 생성했습니다. 실제 Spring Boot의 스키마·TLS 검증과 재시작 후 상담 데이터·JWT 유지, 임시 관리자 권한 제거를 확인했습니다. [RDS 초기화 안내](../../ops/docs/rds_initialization.md)를 참고합니다.
 
-5단계 완료: `proxy/`의 Nginx 이미지와 운영 Compose의 `backend`, `nginx` 두 서비스를 ECR digest 기준으로 배포했습니다. [외부 health](https://43.202.80.116/actuator/health), API·앱 교체·EC2 재부팅 복구를 확인했습니다. 서비스명 변경 전의 JWT·상담 데이터 유지도 확인했습니다. [운영 컨테이너 안내](ops/SERVICE_DEPLOYMENT.md)를 참고합니다.
+5단계 완료: `proxy/`의 Nginx 이미지와 운영 Compose의 `backend`, `nginx` 두 서비스를 ECR digest 기준으로 배포했습니다. [외부 health](https://43.202.80.116/actuator/health), API·앱 교체·EC2 재부팅 복구를 확인했습니다. 서비스명 변경 전의 JWT·상담 데이터 유지도 확인했습니다. [운영 컨테이너 안내](../../ops/docs/service_deployment.md)를 참고합니다.
 
-6단계 완료: 별도 도메인이 없어 Let's Encrypt의 IP 인증서로 `https://43.202.80.116`을 구성했습니다. 정확한 Vercel 운영 origin만 CORS에 허용하고 갱신 dry-run·reload hook·타이머를 검증했습니다. 기존 `homecare` 프로젝트에 CLI로 API 주소를 등록·배포했습니다. [HTTPS·CORS 안내](ops/HTTPS_CORS.md)를 참고합니다.
+6단계 완료: 별도 도메인이 없어 Let's Encrypt의 IP 인증서로 `https://43.202.80.116`을 구성했습니다. 정확한 Vercel 운영 origin만 CORS에 허용하고 갱신 dry-run·reload hook·타이머를 검증했습니다. 기존 `homecare` 프로젝트에 CLI로 API 주소를 등록·배포했습니다. [HTTPS·CORS 안내](../../ops/docs/https_cors.md)를 참고합니다.
 
 7단계 완료: PR·main 공통 CI와 OIDC·ECR·S3·SSM 자동 배포를 구현하고 실제 main push·동일 커밋 재배포를 확인했습니다. 사용자 승인 후 잘못된 이미지로 실패를 유도해 이전 이미지·Compose·설정과 JWT·상담 데이터 보존을 검증했습니다. [CI/CD 안내](ops/CI_CD.md)를 참고합니다.
 
@@ -28,7 +28,7 @@
 - 기존 Terraform 작업 폴더는 `terraform-aws-ec2/`이며, 후속 Nginx 구성은 `proxy/`를 사용합니다.
 - 2단계 완료: VPC·퍼블릭 서브넷 1개·프라이빗 서브넷 2개, EC2·EIP, 비공개 RDS, ECR 2개, 배포 파일 S3와 별도 state S3를 생성했습니다.
 - Terraform 검증 완료: 서비스 mock 테스트 2개, bootstrap mock 테스트 1개, 실제 AWS 설정 확인, 서비스와 bootstrap의 변경 없는 재실행 plan.
-- 현재 EC2는 `running` 및 SSM `Online`, RDS는 `available`입니다. [배포 현황](terraform-aws-ec2/DEPLOYMENT_STATUS.md)과 [Terraform 실행 안내](terraform-aws-ec2/README.md)를 참고합니다.
+- 현재 EC2는 `running` 및 SSM `Online`, RDS는 `available`입니다. [배포 현황](../../terraform-aws-ec2/deployment_status.md)과 [Terraform 실행 안내](../../terraform-aws-ec2/README.md)를 참고합니다.
 - 무료 계정이 7일 백업을 거부하여 사용자 선택에 따라 현재 RDS 백업은 1일입니다. 서비스용 기본값은 7일이며, 유료 플랜 전환 후 늘릴 수 있습니다.
 - 3단계 검증 완료: 실제 EC2에서 ECR 두 저장소 pull·컨테이너 실행·CloudWatch 로그 전송·SecureString 복호화를 확인했습니다. 운영 환경 파일은 root 소유 0600이며 재실행 후 키가 유지됩니다. Terraform 서비스 테스트 3개, 앱 설정 스크립트 테스트 5개와 변경 없는 plan을 확인했습니다. 비밀값은 Terraform state나 Git에 포함될 소스 파일에 없습니다.
 - 4단계 검증 완료: 임시 MySQL 8.4와 실제 RDS에서 V001 SQL·Hibernate validate를 검증했습니다. 회원가입·로그인·한글·이모지·검색 근거 조회와 재시작 후 보존을 확인했습니다. 비암호화·잘못된 CA·앱의 DDL·스키마 이력 조회·EC2의 관리자 비밀 조회는 거부됩니다. 운영 스크립트 테스트 총 13개를 통과했고 검증용 데이터·컨테이너·이미지를 정리했습니다.
@@ -101,9 +101,9 @@ Terraform은 AWS 자원을 관리하고, 애플리케이션 릴리스는 GitHub 
 
 주요 근거:
 
-- [백엔드 빌드 설정](backend/build.gradle)
-- [백엔드 실행 설정](backend/src/main/resources/application.properties)
-- [Vite 개발 프록시 설정](frontend/vite.config.js)
+- [백엔드 빌드 설정](../../backend/build.gradle)
+- [백엔드 실행 설정](../../backend/src/main/resources/application.properties)
+- [Vite 개발 프록시 설정](../../frontend/vite.config.js)
 
 첨부 아키텍처 그림과 실제 데이터 구조에는 차이가 있습니다. 현재 MySQL에는 사용자·상담·메시지·검색 근거가 저장됩니다. 검색용 매뉴얼 원본은 JAR에 포함되고, 벡터 인덱스는 앱 메모리에 생성됩니다. 따라서 초기에는 별도 벡터 DB나 매뉴얼 저장용 서버를 추가하지 않습니다. 재시작 후 첫 상담에서는 문서 임베딩을 다시 수행합니다.
 
@@ -246,7 +246,7 @@ CORS는 Nginx 한 곳에서 처리합니다.
 
 ### 7단계 — GitHub Actions·ECR·SSM 배포 자동화
 
-구현한 워크플로와 배포·복원 절차는 [CI/CD 안내](ops/CI_CD.md)를 참고합니다.
+구현한 워크플로와 배포·복원 절차는 [CI/CD 안내](../../ops/docs/ci_cd.md)를 참고합니다.
 
 초기에는 복잡한 변경 경로 최적화 없이 모든 PR에서 공통 CI를 실행합니다.
 

@@ -1,7 +1,7 @@
-"""Benchmark: HomeCare MCP startup with vs without __pycache__ (.pyc) bytecode cache.
+"""HomeCare MCP의 __pycache__ 사용 여부별 시작 시간 비교(개발/테스트용)
 
-Usage: python benchmark_pycache.py <mcp_server dir> <python exe> <runs> <out.json>
-Each sample is a fresh process: import homecare_mcp + create_server() (tool registration).
+실행: python benchmark_pycache.py <mcp_server dir> <python exe> <runs> <out.json>
+표본마다 새 프로세스에서 homecare_mcp import와 create_server()의 도구 등록을 측정합니다.
 """
 import json
 import os
@@ -27,6 +27,7 @@ def clear_own_cache():
 
 
 def run(env_extra, flags):
+    """별도 Python 프로세스의 import·도구 등록 시간과 전체 소요 시간 측정(ms)"""
     env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPYCACHEPREFIX", "PYTHONDONTWRITEBYTECODE")}
     env.update(env_extra)
     start = time.perf_counter()
@@ -39,39 +40,39 @@ def run(env_extra, flags):
 tmp = Path(tempfile.mkdtemp(prefix="pycache-bench-"))
 empty_prefix, warm_prefix = tmp / "empty", tmp / "warm"
 empty_prefix.mkdir()
-# Populate a complete cache tree (stdlib + site-packages + homecare_mcp) once.
+# 전체 모듈의 비교용 bytecode 캐시 생성
 run({"PYTHONPYCACHEPREFIX": str(warm_prefix)}, [])
 
 SCENARIOS = {
-    # Every module (stdlib, dependencies, our code) compiled from .py on each start; nothing written.
+    # 전체 소스 재컴파일(캐시 읽기·쓰기 제외)
     "S1_all_no_cache": ({"PYTHONPYCACHEPREFIX": str(empty_prefix)}, ["-B"], None),
-    # Every module loaded from .pyc.
+    # 미리 생성한 전체 모듈 캐시 사용
     "S2_all_cached": ({"PYTHONPYCACHEPREFIX": str(warm_prefix)}, [], None),
-    # Only homecare_mcp compiled from source; dependencies cached (= Docker image: pip pre-compiles
-    # site-packages, PYTHONDONTWRITEBYTECODE=1 stops writing our own .pyc).
+    # homecare_mcp만 소스에서 로드하고 의존성 캐시는 사용(Docker 실행 조건)
+    # PYTHONDONTWRITEBYTECODE=1 설정으로 자체 .pyc 저장 제외
     "S3_own_code_no_cache": ({}, ["-B"], clear_own_cache),
-    # Normal local development: everything cached in __pycache__.
+    # 일반 로컬 개발 조건의 __pycache__ 사용
     "S4_own_code_cached": ({}, [], None),
 }
 
-# Make sure S4 has its own cache, then warm the OS file cache.
+# S4 자체 캐시 생성과 시나리오별 OS 파일 캐시 예열
 run({}, [])
 for name, (env, flags, prep) in SCENARIOS.items():
     for _ in range(2):
         if prep: prep()
         run(env, flags)
     if name == "S3_own_code_no_cache":
-        run({}, [])  # restore own cache for S4
+        run({}, [])  # S4 측정용 자체 캐시 복원
 
 samples = {name: [] for name in SCENARIOS}
 order = [name for name in SCENARIOS for _ in range(runs)]
 random.seed(20261013)
-random.shuffle(order)  # interleave to spread background noise evenly
+random.shuffle(order)  # 배경 작업 영향을 분산하는 시나리오 순서 혼합
 for name in order:
     env, flags, prep = SCENARIOS[name]
     if prep: prep()
     samples[name].append(run(env, flags))
-    if prep: run({}, [])  # restore own cache so S4 stays warm
+    if prep: run({}, [])  # S4 예열 상태 유지를 위한 자체 캐시 복원
 
 def summary(values):
     return {"median": round(statistics.median(values), 1), "mean": round(statistics.mean(values), 1),

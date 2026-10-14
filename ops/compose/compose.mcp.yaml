@@ -1,6 +1,6 @@
-# Merged with compose.prod.yaml by deploy-service.sh when a release contains this file.
-# Requires V002..V005 on RDS and the MCP image in ECR. The agent stays off until HOMECARE_AGENT_ENABLED=true is
-# set deliberately; deploying this file alone only starts the internal MCP container.
+# 릴리스에 이 파일이 있으면 deploy-service.sh에서 compose.prod.yaml과 병합
+# RDS의 V002~V005 스키마와 ECR MCP 이미지 필요
+# HOMECARE_AGENT_ENABLED=true 설정 시 Agent 활성화(기본값 false)
 services:
   backend:
     environment:
@@ -17,7 +17,7 @@ services:
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     mem_limit: 256m
-    # Internal network only: no published port and no Nginx route.
+    # 내부 네트워크 전용 구성(외부 포트·Nginx 경로 제외)
     tmpfs:
       - /tmp:size=32m,mode=1777
     environment:

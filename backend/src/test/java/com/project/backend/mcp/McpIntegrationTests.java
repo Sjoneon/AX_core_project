@@ -42,7 +42,6 @@ import tools.jackson.databind.json.JsonMapper;
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
     "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
     "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE="})
-@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "HOMECARE_TEST_PYTHON", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ExtendWith(OutputCaptureExtension.class)
 class McpIntegrationTests {
@@ -224,18 +223,106 @@ class McpIntegrationTests {
         for(var secret:List.of(owner,"배수가 안 돼요","Bearer "))assertThat(recorded).doesNotContain(secret);
         assertThat(output.getAll()).contains("homecare_tool_call").doesNotContain(owner,"배수가 안 돼요","Bearer ");
     }
-    @Test void burningSmellAnswersSafetyFirstWithoutModelOrMcp(){
+    static Function<String,String> riskDecision(boolean detected){
+        return input->JSON.writeValueAsString(map("role","assistant","content",JSON.writeValueAsString(map("risk_detected",detected))));
+    }
+    @Test void burningSmellUsesAiAssessmentThenAsksAConfirmationQuestionWithoutMcp(){
+        script.add(riskDecision(true));
         var response=agent.chat(new ChatRequest("건조기에서 타는 냄새가 나요",null,ProductCategory.DRYER,null,null),owner,token(owner));
-        assertThat(modelCalls.get()).isZero();
+        assertThat(modelCalls.get()).isEqualTo(1);
         assertThat(response.reply()).startsWith(RiskRules.warning()).contains("1544-7777");
         assertThat(response.tools()).containsKeys("safety","prepare_service_handoff");
+        assertThat(response.tools().get("safety").meta()).containsEntry("risk_source","AI");
+        assertThat(response.tools().get("safety").data()).containsEntry("risk_status","SUSPECT").containsEntry("question",RiskRules.questions("RC04").getFirst());
         assertThat(history.toolCalls(response.conversationId(),owner)).extracting(ConversationService.ToolCallView::selectionSource).containsOnly("SAFETY_POLICY");
+    }
+    @Test void quotedRiskWordsCanBeClearedByAiBeforeOrdinaryAgentTools(){
+        script.add(riskDecision(false));script.add(call("get_product_context",Map.of()));
+        var response=agent.chat(new ChatRequest("설명서에 타는 냄새를 주의하라고 써 있던데 현재 고장은 없어요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(response.tools()).doesNotContainKey("safety").containsKey("get_product_context");
+        assertThat(consultations.snapshot(owner,response.conversationId()).state().riskStatus()).isEqualTo("CLEAR");
+    }
+    @Test void invalidAiRiskOutputFallsBackToConfirmationAndEmergencyDoesNotWaitForAi(){
+        script.add(input->INVENTED);
+        var suspect=agent.chat(new ChatRequest("건조기에서 타는 냄새가 나요",null,ProductCategory.DRYER,null,null),owner,token(owner));
+        assertThat(suspect.tools().get("safety").meta()).containsEntry("risk_source","KEYWORD_FALLBACK");
+        assertThat(suspect.tools().get("safety").data()).containsEntry("risk_status","SUSPECT");
+        modelCalls.set(0);
+        var emergency=agent.chat(new ChatRequest("콘센트에서 스파크가 튀어요",null,ProductCategory.DRYER,null,null),owner,token(owner));
+        assertThat(modelCalls.get()).isZero();
+        assertThat(emergency.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED").containsEntry("question",null);
+    }
+    @Test void riskAnswersPersistEachDialogueTurnAndRejectDuplicateOrForeignAnswers(){
+        script.add(riskDecision(true));
+        var first=agent.chat(new ChatRequest("건조기에서 타는 냄새가 나요",null,ProductCategory.DRYER,null,null),owner,token(owner));
+        long initialVersion=((Number)first.tools().get("safety").meta().get("context_version")).longValue();
+        var second=agent.answerRisk(first.conversationId(),owner,"NO",initialVersion);
+        assertThat(second.tools().get("safety").data()).containsEntry("question",RiskRules.questions("RC04").get(1));
+        assertThatThrownBy(()->agent.answerRisk(first.conversationId(),owner,"NO",initialVersion)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        assertThatThrownBy(()->agent.answerRisk(first.conversationId(),other,"YES",initialVersion)).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        var dismissed=agent.answerRisk(first.conversationId(),owner,"NO",((Number)second.tools().get("safety").meta().get("context_version")).longValue());
+        assertThat(dismissed.tools().get("safety").data()).containsEntry("risk_status","DISMISSED").containsEntry("question",null);
+        var messages=history.detail(first.conversationId(),owner).messages();
+        assertThat(messages).hasSize(6);
+        assertThat(messages.get(2).content()).isEqualTo("아니요");
+        assertThat(messages.get(3).content()).contains(RiskRules.questions("RC04").get(1));
+        assertThat(modelCalls.get()).isEqualTo(1);
+    }
+    @Test void yesAndUnsureConfirmRiskAndConfirmedRiskCannotBeDismissedByAi(){
+        for(String answer:List.of("YES","UNSURE")){
+            script.add(riskDecision(true));
+            var first=agent.chat(new ChatRequest("건조기에서 타는 냄새가 나요",null,ProductCategory.DRYER,null,null),owner,token(owner));
+            var confirmed=agent.answerRisk(first.conversationId(),owner,answer,((Number)first.tools().get("safety").meta().get("context_version")).longValue());
+            assertThat(confirmed.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED").containsEntry("question",null);
+            int callsBefore=modelCalls.get();
+            var repeated=agent.chat(new ChatRequest("타는 냄새에 대해 다시 알려 주세요",first.conversationId(),ProductCategory.DRYER,null,null),owner,token(owner));
+            assertThat(repeated.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED");
+            assertThat(modelCalls.get()).isEqualTo(callsBefore);
+        }
     }
     @Test void warrantyWithoutPurchaseDateAsksForItAndSeparatesPeriods(){
         script.add(call("check_warranty",Map.of()));
-        var response=agent.chat(new ChatRequest("보증기간 남았나요?",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        var response=agent.chat(new ChatRequest("보증기간 남았나요?",null,ProductCategory.WASHER,null,null),other,token(other));
         assertThat(response.tools().get("check_warranty").status()).isEqualTo("NEEDS_INPUT");
         assertThat(response.reply()).contains("구입일","품질보증기간은 구입일 기준","부품보유기간은 제조일 기준");
+        assertNumbersComeFromTools(response);
+    }
+    @Test void categoryConsultationUsesTheOnlyOwnedProductWithoutAnotherSelector(){
+        var selected=consultations.begin(owner,null,ProductCategory.WASHER,"탈수할 때 심하게 흔들려요",null);
+        assertThat(selected.productId()).isEqualTo(productId);
+        assertThat(consultations.begin(owner,selected.id(),null,"계속 흔들려요",null).productId()).isEqualTo(productId);
+        assertThat(consultations.begin(other,null,ProductCategory.WASHER,"탈수할 때 흔들려요",null).productId()).isNull();
+        assertThat(consultations.begin(owner,null,ProductCategory.DRYER,"흔들려요",null).productId()).isNull();
+        assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"FX24ENER 세탁기가 흔들려요",null).productId()).isNull();
+        assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"F21VDSK.AKOR 세탁기가 흔들려요",null).productId()).isNull();
+        assertThat(consultations.begin(owner,null,ProductCategory.WASHER,"f21vdsk. 세탁기가 흔들려요",null).productId()).isEqualTo(productId);
+    }
+    @Test void multipleOwnedProductsRequireAnUnambiguousNameOrFullModel(){
+        String email="multiple-"+UUID.randomUUID()+"@example.com";
+        users.save(new AppUser(email,"unused","USER"));
+        var first=new WarrantyModels.Request(ProductCategory.WASHER,"F21VDSK",LocalDate.of(2023,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
+        var second=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2024,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
+        var older=products.create(email,new UserProductService.Create("거실 세탁기",first,"서울","강남구"));
+        var newer=products.create(email,new UserProductService.Create("다용도실 세탁기",second,"서울","강남구"));
+        var unresolved=consultations.begin(email,null,ProductCategory.WASHER,"세탁기가 흔들려요",null);
+        assertThat(unresolved.productId()).isNull();
+        assertThat(consultations.begin(email,unresolved.id(),null,"다용도실 세탁기예요",null).productId()).isEqualTo(newer.id());
+        assertThat(consultations.begin(email,null,ProductCategory.WASHER,"f21vdsk 세탁기가 흔들려요",null).productId()).isEqualTo(older.id());
+        assertThat(consultations.begin(email,null,ProductCategory.WASHER,"F21VDSK와 FX24ENER 중 어느 제품인지 몰라요",null).productId()).isNull();
+        assertThatThrownBy(()->consultations.begin(email,null,ProductCategory.WASHER,"흔들려요",productId)).hasMessageContaining("제품을 찾을 수 없습니다");
+    }
+    @Test void knowledgeOnlyModelResponseStillChecksRegisteredModelSelfCareAndExplainsMissingApproval(){
+        script.add(call("search_knowledge",map("query","탈수할 때 심하게 흔들려요")));
+        var response=agent.chat(new ChatRequest("탈수할 때 심하게 흔들려요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        assertThat(response.tools().get("search_knowledge").data()).containsEntry("model_code","F21VDSK");
+        assertThat(response.tools().get("get_diagnostic_plan").status()).isEqualTo("NOT_VERIFIED");
+        assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("steps",List.of());
+        assertThat(response.reply()).contains("직접 실행할 조치가 확인되지 않았습니다").doesNotContain("모델명을 알려","999999");
+        assertThat(modelRequests.getFirst()).contains("F21VDSK").doesNotContain("Bearer ");
+        var recorded=history.toolCalls(response.conversationId(),owner);
+        assertThat(recorded).extracting(ConversationService.ToolCallView::toolName).containsExactly("search_knowledge","get_diagnostic_plan");
+        assertThat(recorded).extracting(ConversationService.ToolCallView::selectionSource).containsExactly("MODEL","POLICY_FALLBACK");
+        assertThat(history.detail(response.conversationId(),owner).messages().getLast().tools()).containsKey("get_diagnostic_plan");
         assertNumbersComeFromTools(response);
     }
     @Test void mcpOutageGivesGeneralGuidanceAndStillSavesTheConsultation(CapturedOutput output) throws Exception {
