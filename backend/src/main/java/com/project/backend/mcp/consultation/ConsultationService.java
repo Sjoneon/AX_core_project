@@ -59,11 +59,25 @@ public class ConsultationService {
             var matched=candidates.stream().filter(p->codes.contains(normalizedModel(p.warranty().modelName()))).toList();
             return matched.size()==1?matched.getFirst().id():null;
         }
-        var named=candidates.stream().filter(p->p.displayName()!=null&&p.displayName().strip().length()>=2&&input.contains(p.displayName().strip())).toList();
-        if(!named.isEmpty())return named.size()==1?named.getFirst().id():null;
+        // A nickname that is only a category name ("냉장고") is in almost every message, so it tells no product apart;
+        // "냉장고 2" wins over a nickname it contains.
+        var named=candidates.stream().filter(p->distinctive(p.displayName())&&input.contains(p.displayName().strip())).toList();
+        var longest=named.stream().filter(p->named.stream().noneMatch(o->o.displayName().strip().length()>p.displayName().strip().length()&&o.displayName().contains(p.displayName().strip()))).toList();
+        if(!longest.isEmpty())return longest.size()==1?longest.getFirst().id():null;
         return candidates.size()==1?candidates.getFirst().id():null;
     }
     private static String normalizedModel(String input){return input==null?"":input.strip().toUpperCase(Locale.ROOT);}
+    private static boolean distinctive(String name){
+        if(name==null||name.strip().length()<2)return false;
+        String compact=name.replaceAll("\\s+","");
+        return Arrays.stream(ProductCategory.values()).noneMatch(category->category.getLabel().equals(compact));
+    }
+    /** Registered products the customer must pick from: none selected yet and two or more of this category, oldest first. */
+    @Transactional(readOnly=true) public List<UserProductService.View> productChoices(String email,Snapshot snapshot){
+        if(snapshot.productId()!=null)return List.of();
+        var candidates=products.list(email).stream().filter(p->p.warranty().category()==snapshot.category()).sorted(Comparator.comparing(UserProductService.View::id)).toList();
+        return candidates.size()>1?candidates:List.of();
+    }
     @Transactional(readOnly=true) public String selectedModel(String email,Snapshot snapshot){
         return snapshot.productId()==null?null:products.owned(email,snapshot.productId()).warranty().modelName();
     }
