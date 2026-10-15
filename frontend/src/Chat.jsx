@@ -255,7 +255,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
   }
 
   // The self-check card advances locally, so one request carries the outcome instead of one per step.
-  async function answerSelfCheck(result, step, contextVersion, label) {
+  async function answerSelfCheck(result, step, contextVersion, label, observations) {
     if (isBusy || sendingRef.current || !conversationId) return
     sendingRef.current = true
     setIsSending(true)
@@ -263,7 +263,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     stickToBottomRef.current = true
     try {
       const data = await request(`/api/conversations/${conversationId}/self-check`, {
-        method: 'POST', body: JSON.stringify({ result, step, context_version: contextVersion }),
+        method: 'POST', body: JSON.stringify({ result, step, context_version: contextVersion, observations }),
       })
       if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('점검 결과를 전달하지 못했습니다.')
       setMessages((previous) => [...previous,
