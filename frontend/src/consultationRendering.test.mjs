@@ -174,10 +174,53 @@ test('the self-check card starts at its first step and sends no chat options of 
   assert.ok(!html.includes(steps[1]))
   assert.match(html, />해결됐어요<\/button>/)
   assert.match(html, />아니요, 다음 단계<\/button>/)
+  assert.ok(html.includes('무슨 뜻인지 모르거나 확인하기 어려운 항목은 ‘아니요’를 눌러 넘어가 주세요.'))
   assert.doesNotMatch(html, /안내한 항목을 확인한 뒤|해결되지 않았어요<\/button>|제조사 근거/)
   // History shows the whole list without answers; a single step answers "not solved" at once.
   const saved = render(message, false)
   for (const step of steps) assert.ok(saved.includes(step), step)
   assert.doesNotMatch(saved, /<button/)
   assert.match(render({ ...message, tools: { ...message.tools, card: envelope({ type: 'SELF_CHECK', steps: [steps[0]] }) } }), />아니요, 해결되지 않았어요<\/button>/)
+})
+
+const coolingQuestions = [
+  { id: 'DISPLAY', label: '표시창', text: '표시창(온도가 보이는 화면)은 어떤가요?', note: null, options: [{ value: 'NORMAL', label: '평소처럼 켜져 있어요' }, { value: 'CODE', label: '오류 코드가 보여요' }] },
+  { id: 'SOUND', label: '작동 소리', text: "냉장고 가까이에서 2~3분 들어 보면 '웅' 하는 작동 소리가 나나요?", note: '조용한 제품은 소리가 작을 수 있어요.', options: [{ value: 'YES', label: '소리가 나요' }, { value: 'NO', label: '소리가 안 나요' }] },
+]
+
+test('without self-check steps the card opens on the first observation question', () => {
+  const html = render({ content: '직접 해 볼 수 있는 점검 방법은 없어요.', tools: { card: envelope({ type: 'SELF_CHECK', steps: [], questions: coolingQuestions }) } })
+  assert.equal((html.match(/class="tool-result/g) || []).length, 1)
+  assert.match(html, /원인을 좁히는 질문 · 1\/2/)
+  assert.match(html, />평소처럼 켜져 있어요<\/button>/)
+  assert.ok(!html.includes('작동 소리가 나나요'))
+  // With steps, questions wait until the last step is not solved.
+  const steps = render({ content: '', tools: { card: envelope({ type: 'SELF_CHECK', steps: ['보관 온도를 확인해 주세요.'], questions: coolingQuestions }) } })
+  assert.match(steps, /직접 확인해 보세요 · 1\/1단계/)
+  assert.ok(!steps.includes('원인을 좁히는 질문'))
+})
+
+test('answer-based range comes first and the whole range, answers and the error-code hint stay visible', () => {
+  const estimate = { status: 'OK', base: { min: 48195, max: 184042, parts: ['제상 센서', '응축기(기계실) 팬모터', '메인 PCB'] },
+    separate: [{ id: 'R01', name: '컴프레서', min: 231395, max: 427509, is_core: true }], overall: { min: 48195, max: 427509 }, candidates: [],
+    narrowed: { status: 'OK', base: { min: 99615, max: 184042, parts: ['메인 PCB'] }, separate: [{ id: 'R01', name: '컴프레서', min: 231395, max: 427509, is_core: true }],
+      overall: { min: 99615, max: 427509 }, candidates: [{ id: 'R02', name: '메인 PCB', min: 99615, max: 184042, repair_cases: 1, official_facts: 0, guides: 1 }] } }
+  const card = { type: 'SUMMARY', warranty: { status: 'EXPIRED', text: '제품 보증기간이 지났어요.' }, estimate, observations: ['작동 소리: 소리가 안 나요'], error_code_seen: true, route }
+  const html = render({ content: '점검이 필요해요.', tools: { card: envelope(card) } })
+  for (const expected of ['답하신 내용 기준', '약 100,000원 ~ 184,000원</strong> (메인 PCB)', '컴프레서 고장이면 약 231,000원 ~ 428,000원', '전체 가능 범위 약 48,000원 ~ 428,000원',
+    '답하신 내용: 작동 소리: 소리가 안 나요', '오류 코드를 채팅에 입력해 주시면', '답하신 내용과 연결된 근거', '수리업체 가이드 1건']) assert.ok(html.includes(expected), expected)
+  const unmatched = render({ content: '', tools: { card: envelope({ ...card, error_code_seen: false, estimate: { ...estimate, narrowed: { status: 'NO_MATCH' } } }) } })
+  assert.match(unmatched, /답하신 내용으로는 부품을 좁히지 못해 전체 범위로 안내해요/)
+  assert.match(unmatched, /전체 범위 약 48,000원 ~ 428,000원/)
+  assert.ok(!unmatched.includes('답하신 내용 기준'))
+})
+
+test('an error code follows LG guidance and the summary keeps LG meaning, cause and contact line on top', () => {
+  const steps = render({ content: '‘ER FF’(냉동실 팬 이상) 표시로 확인했어요.', tools: { card: envelope({ type: 'SELF_CHECK', source: 'LG_ERROR_GUIDE', steps: ['식품을 다른 냉장고나 아이스박스로 옮기고 바닥에 수건을 깔아두세요.'], questions: [] }) } })
+  assert.match(steps, /LG 안내대로 확인해 보세요 · 1\/1단계/)
+  const official = { shown: 'ER FF', meaning: '냉동실 팬 이상', cause: '팬 주변 결빙 또는 팬 모터 이상 가능', contact: ['지속되면 LG 문의하세요.'], source_url: 'https://www.lge.co.kr/support/solutions-20153004152841' }
+  const html = render({ content: '점검이 필요해요.', tools: { card: envelope({ type: 'SUMMARY', official, warranty: { text: '보증기간 안이에요.' }, estimate: { status: 'NO_DATA' }, route }) } })
+  for (const expected of ['<dt>LG 안내</dt>', 'ER FF · 냉동실 팬 이상', '원인: 팬 주변 결빙 또는 팬 모터 이상 가능', '지속되면 LG 문의하세요.']) assert.ok(html.includes(expected), expected)
+  assert.ok(html.indexOf('LG 안내') < html.indexOf('보증'))
+  assert.ok(!render({ content: '', tools: { card: envelope({ type: 'SUMMARY', warranty: { text: '보증' }, estimate: { status: 'NO_DATA' }, route }) } }).includes('LG 안내'))
 })
