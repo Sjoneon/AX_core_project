@@ -183,6 +183,19 @@ test('the self-check card starts at its first step and sends no chat options of 
   assert.match(render({ ...message, tools: { ...message.tools, card: envelope({ type: 'SELF_CHECK', steps: [steps[0]] }) } }), />아니요, 해결되지 않았어요<\/button>/)
 })
 
+test('two registered refrigerators are offered as one choice card with category, nickname and model', () => {
+  const products = [{ id: 1, category: 'REFRIGERATOR', name: '냉장고', model: 'S836MEE022' }, { id: 6, category: 'REFRIGERATOR', name: '냉장고 2', model: 'S834MEE111' }, { id: 9, category: 'REFRIGERATOR', name: null, model: null }]
+  const message = { content: '등록하신 냉장고가 3대 있어요. 어느 냉장고인지 선택해 주세요.', tools: { card: envelope({ type: 'PRODUCT_CHOICE', products }) } }
+  const html = render(message)
+  assert.equal((html.match(/class="tool-result/g) || []).length, 1)
+  assert.match(html, /상담할 제품을 선택해 주세요/)
+  assert.equal((html.match(/class="product-choice"/g) || []).length, 3)
+  for (const expected of ['<small>냉장고</small><strong>냉장고 2</strong><span>모델명 S834MEE111</span>', '<strong>냉장고</strong><span>모델명 S836MEE022</span>', '<strong>냉장고</strong><span>모델명 미입력</span>'])
+    assert.ok(html.includes(expected), expected)
+  // Once answered, the history keeps only the question; the chosen product is the next bubble.
+  assert.doesNotMatch(render(message, false), /product-choice|<button/)
+})
+
 const coolingQuestions = [
   { id: 'DISPLAY', label: '표시창', text: '표시창(온도가 보이는 화면)은 어떤가요?', note: null, options: [{ value: 'NORMAL', label: '평소처럼 켜져 있어요' }, { value: 'CODE', label: '오류 코드가 보여요' }] },
   { id: 'SOUND', label: '작동 소리', text: "냉장고 가까이에서 2~3분 들어 보면 '웅' 하는 작동 소리가 나나요?", note: '조용한 제품은 소리가 작을 수 있어요.', options: [{ value: 'YES', label: '소리가 나요' }, { value: 'NO', label: '소리가 안 나요' }] },
