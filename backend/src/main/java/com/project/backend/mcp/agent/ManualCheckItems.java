@@ -18,6 +18,8 @@ public final class ManualCheckItems {
     public static final int MAX_STEPS=6;
     // Situations a customer can see for themselves; internal parts, repairs and network setup are not self-checks.
     private static final Pattern NOT_OBSERVABLE=Pattern.compile("분해|교체|수리|부품|센서|PCB|기판|모터|히터|압축기|컴프레서|냉매|퓨즈|배선|누전|합선|서비스|제어부|펌프|공유기|네트워크|와이파이|스마트폰");
+    // Words a customer would not know without the manual or a spec sheet; a self-check never asks about them.
+    private static final Pattern UNFAMILIAR=Pattern.compile("고정볼트|물 경도|연수용");
     /** "운송용 고정볼트가 남은 경우" style branch conditions of a manual record. */
     public static List<String> conditions(KnowledgeDocument document){
         if(stopSelfCare(document)||!(document.fields().get("branches") instanceof Map<?,?> branches)||!(branches.get("action_branches") instanceof List<?> list))return List.of();
@@ -28,12 +30,12 @@ public final class ManualCheckItems {
         }
         return List.copyOf(result);
     }
-    /** Self-check sentences for the matched manual records, at most {@link #MAX_STEPS}. */
+    /** Self-check sentences for the matched manual records, at most {@link #MAX_STEPS}; items with unfamiliar words are left out. */
     public static List<String> sentences(List<KnowledgeDocument> documents){
         var result=new LinkedHashSet<String>();
         for(var document:documents){
-            for(String item:steps(of(document)))result.add(withObjectParticle(item)+" 확인해 주세요.");
-            for(String condition:conditions(document))result.add(condition+"에 해당하는지 확인해 주세요.");
+            for(String item:steps(of(document)))if(!UNFAMILIAR.matcher(item).find())result.add(withObjectParticle(item)+" 확인해 주세요.");
+            for(String condition:conditions(document))if(!UNFAMILIAR.matcher(condition).find())result.add(condition+"에 해당하는지 확인해 주세요.");
         }
         return result.stream().limit(MAX_STEPS).toList();
     }
