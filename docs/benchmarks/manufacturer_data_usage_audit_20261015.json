@@ -1,0 +1,2038 @@
+{
+  "checked_date": "2026-10-15",
+  "scope": "Local B30 source, repository resources, built JARs, actual Java lexical retrieval and synthetic registration/warranty; no model API, user DB, or production runtime inspection",
+  "source_directory_name": "LG_최종정리_B30_20261011",
+  "source_checksums": [
+    {
+      "file": "HomeCare_AI_LG_최종정리_B30_20261011.md",
+      "sha256": "1b3972261c927b24b4791876d285f17232eca90d920d72dbf9a0eb52797d3eaa",
+      "matches": true
+    },
+    {
+      "file": "README_B30.md",
+      "sha256": "84a4ce2cdd6388a090cdf8a4f34791b73fe0efe6b3df48a96c3f8696270c58ec",
+      "matches": true
+    },
+    {
+      "file": "RESUME_LG_B30_20261011.md",
+      "sha256": "85ceaa18370025ea6f6d5d88a7c92f7d578dd8672f2178522656c2817e6846a9",
+      "matches": true
+    },
+    {
+      "file": "checkpoint_B30.json",
+      "sha256": "b790c55d43fc85b1ba371238ef9b455afdf4ac691afc80356c74645652f7d3e8",
+      "matches": true
+    },
+    {
+      "file": "consolidation_changes_B30.json",
+      "sha256": "10aebb1762ed4c386b946bd71fb07df550fd7c749c6c9165bcccdd9fcac559c2",
+      "matches": true
+    },
+    {
+      "file": "knowledge_effective_B30.jsonl",
+      "sha256": "d6250de9abaddac3910adeec6c503de766cdc0e8ec268fbe2c1d44eafa4ec795",
+      "matches": true
+    },
+    {
+      "file": "manifest_B30.json",
+      "sha256": "02af01368a9bbe85f464787c876c3b9aae34832322a2345c0c06e9ceb1a7ceea",
+      "matches": true
+    },
+    {
+      "file": "manuals_B30.json",
+      "sha256": "8c7941c962aa038b18ad1bc282641907402fcc07f4ab8a143a5fbadc0bc1fa4f",
+      "matches": true
+    },
+    {
+      "file": "model_code_lookup_B30.json",
+      "sha256": "612ceaa7bea76ad067a2dcce9c9f8412598d361a577ac97594c54910474b0e28",
+      "matches": true
+    },
+    {
+      "file": "model_information_index_B30.json",
+      "sha256": "347ec8b0989deab7dd70c1e6bc4535e397241f7c4851eac1f7b73e456c3e0492",
+      "matches": true
+    },
+    {
+      "file": "products_B30.json",
+      "sha256": "dcdc5994da81f557871ba5c573b2c8ccf3146a3fc4e08606fca05860a716a00a",
+      "matches": true
+    },
+    {
+      "file": "query_B30.py",
+      "sha256": "ace3b42bf68352487f9f3096c2619e52bf85bd8ba34603e3f8610144e3cbba62",
+      "matches": true
+    },
+    {
+      "file": "representatives_B30.json",
+      "sha256": "9f3c185e99269dacfc624cbfd11400ff66ebea89134f87f84855c47f08d8c62c",
+      "matches": true
+    },
+    {
+      "file": "review_links_B30.json",
+      "sha256": "f471328aad69f114512772104bd988b32397f96c2230dafdeb45d65de052a952",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/HomeCare_AI_LG_상세수집_B29_20261011.md",
+      "sha256": "36156545eb78bcebc31db7bcb829000a4870296de3a1e4c3eb189b758a38ee90",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/QA_applicability_review_B29.json",
+      "sha256": "f09c47cc3ccc7c863ea4086cb27c57831554aa570e35eb95b3a00f9ecad4f6bd",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/QA_reference_inventory_through_B29.json",
+      "sha256": "ea75fa8dfaeb824d7d8346342067e21e8354f6b6d3fce62a17608a57804ad83b",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/RESUME_LG_B29_20261011.md",
+      "sha256": "90bf0246235c41cfe7f774ee04770eeed50a771fc501a5a05729e8e63f9307d7",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/behavior_validation_B29.json",
+      "sha256": "019b9420e54624b6060a251176d01ed396b093a6c29bc413006a54debd4c7968",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/checkpoint_B29.json",
+      "sha256": "8cb49800da2525448867f260e1fbadd07ad5325e85643c2d4bd02a45dc684ed5",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/checksums_B29.json",
+      "sha256": "5ab707194203129913783b2220717eb61e07a9c07ebc9d6d9f94d9d3fe05b026",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/collection_closure_B29.json",
+      "sha256": "c2c74755c26912d0cb3f42b300cfad5cb79f81756c81937a888cb08e0bcd4942",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/collection_policy_B29.json",
+      "sha256": "71a359e0f89423428cd2e5872e68fb04b7d61bdc2fe344e89cbfd7d71d476529",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/core_coverage_matrix_B29.json",
+      "sha256": "90359c5065cf078320feaf9fb1d78522e528b29046cc43813a6380a63e6fb197",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/dose_reference_tables_B29.json",
+      "sha256": "cbf26ccfb2ec2ff4baa38fd6280752035693226c93c84a32d640a4a9c2192296",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/fact_applicability_updates_B29.json",
+      "sha256": "7e485643fa390a0a8967a869a59907f3894398e7dfd8ff60f0208f59bc0fe6ed",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/fact_applicability_updates_through_B29.json",
+      "sha256": "6c6c56c05535e9017193a0d02d0918feefc7f9bd30f7bedfe27965296ac955bc",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/facts_B29.json",
+      "sha256": "5e660396a21e5a1834c2e1a3e54c442e5bdbc69e42d572d2b519bed88a9313f2",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/facts_B29.jsonl",
+      "sha256": "064e024dc1dc7a06150b6816aa7cc88093789179f2f89839b82ea330adea827f",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/font_normalization_B29.json",
+      "sha256": "2bea76ca3d0448783974d6300601eb361aebafe07f0f41cf31fdc23d0ef83513",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/knowledge_B29.jsonl",
+      "sha256": "4ca1af8b4de319b0d5435f5992467a6fb99114bf8b82e7837e9156e4907153e2",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/manual_coverage_B29.json",
+      "sha256": "6bc91681b565fba7249ae45bebfaf9d8c21c5233356a5e9c081397bd390c1f39",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/manual_coverage_through_B29.json",
+      "sha256": "be39eea6dd063b968cdad7b7cefc4eabe946d6b9dc6a855b2c967a0ebcfb81ab",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/manual_inventory_through_B29.json",
+      "sha256": "8c7941c962aa038b18ad1bc282641907402fcc07f4ab8a143a5fbadc0bc1fa4f",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/manual_topic_inventory_through_B29.json",
+      "sha256": "491d3312fddb63e2aaee7b22b9082015308b4cfa5ee4caf0a05564133df85118",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/market_ranking_review_B29.json",
+      "sha256": "f9a7785bcd2d0a8305f35303542315d20482eda9d33a6585c45bdc4ad4deeb9b",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/model_code_lookup_B29.json",
+      "sha256": "612ceaa7bea76ad067a2dcce9c9f8412598d361a577ac97594c54910474b0e28",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/model_code_mapping_B29.json",
+      "sha256": "a0923cf928a4fa661f97c980d47b0483d5efea6f01edf83f17d9605fab7f97b9",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/model_mapping_review_B29.json",
+      "sha256": "e6d568d974742d329cbe39b8275b1ccaca4e076ed68a84f0402ec1b63db75659",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/model_mapping_validation_B29.json",
+      "sha256": "019b9420e54624b6060a251176d01ed396b093a6c29bc413006a54debd4c7968",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/part_compatibility_inventory_B29.json",
+      "sha256": "25db104dbb124c9f78d6058810b8e67d8ccceb6b2e9b74b095fc407063f9ff1b",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/part_compatibility_inventory_through_B29.json",
+      "sha256": "96d300c70849e2ad0978c34768dfd0581eb465d93e7891559432c1ea215d5071",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/pending_B29.json",
+      "sha256": "debf1424c2ffbb04c2e55cf448fa5e61fb069d2688bb7bc311070bad7ae8351d",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/procedure_amendments_B29.json",
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/procedure_amendments_through_B29.json",
+      "sha256": "d67c0774bd2a8535af89d80446364a88909f748e2761a2e54de43d3b7d21a440",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/procedure_facts_B29.json",
+      "sha256": "32bb8df8eb8ce172f2cb29140049d03ef75559ea9f522f29fe4f446579c6c085",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/product_catalog_B29.json",
+      "sha256": "540d8fed7c027ef0692f2c8a831422a4ed997befc98b034317ab5d9e47c1e155",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/product_spec_inventory_B29.json",
+      "sha256": "9d4a88ce8cc57cff5548d2f760e64ffe1b41f0b5595126b743b11b956b718f38",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/reference_links_B29.json",
+      "sha256": "b068b378f36c07ac572fba9cdfdfe8fb8fc9cd67a387fbdad0ccfc9cc4956a44",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/registration_examples_B29.json",
+      "sha256": "0812d089a216a8dc6c760af0a0d6ea29eef8e57ef768d73e0d0c61a9fc0dcaef",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/routing_constraints_B29.json",
+      "sha256": "e332e391eda2ee5140c1ab7017e314693c84bcb8352009a362bb96bed6e824dd",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/source_comparison_B29.json",
+      "sha256": "12122b8bb6759d905b7bc7dc1eeacd79ff4154121d180c629bb35905af64d59f",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/source_conflicts_B29.json",
+      "sha256": "3a7aee2f89e23845c3c1620892faaaf15f0d1972ae103c47f3472b2b4f988496",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/source_inventory_B29.json",
+      "sha256": "8935c3ec68089fa9ede0e4d4aff5713ba3bb08bbc6b0224380cb983956b63aa8",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/validation_B29.json",
+      "sha256": "019b9420e54624b6060a251176d01ed396b093a6c29bc413006a54debd4c7968",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/visual_review_B29.json",
+      "sha256": "66dab94d7b6216371f5aeda1a6a5fdf4973ea2685d9258b89458ee8a7bfc6f91",
+      "matches": true
+    },
+    {
+      "file": "snapshot_B29/visual_source_inventory_B29.json",
+      "sha256": "979cdd59ac7471b078847a81273aad6ea78a2ae4920ef73f1166f31064ff6bcf",
+      "matches": true
+    },
+    {
+      "file": "validation_B30.json",
+      "sha256": "e441caf7742fac0f79da3c6c69ef139c54fec4825cd27cb9203af870d4fc398f",
+      "matches": true
+    }
+  ],
+  "packaged_version": "B30-COST-V3-20261014-R5",
+  "packaged_resource_checksums": [
+    {
+      "file": "homecare/knowledge.json",
+      "sha256": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d",
+      "matches": true
+    },
+    {
+      "file": "homecare/models.json",
+      "sha256": "2ce393c119cf15b98b064eb9c0e6fd3125447e66e904c2df2c4fcd49b8af2e8c",
+      "matches": true
+    },
+    {
+      "file": "homecare/parts.json",
+      "sha256": "df4f4bec34a3ede439fbd031b3c20b3c0b3b3ad50252a943f2d8f828ab3fdc51",
+      "matches": true
+    },
+    {
+      "file": "homecare/centers.json",
+      "sha256": "ffedeee1e920217cb984c68534c7b447acf02ef630330ac3aed837b763b1294a",
+      "matches": true
+    },
+    {
+      "file": "homecare/route.json",
+      "sha256": "be9bb0ef8ac6b96d92f1fb652640127c2825e0b980521d2e8a1b3dc0ded61d16",
+      "matches": true
+    },
+    {
+      "file": "homecare/approved-plans.json",
+      "sha256": "3d28e45234eaeb78e624a46447d1a4515f0412999a432b728b38ea9b4d7e95ae",
+      "matches": true
+    },
+    {
+      "file": "homecare/repair-cases.json",
+      "sha256": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
+      "matches": true
+    },
+    {
+      "file": "warranty/policies.json",
+      "sha256": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f",
+      "matches": true
+    },
+    {
+      "file": "homecare/knowledge-structured.json",
+      "sha256": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e",
+      "matches": true
+    }
+  ],
+  "counts": {
+    "source": 1659,
+    "packaged": 1542,
+    "structured": 1542,
+    "missing": 117,
+    "missing_kimchi": 97,
+    "extra_ids": 0,
+    "wrapper_mismatches": 0
+  },
+  "by_origin_prefix": [
+    {
+      "prefix": "B15",
+      "source": 152,
+      "packaged": 136,
+      "missing": 16
+    },
+    {
+      "prefix": "B16",
+      "source": 159,
+      "packaged": 137,
+      "missing": 22
+    },
+    {
+      "prefix": "B17",
+      "source": 287,
+      "packaged": 283,
+      "missing": 4
+    },
+    {
+      "prefix": "B18",
+      "source": 45,
+      "packaged": 45,
+      "missing": 0
+    },
+    {
+      "prefix": "B19",
+      "source": 60,
+      "packaged": 58,
+      "missing": 2
+    },
+    {
+      "prefix": "B20",
+      "source": 19,
+      "packaged": 15,
+      "missing": 4
+    },
+    {
+      "prefix": "B21",
+      "source": 46,
+      "packaged": 46,
+      "missing": 0
+    },
+    {
+      "prefix": "B22",
+      "source": 29,
+      "packaged": 21,
+      "missing": 8
+    },
+    {
+      "prefix": "B23",
+      "source": 53,
+      "packaged": 38,
+      "missing": 15
+    },
+    {
+      "prefix": "B24",
+      "source": 126,
+      "packaged": 106,
+      "missing": 20
+    },
+    {
+      "prefix": "B25",
+      "source": 49,
+      "packaged": 44,
+      "missing": 5
+    },
+    {
+      "prefix": "B26",
+      "source": 23,
+      "packaged": 16,
+      "missing": 7
+    },
+    {
+      "prefix": "B27",
+      "source": 22,
+      "packaged": 22,
+      "missing": 0
+    },
+    {
+      "prefix": "B28",
+      "source": 43,
+      "packaged": 43,
+      "missing": 0
+    },
+    {
+      "prefix": "B29",
+      "source": 95,
+      "packaged": 86,
+      "missing": 9
+    },
+    {
+      "prefix": "T1",
+      "source": 11,
+      "packaged": 11,
+      "missing": 0
+    },
+    {
+      "prefix": "T2",
+      "source": 124,
+      "packaged": 124,
+      "missing": 0
+    },
+    {
+      "prefix": "T3",
+      "source": 220,
+      "packaged": 220,
+      "missing": 0
+    },
+    {
+      "prefix": "T4",
+      "source": 76,
+      "packaged": 76,
+      "missing": 0
+    },
+    {
+      "prefix": "T5",
+      "source": 15,
+      "packaged": 15,
+      "missing": 0
+    },
+    {
+      "prefix": "T6",
+      "source": 5,
+      "packaged": 0,
+      "missing": 5
+    }
+  ],
+  "overlay_counts": {
+    "current_QA_review": {
+      "source": 46,
+      "packaged": 36
+    },
+    "latest_applicability_update": {
+      "source": 45,
+      "packaged": 39
+    },
+    "effective_model_lists": {
+      "source": 684,
+      "packaged": 597
+    },
+    "procedure_supplements": {
+      "source": 19,
+      "packaged": 19
+    }
+  },
+  "missing_by_record_type": {
+    "T6_service_routes": 5,
+    "installation_reference": 1,
+    "maintenance_procedure": 9,
+    "maintenance_reference": 5,
+    "manual_model_mapping": 8,
+    "market_ranking_reference": 5,
+    "normal_operation_reference": 1,
+    "paid_service_rule": 3,
+    "part_compatibility_reference": 2,
+    "product_specification": 1,
+    "safety": 2,
+    "safety_rule": 2,
+    "selfcare_summary": 48,
+    "service_escalation_rule": 3,
+    "service_policy_reference": 1,
+    "source_applicability_review": 16,
+    "warranty": 2,
+    "warranty_rule": 3
+  },
+  "missing_records": [
+    {
+      "id": "T6-001",
+      "record_type": "T6_service_routes",
+      "source_category": "NO_CATEGORY"
+    },
+    {
+      "id": "T6-002",
+      "record_type": "T6_service_routes",
+      "source_category": "NO_CATEGORY"
+    },
+    {
+      "id": "T6-003",
+      "record_type": "T6_service_routes",
+      "source_category": "NO_CATEGORY"
+    },
+    {
+      "id": "T6-004",
+      "record_type": "T6_service_routes",
+      "source_category": "NO_CATEGORY"
+    },
+    {
+      "id": "T6-005",
+      "record_type": "T6_service_routes",
+      "source_category": "NO_CATEGORY"
+    },
+    {
+      "id": "B15-MFL67704818-no_cooling",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-weak_cooling",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-frozen_food",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-dew",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-frost",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-water_nearby",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-safety",
+      "record_type": "safety",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL67704818-warranty",
+      "record_type": "warranty",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-no_cooling",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-weak_cooling",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-frozen_food",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-dew",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-frost",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-water_nearby",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-safety",
+      "record_type": "safety",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B15-MFL71401556-warranty",
+      "record_type": "warranty",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_43-006",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_43-009",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-001",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-002",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-003",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-004",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_44-005",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_45-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_45-001",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL67704818-topic_46-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_46-006",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_46-009",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-001",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-002",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-003",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-004",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_47-005",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_48-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_48-001",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B16-MFL71401556-topic_49-000",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B17-MFL67704818-topic_32-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B17-MFL67704818-topic_34-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B17-MFL71401556-topic_33-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B17-MFL71401556-topic_35-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B19-MFL67704818-topic_33-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B19-MFL71401556-topic_34-procedure",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B20-QA-20153004133823",
+      "record_type": "source_applicability_review",
+      "source_category": "REFRIGERATOR"
+    },
+    {
+      "id": "B20-QA-20152987996408",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B20-QA-20151902207608",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B20-QA-20151757280848",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-MFL67704818-displayed-error-service-rule",
+      "record_type": "service_escalation_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-MFL71401556-displayed-error-service-rule",
+      "record_type": "service_escalation_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-QA-20154362473191",
+      "record_type": "source_applicability_review",
+      "source_category": "GENERAL"
+    },
+    {
+      "id": "B22-QA-20154720321704",
+      "record_type": "source_applicability_review",
+      "source_category": "GENERAL"
+    },
+    {
+      "id": "B22-QA-20153013744458",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-QA-20153013733387",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-QA-20153013752301",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B22-QA-20151836810616",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MAPPING-TR15WV5",
+      "record_type": "manual_model_mapping",
+      "source_category": "WASHER"
+    },
+    {
+      "id": "B23-MAPPING-TR15MV5",
+      "record_type": "manual_model_mapping",
+      "source_category": "WASHER"
+    },
+    {
+      "id": "B23-MAPPING-DUE6BGL2",
+      "record_type": "manual_model_mapping",
+      "source_category": "DISHWASHER"
+    },
+    {
+      "id": "B23-MAPPING-RG20WN",
+      "record_type": "manual_model_mapping",
+      "source_category": "DRYER"
+    },
+    {
+      "id": "B23-MAPPING-RG20VN",
+      "record_type": "manual_model_mapping",
+      "source_category": "DRYER"
+    },
+    {
+      "id": "B23-MAPPING-M875GBB231",
+      "record_type": "manual_model_mapping",
+      "source_category": "REFRIGERATOR"
+    },
+    {
+      "id": "B23-MAPPING-T876MEE1H1",
+      "record_type": "manual_model_mapping",
+      "source_category": "REFRIGERATOR"
+    },
+    {
+      "id": "B23-MAPPING-Z494GCB161S",
+      "record_type": "manual_model_mapping",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-displayed-error-service-rule",
+      "record_type": "service_escalation_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-0-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-1-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-2-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-3-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-4-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B23-MFL69666920-topic_45-block-5-summary",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-0",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-1",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-2",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-3",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-4",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_46-block-5",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_47-block-0",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-topic_47-block-1",
+      "record_type": "selfcare_summary",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-physical-cleaning-electrical-safety",
+      "record_type": "safety_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-basic-exterior-cleaning",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-interior-cleaning",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-cleaning-and-storage-conditions",
+      "record_type": "maintenance_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-optional-material-and-sensor-care",
+      "record_type": "maintenance_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-kimchi-container-cleaning",
+      "record_type": "maintenance_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-deodorizer-regeneration",
+      "record_type": "maintenance_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-special-panel-care-excluded",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-installation-environment-reference",
+      "record_type": "installation_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-documented-warranty-and-retention",
+      "record_type": "warranty_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-consumer-compensation-reference",
+      "record_type": "service_policy_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B24-MFL69666920-paid-service-cause-reference",
+      "record_type": "paid_service_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B25-MFL69666920-product-specs",
+      "record_type": "product_specification",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B25-MFL69666920-glass-door-cleaning",
+      "record_type": "maintenance_procedure",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B25-MFL69666920-material-feature-branch-review",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B25-MFL69666920-interior-light-service-capability",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B25-MFL69666920-compressor-warranty-branch",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-part-4756JA3001H",
+      "record_type": "part_compatibility_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-part-MCS62101823",
+      "record_type": "part_compatibility_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-ACX72949201-not-approved",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-deodorizer-hardware-narrowed",
+      "record_type": "source_applicability_review",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-bare-filter-versus-covered-assembly",
+      "record_type": "safety_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-deodorizer-drying-route-limits",
+      "record_type": "maintenance_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B26-MFL69666920-deodorizer-small-powder",
+      "record_type": "normal_operation_reference",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B29-ranking-washing-machines",
+      "record_type": "market_ranking_reference",
+      "source_category": "washing-machines"
+    },
+    {
+      "id": "B29-ranking-dryers",
+      "record_type": "market_ranking_reference",
+      "source_category": "dryers"
+    },
+    {
+      "id": "B29-ranking-refrigerators",
+      "record_type": "market_ranking_reference",
+      "source_category": "refrigerators"
+    },
+    {
+      "id": "B29-ranking-dishwashers",
+      "record_type": "market_ranking_reference",
+      "source_category": "dishwashers"
+    },
+    {
+      "id": "B29-ranking-kimchi-refrigerators",
+      "record_type": "market_ranking_reference",
+      "source_category": "kimchi-refrigerators"
+    },
+    {
+      "id": "B29-MFL67704818-core-warranty",
+      "record_type": "warranty_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B29-MFL67704818-core-paid-service",
+      "record_type": "paid_service_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B29-MFL71401556-core-warranty",
+      "record_type": "warranty_rule",
+      "source_category": "KIMCHI"
+    },
+    {
+      "id": "B29-MFL71401556-core-paid-service",
+      "record_type": "paid_service_rule",
+      "source_category": "KIMCHI"
+    }
+  ],
+  "local_wrappers_with_missing_references": [
+    {
+      "id": "B20-QA-20153376859367",
+      "missing_reference_ids": [
+        "B23-MAPPING-RG20VN",
+        "B23-MAPPING-RG20WN"
+      ]
+    },
+    {
+      "id": "B22-QA-20151249371602",
+      "missing_reference_ids": [
+        "B23-MAPPING-RG20VN",
+        "B23-MAPPING-RG20WN"
+      ]
+    },
+    {
+      "id": "B22-QA-20155350318399",
+      "missing_reference_ids": [
+        "B23-MAPPING-RG20VN",
+        "B23-MAPPING-RG20WN"
+      ]
+    },
+    {
+      "id": "B22-QA-20150242847456",
+      "missing_reference_ids": [
+        "B23-MAPPING-RG20VN",
+        "B23-MAPPING-RG20WN"
+      ]
+    }
+  ],
+  "built_jar_data": [
+    {
+      "label": "workspace",
+      "knowledge_count": 1542,
+      "knowledge_sha256": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d",
+      "matches_packaged_source": true
+    },
+    {
+      "label": "published",
+      "knowledge_count": 1542,
+      "knowledge_sha256": "5ec8d44ffb4828d54a273ebef0ac1cfd302c1f2415769f50ceb978e2d800a07d",
+      "matches_packaged_source": true
+    }
+  ],
+  "executed_java_probes": {
+    "workspace": {
+      "scope": "Actual KnowledgeRetriever.lexical; no Spring server, model API or user DB; diagnostic probes, not a quality score",
+      "data_version": "B30-COST-V3-20261014-R5",
+      "probes": [
+        {
+          "id": "user-fridge-exact",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고가 시원하지 않아요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B15-MFL71401523-no_cooling",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B15-MFL71401523-weak_cooling",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-cooling",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B15-MFL71401523-no_cooling",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B15-MFL71401523-weak_cooling",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-odor",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고 안에서 냄새가 나요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B16-MFL71401523-topic_46-000",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [
+            {
+              "id": "B15-MFL71401523-safety",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-vibration",
+          "category": "WASHER",
+          "model": "FX24ENER",
+          "query": "탈수할 때 세탁기가 많이 흔들려요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 6,
+            "B17": 20,
+            "B19": 9,
+            "B21": 2,
+            "B27": 1,
+            "B28": 13,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B17-MFL71792818-topic_66-009",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-softener",
+          "category": "WASHER",
+          "model": "F12WVAR",
+          "query": "섬유유연제가 나오지 않아요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 21,
+            "B18": 8,
+            "B19": 1,
+            "B21": 2,
+            "B27": 1,
+            "B28": 11,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "dryer-drain",
+          "category": "DRYER",
+          "model": "RD21ESE",
+          "query": "배수가 안 돼요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B29": 50,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B29-MFL71831431-drain-tank",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B29-MFL71831431-hose-thaw",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B29-MFL71831431-notice-1",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "dryer-door",
+          "category": "DRYER",
+          "model": "RD21ESE",
+          "query": "문이 안 닫혀요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B29": 50,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B29-MFL71831431-notice-2",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-spec-volume",
+          "category": "REFRIGERATOR",
+          "model": "M876GBB231",
+          "query": "전체 용량은 몇 리터인가요?",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B28": 9,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-add-laundry",
+          "category": "WASHER",
+          "model": "F12WVAR",
+          "query": "세탁 중 빨래 추가 방법이 궁금해요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 21,
+            "B18": 8,
+            "B19": 1,
+            "B21": 2,
+            "B27": 1,
+            "B28": 11,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B28-MFL71995305-add-laundry",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        }
+      ],
+      "registration_probe": {
+        "scope": "Synthetic entity populated by the same registration update method; no live customer DB",
+        "model": "S836MEE022",
+        "purchase_date": "2026-05-05",
+        "proof_available": null,
+        "domestic_new_household": null,
+        "delivery_sido": "",
+        "delivery_sigungu": "",
+        "address_present": true,
+        "warranty_from_saved_input": {
+          "category": "REFRIGERATOR",
+          "modelName": "S836MEE022",
+          "asOfDate": "2026-10-15",
+          "basisDate": "2026-05-05",
+          "basisSource": "PURCHASE",
+          "productWarranty": {
+            "policyId": "REFRIGERATOR_PRODUCT",
+            "scope": "PRODUCT",
+            "name": "제품 전체 보증",
+            "variant": null,
+            "periodMonths": 12,
+            "expiresOn": null,
+            "periodStatus": "UNKNOWN",
+            "applicability": "NEEDS_CONFIRMATION",
+            "partFee": "CONFIRM_REQUIRED",
+            "laborFee": "CONFIRM_REQUIRED",
+            "visitFee": "CONFIRM_REQUIRED",
+            "conditions": [
+              "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+            ]
+          },
+          "partWarranties": [
+            {
+              "policyId": "REFRIGERATOR_STANDARD_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "일반 컴프레서",
+              "variant": "STANDARD_COMPRESSOR",
+              "periodMonths": 36,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_INVERTER_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "인버터 컴프레서",
+              "variant": "INVERTER_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2021-10-01 이후인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_LINEAR_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "리니어 컴프레서",
+              "variant": "LINEAR_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2009-10-01 이후인지 확인 필요"
+              ]
+            }
+          ],
+          "headline": "제품 전체 보증과 주요 부품 보증을 나눠 안내합니다. 적용 조건·증빙이 확인되면 만료일을 계산할 수 있습니다.",
+          "notes": [
+            "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.",
+            "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.",
+            "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.",
+            "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.",
+            "구입 증빙이 확인되지 않아 실제 만료일은 추가 확인이 필요합니다. 제조일을 추측하지 않습니다.",
+            "국내 신품의 가정용 사용 여부가 확인되지 않았습니다. 영업용·중고·해외 구매·계약 제품은 별도 조건을 확인해야 합니다.",
+            "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다."
+          ],
+          "policyVersion": "LG-KR-2026-10-13-v2",
+          "sourceUrl": "https://www.lge.co.kr/support/rates-warranty-guide",
+          "policyVerifiedOn": "2026-10-13"
+        },
+        "warranty_with_explicit_conditions": {
+          "category": "REFRIGERATOR",
+          "modelName": "S836MEE022",
+          "asOfDate": "2026-10-15",
+          "basisDate": "2026-05-05",
+          "basisSource": "PURCHASE",
+          "productWarranty": {
+            "policyId": "REFRIGERATOR_PRODUCT",
+            "scope": "PRODUCT",
+            "name": "제품 전체 보증",
+            "variant": null,
+            "periodMonths": 12,
+            "expiresOn": "2027-05-05",
+            "periodStatus": "IN_WARRANTY",
+            "applicability": "USER_DECLARED_CONDITIONAL",
+            "partFee": "CONDITIONAL_FREE",
+            "laborFee": "CONDITIONAL_FREE",
+            "visitFee": "CONFIRM_REQUIRED",
+            "conditions": [
+              "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+            ]
+          },
+          "partWarranties": [
+            {
+              "policyId": "REFRIGERATOR_STANDARD_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "일반 컴프레서",
+              "variant": "STANDARD_COMPRESSOR",
+              "periodMonths": 36,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_INVERTER_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "인버터 컴프레서",
+              "variant": "INVERTER_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2021-10-01 이후인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_LINEAR_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "리니어 컴프레서",
+              "variant": "LINEAR_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2009-10-01 이후인지 확인 필요"
+              ]
+            }
+          ],
+          "headline": "제품 전체 보증기간 안입니다. 주요 부품의 별도 보증과 무상 조건도 따로 확인하세요.",
+          "notes": [
+            "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.",
+            "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.",
+            "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.",
+            "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.",
+            "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다."
+          ],
+          "policyVersion": "LG-KR-2026-10-13-v2",
+          "sourceUrl": "https://www.lge.co.kr/support/rates-warranty-guide",
+          "policyVerifiedOn": "2026-10-13"
+        }
+      },
+      "commit": "3b01ad6646178ea271d27d90e4a9a8a02e539789",
+      "matcher_source_sha256": "1fadd24b78f8a83c2c749c9a84c53048c50691357eb5a7810d457fed2fc4dadf",
+      "uncommitted_matcher_change": true
+    },
+    "published": {
+      "scope": "Actual KnowledgeRetriever.lexical; no Spring server, model API or user DB; diagnostic probes, not a quality score",
+      "data_version": "B30-COST-V3-20261014-R5",
+      "probes": [
+        {
+          "id": "user-fridge-exact",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고가 시원하지 않아요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B16-MFL71401523-topic_46-000",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-cooling",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B16-MFL71401523-topic_46-000",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-odor",
+          "category": "REFRIGERATOR",
+          "model": "S836MEE022",
+          "query": "냉장고 안에서 냄새가 나요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B16-MFL71401523-topic_46-000",
+              "applicability": "MODEL_LISTED",
+              "score": 10.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [
+            {
+              "id": "B15-MFL71401523-safety",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-vibration",
+          "category": "WASHER",
+          "model": "FX24ENER",
+          "query": "탈수할 때 세탁기가 많이 흔들려요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 6,
+            "B17": 20,
+            "B19": 9,
+            "B21": 2,
+            "B27": 1,
+            "B28": 13,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B17-MFL71792818-topic_66-009",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-softener",
+          "category": "WASHER",
+          "model": "F12WVAR",
+          "query": "섬유유연제가 나오지 않아요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 21,
+            "B18": 8,
+            "B19": 1,
+            "B21": 2,
+            "B27": 1,
+            "B28": 11,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "dryer-drain",
+          "category": "DRYER",
+          "model": "RD21ESE",
+          "query": "배수가 안 돼요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B29": 50,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B29-MFL71831431-drain-tank",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B29-MFL71831431-hose-thaw",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            },
+            {
+              "id": "B29-MFL71831431-notice-1",
+              "applicability": "MODEL_LISTED",
+              "score": 6.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "dryer-door",
+          "category": "DRYER",
+          "model": "RD21ESE",
+          "query": "문이 안 닫혀요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B29": 50,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B29-MFL71831431-notice-2",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "fridge-spec-volume",
+          "category": "REFRIGERATOR",
+          "model": "M876GBB231",
+          "query": "전체 용량은 몇 리터인가요?",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 2,
+            "B19": 1,
+            "B22": 3,
+            "B28": 9,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        },
+        {
+          "id": "washer-add-laundry",
+          "category": "WASHER",
+          "model": "F12WVAR",
+          "query": "세탁 중 빨래 추가 방법이 궁금해요.",
+          "eligible_by_origin_prefix_all_topics": {
+            "B15": 8,
+            "B16": 9,
+            "B17": 21,
+            "B18": 8,
+            "B19": 1,
+            "B21": 2,
+            "B27": 1,
+            "B28": 11,
+            "B29": 2,
+            "T5": 1
+          },
+          "documents": [
+            {
+              "id": "B28-MFL71995305-add-laundry",
+              "applicability": "MODEL_LISTED",
+              "score": 4.0,
+              "similarity": 0.0,
+              "match": "LEXICAL"
+            }
+          ],
+          "safety": [],
+          "mode": "LEXICAL_ONLY"
+        }
+      ],
+      "registration_probe": {
+        "scope": "Synthetic entity populated by the same registration update method; no live customer DB",
+        "model": "S836MEE022",
+        "purchase_date": "2026-05-05",
+        "proof_available": null,
+        "domestic_new_household": null,
+        "delivery_sido": "",
+        "delivery_sigungu": "",
+        "address_present": true,
+        "warranty_from_saved_input": {
+          "category": "REFRIGERATOR",
+          "modelName": "S836MEE022",
+          "asOfDate": "2026-10-15",
+          "basisDate": "2026-05-05",
+          "basisSource": "PURCHASE",
+          "productWarranty": {
+            "policyId": "REFRIGERATOR_PRODUCT",
+            "scope": "PRODUCT",
+            "name": "제품 전체 보증",
+            "variant": null,
+            "periodMonths": 12,
+            "expiresOn": null,
+            "periodStatus": "UNKNOWN",
+            "applicability": "NEEDS_CONFIRMATION",
+            "partFee": "CONFIRM_REQUIRED",
+            "laborFee": "CONFIRM_REQUIRED",
+            "visitFee": "CONFIRM_REQUIRED",
+            "conditions": [
+              "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+            ]
+          },
+          "partWarranties": [
+            {
+              "policyId": "REFRIGERATOR_STANDARD_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "일반 컴프레서",
+              "variant": "STANDARD_COMPRESSOR",
+              "periodMonths": 36,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_INVERTER_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "인버터 컴프레서",
+              "variant": "INVERTER_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2021-10-01 이후인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_LINEAR_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "리니어 컴프레서",
+              "variant": "LINEAR_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2009-10-01 이후인지 확인 필요"
+              ]
+            }
+          ],
+          "headline": "제품 전체 보증과 주요 부품 보증을 나눠 안내합니다. 적용 조건·증빙이 확인되면 만료일을 계산할 수 있습니다.",
+          "notes": [
+            "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.",
+            "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.",
+            "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.",
+            "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.",
+            "구입 증빙이 확인되지 않아 실제 만료일은 추가 확인이 필요합니다. 제조일을 추측하지 않습니다.",
+            "국내 신품의 가정용 사용 여부가 확인되지 않았습니다. 영업용·중고·해외 구매·계약 제품은 별도 조건을 확인해야 합니다.",
+            "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다."
+          ],
+          "policyVersion": "LG-KR-2026-10-13-v2",
+          "sourceUrl": "https://www.lge.co.kr/support/rates-warranty-guide",
+          "policyVerifiedOn": "2026-10-13"
+        },
+        "warranty_with_explicit_conditions": {
+          "category": "REFRIGERATOR",
+          "modelName": "S836MEE022",
+          "asOfDate": "2026-10-15",
+          "basisDate": "2026-05-05",
+          "basisSource": "PURCHASE",
+          "productWarranty": {
+            "policyId": "REFRIGERATOR_PRODUCT",
+            "scope": "PRODUCT",
+            "name": "제품 전체 보증",
+            "variant": null,
+            "periodMonths": 12,
+            "expiresOn": "2027-05-05",
+            "periodStatus": "IN_WARRANTY",
+            "applicability": "USER_DECLARED_CONDITIONAL",
+            "partFee": "CONDITIONAL_FREE",
+            "laborFee": "CONDITIONAL_FREE",
+            "visitFee": "CONFIRM_REQUIRED",
+            "conditions": [
+              "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요"
+            ]
+          },
+          "partWarranties": [
+            {
+              "policyId": "REFRIGERATOR_STANDARD_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "일반 컴프레서",
+              "variant": "STANDARD_COMPRESSOR",
+              "periodMonths": 36,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_INVERTER_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "인버터 컴프레서",
+              "variant": "INVERTER_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2021-10-01 이후인지 확인 필요"
+              ]
+            },
+            {
+              "policyId": "REFRIGERATOR_LINEAR_COMPRESSOR",
+              "scope": "CORE_PART",
+              "name": "리니어 컴프레서",
+              "variant": "LINEAR_COMPRESSOR",
+              "periodMonths": 120,
+              "expiresOn": null,
+              "periodStatus": "UNKNOWN",
+              "applicability": "NEEDS_CONFIRMATION",
+              "partFee": "CONFIRM_REQUIRED",
+              "laborFee": "CONFIRM_REQUIRED",
+              "visitFee": "CONFIRM_REQUIRED",
+              "conditions": [
+                "해당 부품을 사용하는 모델인지 확인 필요",
+                "생산일이 2009-10-01 이후인지 확인 필요"
+              ]
+            }
+          ],
+          "headline": "제품 전체 보증기간 안입니다. 주요 부품의 별도 보증과 무상 조건도 따로 확인하세요.",
+          "notes": [
+            "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.",
+            "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.",
+            "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.",
+            "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.",
+            "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다."
+          ],
+          "policyVersion": "LG-KR-2026-10-13-v2",
+          "sourceUrl": "https://www.lge.co.kr/support/rates-warranty-guide",
+          "policyVerifiedOn": "2026-10-13"
+        }
+      },
+      "commit": "66521d342dbcb983458e3a3105be7079c6e499c3",
+      "matcher_source_sha256": "1b2ca9766d1f4893c23278232cf0a2d712d6339bd5efb83da5a71b866d392e41",
+      "uncommitted_matcher_change": false
+    }
+  },
+  "probe_source": "import java.nio.file.*;\nimport java.util.*;\nimport java.time.*;\nimport com.project.backend.data.DataManifest;\nimport com.project.backend.conversation.ProductCategory;\nimport com.project.backend.product.*;\nimport com.project.backend.warranty.*;\nimport com.project.backend.mcp.retrieval.KnowledgeRetriever;\nimport com.project.backend.mcp.tool.ToolDataCatalog;\nimport tools.jackson.databind.json.JsonMapper;\n\npublic class ManufacturerDataAudit {\n    public static void main(String[] args) throws Exception {\n        var catalog = new ToolDataCatalog(DataManifest.classpath());\n        var retriever = KnowledgeRetriever.lexical(catalog);\n        var cases = List.of(\n            List.of(\"user-fridge-exact\", \"REFRIGERATOR\", \"S836MEE022\", \"냉장고가 시원하지 않아요.\"),\n            List.of(\"fridge-cooling\", \"REFRIGERATOR\", \"S836MEE022\", \"냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.\"),\n            List.of(\"fridge-odor\", \"REFRIGERATOR\", \"S836MEE022\", \"냉장고 안에서 냄새가 나요.\"),\n            List.of(\"washer-vibration\", \"WASHER\", \"FX24ENER\", \"탈수할 때 세탁기가 많이 흔들려요.\"),\n            List.of(\"washer-softener\", \"WASHER\", \"F12WVAR\", \"섬유유연제가 나오지 않아요.\"),\n            List.of(\"dryer-drain\", \"DRYER\", \"RD21ESE\", \"배수가 안 돼요.\"),\n            List.of(\"dryer-door\", \"DRYER\", \"RD21ESE\", \"문이 안 닫혀요.\"),\n            List.of(\"fridge-spec-volume\", \"REFRIGERATOR\", \"M876GBB231\", \"전체 용량은 몇 리터인가요?\"),\n            List.of(\"washer-add-laundry\", \"WASHER\", \"F12WVAR\", \"세탁 중 빨래 추가 방법이 궁금해요.\")\n        );\n        var report = new LinkedHashMap<String,Object>();\n        report.put(\"scope\", \"Actual KnowledgeRetriever.lexical; no Spring server, model API or user DB; diagnostic probes, not a quality score\");\n        report.put(\"data_version\", catalog.version);\n        var probes = new ArrayList<Map<String,Object>>();\n        for (var c : cases) {\n            var result = retriever.retrieve(c.get(3), c.get(1), c.get(2), \"MANUAL\", null, 3);\n            var counts = new TreeMap<String,Integer>();\n            for (String id : catalog.knowledgeById.keySet())\n                if (retriever.eligible(id, c.get(1), c.get(2))) counts.merge(id.split(\"-\")[0], 1, Integer::sum);\n            var row = new LinkedHashMap<String,Object>();\n            row.put(\"id\", c.get(0)); row.put(\"category\", c.get(1)); row.put(\"model\", c.get(2)); row.put(\"query\", c.get(3));\n            row.put(\"eligible_by_origin_prefix_all_topics\", counts);\n            row.put(\"documents\", result.documents()); row.put(\"safety\", result.safety()); row.put(\"mode\", result.mode());\n            probes.add(row);\n        }\n        report.put(\"probes\", probes);\n        var registered = new UserProduct(null);\n        var purchase = LocalDate.parse(\"2026-05-05\");\n        registered.update(new ProductRequest(ProductCategory.REFRIGERATOR, \"냉장고\", \"S836MEE022\", purchase.toString(), null, \"제주특별자치도 제주시\", null), purchase);\n        var warranty = new WarrantyService(new WarrantyCatalog(), Clock.fixed(Instant.parse(\"2026-10-15T03:00:00Z\"), ZoneId.of(\"Asia/Seoul\")));\n        var saved = registered.warranty();\n        var registration = new LinkedHashMap<String,Object>();\n        registration.put(\"scope\", \"Synthetic entity populated by the same registration update method; no live customer DB\");\n        registration.put(\"model\", saved.modelName()); registration.put(\"purchase_date\", saved.purchaseDate());\n        registration.put(\"proof_available\", saved.proofAvailable()); registration.put(\"domestic_new_household\", saved.domesticNewHousehold());\n        registration.put(\"delivery_sido\", registered.getDeliverySido()); registration.put(\"delivery_sigungu\", registered.getDeliverySigungu());\n        registration.put(\"address_present\", registered.response().address()!=null);\n        registration.put(\"warranty_from_saved_input\", warranty.check(saved));\n        registration.put(\"warranty_with_explicit_conditions\", warranty.check(new WarrantyModels.Request(ProductCategory.REFRIGERATOR, \"S836MEE022\", purchase, null, null, null, null, true, true)));\n        report.put(\"registration_probe\", registration);\n        Files.writeString(Path.of(args[0]), JsonMapper.builder().build().writeValueAsString(report) + \"\\n\");\n        System.out.println(\"Wrote \" + probes.size() + \" offline retrieval probes; records=\" + catalog.knowledge.size());\n    }\n}\n",
+  "gradle_probe_init_script": "allprojects {\n    afterEvaluate { p ->\n        if (p.plugins.hasPlugin('java')) {\n            def auditDir = file('C:/Users/Roneon/Desktop/core_project_2/.git/codex-validation/manufacturer-b30')\n            tasks.register('compileManufacturerDataAudit', JavaCompile) {\n                dependsOn tasks.named('classes')\n                source = files(new File(auditDir, 'ManufacturerDataAudit.java'))\n                classpath = sourceSets.main.runtimeClasspath\n                destinationDirectory = new File(auditDir, project.findProperty('auditLabel') + '-classes')\n                javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }\n                options.encoding = 'UTF-8'\n            }\n            tasks.register('auditManufacturerData', JavaExec) {\n                dependsOn tasks.named('compileManufacturerDataAudit')\n                classpath = files(new File(auditDir, project.findProperty('auditLabel') + '-classes')) + sourceSets.main.runtimeClasspath\n                mainClass = 'ManufacturerDataAudit'\n                args new File(auditDir, project.findProperty('auditLabel') + '-retrieval.json').absolutePath\n            }\n        }\n    }\n}\n",
+  "limitations": [
+    "Lexical probes are diagnostic examples, not an independent relevance score or live model answer replay.",
+    "Screenshot confirms visible fields, not all persisted legacy fields; registration probe uses a new synthetic entity.",
+    "No personal address, account identifier, credentials, or live customer DB data included."
+  ]
+}

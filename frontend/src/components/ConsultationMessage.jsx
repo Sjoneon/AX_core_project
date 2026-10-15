@@ -1,4 +1,5 @@
-import { customerText, list, warrantyView } from '../customerDisplay.js'
+import { Fragment } from 'react'
+import { customerText, linkParts, list, warrantyView } from '../customerDisplay.js'
 import WarrantyResult from './WarrantyResult.jsx'
 import RiskQuestion from './RiskQuestion.jsx'
 import ToolResults from './ToolResults.jsx'
@@ -11,7 +12,9 @@ export default function ConsultationMessage({ message, active, disabled, onAnswe
   const reply = customerText(message.content)
   const text = customerText(question?.text)
   return <>
-    <p className="message-bubble">{reply || '저장된 안내의 상세 내용은 아래 결과에서 확인해 주세요.'}</p>
+    <p className="message-bubble">{reply
+      ? linkParts(reply).map((part, index) => part.href ? <a key={index} href={part.href} target="_blank" rel="noreferrer">{part.text}</a> : <Fragment key={index}>{part.text}</Fragment>)
+      : '저장된 안내의 상세 내용은 아래 결과에서 확인해 주세요.'}</p>
     <KnowledgeSources tools={message.tools} sources={message.sources} safetyOnly />
     <RiskQuestion safety={message.tools?.safety} active={active} disabled={disabled} onAnswer={onAnswerRisk} />
     {text && <div className="consultation-controls" aria-label="증상 확인">

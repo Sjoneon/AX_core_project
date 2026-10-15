@@ -28,6 +28,8 @@ public class PrepareServiceHandoffTool implements HomeCareTool {
         if(p!=null)facts.add("등록 모델: "+p.warranty().modelName());
         String symptom=com.project.backend.mcp.consultation.SymptomCatalog.label(s.category(),s.state().symptomCode());if(!symptom.isBlank())facts.add("확인한 증상: "+symptom);
         if(s.state().dialogue().symptomText()!=null)facts.add("고객 증상 설명: "+s.state().dialogue().symptomText().substring(0,Math.min(300,s.state().dialogue().symptomText().length())));
+        String observed=com.project.backend.mcp.consultation.DialogueRouter.coolingLabel(s.state().dialogue().answers().get(com.project.backend.mcp.consultation.DialogueRouter.COOLING_STATE));
+        if(observed!=null)facts.add("고객이 답한 상태: "+observed);
         facts.add("자가조치 상태: "+switch(outcome){case "NOT_VERIFIED"->"실행 승인 미확인";case "ALL_DONE"->"검토된 단계 모두 수행, 미해결";case "NO_SELF_CARE"->"검토 결과 조치 없음";case "PRECONDITION_NOT_MET"->"선행 조건 미충족";case "PRECONDITION_UNCONFIRMED","PRECONDITIONS_PENDING"->"선행 조건 미확인";case "IN_PROGRESS"->"단계 진행 중";case "RESOLVED"->"해결";case "RISK"->"위험 확인 우선";default->"제품 확인 필요";});
         if(s.state().errorCode()!=null)facts.add("오류코드: "+s.state().errorCode());
         var stepNames=new HashMap<String,String>();for(var plan:catalog.approvedPlans)for(var step:DiagnosticPlans.steps(plan))stepNames.put(text(step,"step_code"),text(step,"text"));

@@ -60,12 +60,13 @@ class WarrantyServiceTests {
         assertThat(exampleService().check(example(LocalDate.of(2024, 2, 29))).productWarranty().expiresOn()).isEqualTo(LocalDate.of(2026, 2, 28));
     }
 
-    @Test void usesDeliveryDateWhenPurchaseAndDeliveryDiffer() {
+    @Test void purchaseDateStartsWarrantyEvenWhenDeliveryDiffers() {
         var request = new WarrantyModels.Request(ProductCategory.WASHER, null, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 10, 20), null, "EXAMPLE_MOTOR", null, true, true);
         var result = exampleService().check(request);
-        assertThat(result.basisSource()).isEqualTo("DELIVERY");
-        assertThat(result.productWarranty().periodStatus()).isEqualTo("IN_WARRANTY");
-        assertThat(result.productWarranty().expiresOn()).isEqualTo(LocalDate.of(2026, 10, 20));
+        assertThat(result.basisSource()).isEqualTo("PURCHASE");
+        assertThat(result.basisDate()).isEqualTo(LocalDate.of(2024, 10, 1));
+        assertThat(result.productWarranty().periodStatus()).isEqualTo("EXPIRED");
+        assertThat(result.productWarranty().expiresOn()).isEqualTo(LocalDate.of(2026, 10, 1));
     }
 
     @Test void missingDateNeverProducesExpiryOrZeroFees() {
@@ -75,10 +76,28 @@ class WarrantyServiceTests {
         assertThat(result.productWarranty().partFee()).isEqualTo("CONFIRM_REQUIRED");
     }
 
-    @Test void missingProofNeverPretendsDateIsVerified() {
+    @Test void missingProofKeepsPurchaseBasedPeriodsButDoesNotConfirmFreeRepair() {
         var result = exampleService().check(new WarrantyModels.Request(ProductCategory.WASHER, null, LocalDate.of(2026, 1, 1), null, null, "EXAMPLE_MOTOR", null, false, true));
-        assertThat(result.productWarranty().periodStatus()).isEqualTo("UNKNOWN");
-        assertThat(result.partWarranties().getFirst().periodStatus()).isEqualTo("UNKNOWN");
+        assertThat(result.productWarranty().periodStatus()).isEqualTo("IN_WARRANTY");
+        assertThat(result.partWarranties().getFirst().periodStatus()).isEqualTo("IN_WARRANTY");
+        assertThat(result.productWarranty().partFee()).isEqualTo("CONFIRM_REQUIRED");
+        assertThat(result.partWarranties().getFirst().partFee()).isEqualTo("CONFIRM_REQUIRED");
+        assertThat(result.notes()).noneMatch(note -> note.contains("실제 만료일은 추가 확인"));
+    }
+
+    @Test void registeredRefrigeratorPurchaseCalculatesExpiryWithoutProofOrHouseholdFlags() {
+        var service = new WarrantyService(new WarrantyCatalog(), Clock.fixed(Instant.parse("2026-10-15T03:00:00Z"), ZoneId.of("Asia/Seoul")));
+        var result = service.check(new WarrantyModels.Request(ProductCategory.REFRIGERATOR, "S836MEE022",
+                LocalDate.of(2026, 5, 5), null, null, null, null, null, null));
+        assertThat(result.basisSource()).isEqualTo("PURCHASE");
+        assertThat(result.productWarranty().expiresOn()).isEqualTo(LocalDate.of(2027, 5, 5));
+        assertThat(result.productWarranty().periodStatus()).isEqualTo("IN_WARRANTY");
+        assertThat(result.productWarranty().applicability()).isEqualTo("NEEDS_CONFIRMATION");
+        assertThat(result.productWarranty().partFee()).isEqualTo("CONFIRM_REQUIRED");
+        assertThat(result.productWarranty().laborFee()).isEqualTo("CONFIRM_REQUIRED");
+        assertThat(result.productWarranty().visitFee()).isEqualTo("CONFIRM_REQUIRED");
+        assertThat(result.partWarranties()).allMatch(row -> row.expiresOn() == null && "UNKNOWN".equals(row.periodStatus()));
+        assertThat(service.summarize(result)).contains("구매일 기준", "2027-05-05", "보증기간 안");
     }
 
     @Test void unknownUseConditionDoesNotApplyHouseholdPolicy() {

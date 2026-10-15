@@ -1310,6 +1310,35 @@ class BackendApplicationTests {
                                 document -> !document.getMetadata().get("category").equals("AIR_CONDITIONER"));
         }
     @Test
+    void addressSearchRegionIsStoredAndATypedReplacementAddressClearsIt() throws Exception {
+        long id = createProduct("""
+                {"category":"REFRIGERATOR","model":"S836MEE022","purchaseDate":"2026-05-05","postcode":"63122",
+                "address":"제주특별자치도 제주시 첨단로 1","deliverySido":"제주특별자치도","deliverySigungu":"제주시"}
+                """);
+        mockMvc.perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(jsonPath("$[0].id").value(id)).andExpect(jsonPath("$[0].deliverySido").value("제주"))
+                .andExpect(jsonPath("$[0].deliverySigungu").value("제주시"));
+        // An unchanged address keeps the searched region; a typed replacement address must not inherit it.
+        mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"category":"REFRIGERATOR","name":"주방 냉장고","model":"S836MEE022","purchaseDate":"2026-05-05",
+                        "postcode":"63122","address":"제주특별자치도 제주시 첨단로 1"}
+                        """))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliverySido").value("제주"));
+        mockMvc.perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content("""
+                        {"category":"REFRIGERATOR","model":"S836MEE022","purchaseDate":"2026-05-05","address":"서울시 강남구"}
+                        """))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliverySido").value("")).andExpect(jsonPath("$.deliverySigungu").value(""));
+        for (String invalid : List.of("{\"category\":\"WASHER\",\"deliverySido\":\"서울\"}",
+                "{\"category\":\"WASHER\",\"address\":\"서울시 강남구\",\"deliverySido\":\"화성\"}",
+                "{\"category\":\"WASHER\",\"address\":\"서울시 강남구\",\"deliverySigungu\":\"강남구\"}")) {
+            mockMvc.perform(post("/api/products").header("Authorization", "Bearer " + accessToken)
+                    .contentType(MediaType.APPLICATION_JSON).content(invalid)).andExpect(status().isBadRequest());
+        }
+    }
+
+    @Test
     void profileApiUpdatesTheSameProductUsedByMcpWithoutLosingDeliveryRegion() throws Exception {
         var created = mockMvc.perform(post("/api/me/products").header("Authorization", "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON).content("""

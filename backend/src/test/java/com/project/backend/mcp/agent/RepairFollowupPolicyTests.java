@@ -37,6 +37,19 @@ class RepairFollowupPolicyTests {
         assertThat(outputs.get("followup").status()).isEqualTo("PARTIAL");
         assertThat(outputs.get("followup").data().get("pending_tools").toString()).contains("estimate_repair_cost","prepare_service_handoff");
     }
+    @Test void missingApprovalExplainsFirstAndConnectsServiceOnlyWhenTheSameSymptomContinues(){
+        var calls=new ArrayList<String>();
+        java.util.function.Supplier<Map<String,ToolEnvelope>> unapproved=()->new LinkedHashMap<>(Map.of("get_diagnostic_plan",result("NOT_VERIFIED",map("skip_reason","NOT_VERIFIED"))));
+        RepairFollowupPolicy.complete(state("SYMPTOM"),unapproved.get(),(name,args)->{calls.add(name);return result("OK",Map.of());},Map.of(),false);
+        assertThat(calls).isEmpty();
+        // An open observation question is answered before the service connection, even on a later turn.
+        var question=new DialogueState("SYMPTOM",null,List.of(),"TEST_ONLY symptom",new DialogueState.Question("COOLING_STATE","TEST_ONLY question",List.of()),0,Map.of(),"TEST_ONLY",null);
+        var asking=new ConsultationService.Snapshot(1L,ProductCategory.REFRIGERATOR,2L,"TEST_ONLY",new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false,question),3);
+        RepairFollowupPolicy.complete(asking,unapproved.get(),(name,args)->{calls.add(name);return result("OK",Map.of());},Map.of(),true);
+        assertThat(calls).isEmpty();
+        RepairFollowupPolicy.complete(state("SYMPTOM"),unapproved.get(),(name,args)->{calls.add(name);return result("OK",Map.of());},Map.of(),true);
+        assertThat(calls).containsExactly("check_warranty","find_service_centers","prepare_service_handoff");
+    }
     @Test void missingApprovalKeepsItsOwnHandoffReasonAndNeverTriggersAnAutomaticPartPrice(){
         var outputs=new LinkedHashMap<String,ToolEnvelope>();outputs.put("get_diagnostic_plan",result("NOT_VERIFIED",map("skip_reason","NOT_VERIFIED")));
         var calls=new ArrayList<String>();

@@ -29,6 +29,12 @@ test('rendered response shows one structured document and keeps file paths, raw 
   assert.doesNotMatch(html, /해결됐나요/)
 })
 
+test('manual links in the reply render as anchors instead of markdown', () => {
+  const html = render({ content: '근거입니다. [제조사 설명서](https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45)', tools: {} })
+  assert.match(html, /<a href="https:\/\/gscs-manual\.lge\.com\/CNZ\/MFL71401523\/ko-kr\/main\.html#topic_45" target="_blank" rel="noreferrer">제조사 설명서<\/a>/)
+  assert.doesNotMatch(html, /\]\(|참고 자료/)
+})
+
 test('real stored wrapper renders customer fields, preserves source bytes and exposes original only in DEV trace', () => {
   const docs = JSON.parse(readFileSync(new URL('../../backend/src/main/resources/homecare/knowledge.json', import.meta.url), 'utf8'))
   const doc = docs.find((item) => item.id === 'T2-003')
@@ -79,6 +85,19 @@ test('symptom options, current self-care controls and saved historical instructi
   assert.doesNotMatch(render({ ...message, tools: { get_diagnostic_plan: envelope({ steps: [{ text: '미승인 단계' }] }, 'NOT_VERIFIED') } }), /미승인 단계/)
 })
 
+test('purchase-based warranty displays expiry separately from unconfirmed free-repair conditions', () => {
+  const html = render({ content: '등록 구매일 기준 보증기간을 확인했어요.', warranty: {
+    category: 'REFRIGERATOR', headline: '등록 구매일 기준 제품 전체 보증기간 안입니다.',
+    asOfDate: '2026-10-15', basisSource: 'PURCHASE', basisDate: '2026-05-05',
+    productWarranty: { name: '제품 전체 보증', periodMonths: 12, expiresOn: '2027-05-05',
+      periodStatus: 'IN_WARRANTY', applicability: 'NEEDS_CONFIRMATION',
+      partFee: 'CONFIRM_REQUIRED', laborFee: 'CONFIRM_REQUIRED', visitFee: 'CONFIRM_REQUIRED' },
+    partWarranties: [], notes: [],
+  } })
+  for (const expected of ['구매일 2026-05-05', '보증기간 안', '만료일: 2027-05-05', '무상 수리와 비용 적용은']) assert.ok(html.includes(expected), expected)
+  assert.doesNotMatch(html, /아래 조건이 이 제품에 적용되는지|조건 충족 시 무상|0원/)
+})
+
 test('cost, warranty and service results retain verified amounts, unknowns, conditional fees and prepared-only meaning', () => {
   const html = render({ content: '참고 비용과 공식 상담 경로입니다.', tools: {
     check_warranty: envelope({ category: 'WASHER', headline: '보증 확인', asOfDate: '2026-10-15', productWarranty: { name: '제품 전체', periodMonths: 12, periodStatus: 'IN_WARRANTY', partFee: 'CONDITIONAL_FREE', laborFee: 'CONFIRM_REQUIRED', visitFee: 'CONFIRM_REQUIRED' }, partWarranties: [] }),
@@ -102,4 +121,27 @@ test('malformed or incomplete saved results omit unsafe links, raw values and fa
   } })
   assert.match(html, /전달할 요약을 준비하지 못했습니다/)
   assert.doesNotMatch(html, /javascript:|NaN|undefined|전달할 요약이 준비됐습니다|&quot;record&quot;/)
+})
+
+test('service connection card states the region and official booking instead of an empty center lookup', () => {
+  const connection = (status, region_status, base_region) => envelope({ directory_status: 'NOT_INTEGRATED', region_status, base_region, centers: [], booking_status: 'NOT_SUBMITTED', route }, status)
+  const known = render({ content: '점검 안내입니다.', tools: { find_service_centers: connection('OK', 'KNOWN', { sido: '제주', sigungu: '제주시' }) } })
+  assert.match(known, /A\/S 연결 <small>공식 연결<\/small>/)
+  assert.match(known, /제주 제주시 설치 제품 · 점검은 LG 공식 출장 접수로 신청할 수 있어요/)
+  assert.match(known, /아직 접수·예약하지 않았습니다/)
+  assert.doesNotMatch(known, /조회 완료|센터 자료가 없습니다/)
+  const missing = render({ content: '점검 안내입니다.', tools: { find_service_centers: connection('NEEDS_INPUT', 'REQUIRED', { sido: '', sigungu: '' }) } })
+  assert.match(missing, /지역 확인 필요/)
+  assert.match(missing, /주소 검색으로 설치 주소를 다시 저장해 주세요/)
+  assert.ok(missing.includes(route.apply_url))
+  const saved = render({ content: '이전 안내입니다.', tools: { find_service_centers: envelope({ base_region: { sido: '서울', sigungu: '강남구' }, fallback_level: 'SIGUNGU', centers: [{ id: 'C1', name: '대치서비스센터', address: '서울 강남구' }], route }) } })
+  assert.match(saved, /저장 당시의 센터 안내입니다/)
+  assert.match(saved, /대치서비스센터/)
+})
+
+test('a missing reviewed plan is described as such, not as a blocked approval', () => {
+  const html = render({ content: '설명입니다.', tools: { get_diagnostic_plan: envelope({ skip_reason: 'NOT_VERIFIED', steps: [], route }, 'NOT_VERIFIED') } })
+  assert.match(html, /자가검진 <small>검토된 절차 없음<\/small>/)
+  assert.match(html, /검토를 마친 단계별 자가점검 절차가 아직 없어요/)
+  assert.doesNotMatch(html, /실행 승인 미확인/)
 })

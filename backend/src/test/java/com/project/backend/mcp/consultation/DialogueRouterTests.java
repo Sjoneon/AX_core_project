@@ -33,6 +33,23 @@ class DialogueRouterTests {
     DialogueRouter.Transition route(ConsultationState state,String input,MessageInterpreter.Interpretation parsed){
         return DialogueRouter.route(ProductCategory.WASHER,state,input,parsed,List.of(),null);
     }
+    DialogueRouter.Transition fridge(ConsultationState state,String input,MessageInterpreter.Interpretation parsed){
+        return DialogueRouter.route(ProductCategory.REFRIGERATOR,state,input,parsed,List.of(),null);
+    }
+    @Test void coolingAsksOneObservationQuestionWithoutReplacingTheExplanation(){
+        var first=fridge(ConsultationState.start(),"냉장고가 시원하지 않아요.",interpretation("SYMPTOM","COOLING",.95));
+        assertThat(first.reply()).isNull();assertThat(first.state().dialogue().pendingQuestion().id()).isEqualTo("COOLING_STATE");
+        var answered=fridge(first.state(),"모두 전혀 차갑지 않아요",interpretation("SYMPTOM","COOLING",.95));
+        assertThat(answered.reply()).isNull();assertThat(answered.state().dialogue().pendingQuestion()).isNull();
+        assertThat(answered.state().dialogue().answers()).containsEntry("COOLING_STATE","NONE");
+        assertThat(fridge(first.state(),"차갑긴 하지만 약해요",interpretation("SYMPTOM","COOLING",.95)).state().dialogue().answers()).containsEntry("COOLING_STATE","WEAK");
+        assertThat(fridge(first.state(),"잘 모르겠어요",interpretation("OTHER",null,0)).state().dialogue().answers()).containsEntry("COOLING_STATE","UNKNOWN");
+        // An explicit first description needs no question; a service request drops the question instead of repeating it.
+        var weak=fridge(ConsultationState.start(),"냉장실이 약해요",interpretation("SYMPTOM","COOLING",.95));
+        assertThat(weak.state().dialogue().answers()).containsEntry("COOLING_STATE","WEAK");assertThat(weak.state().dialogue().pendingQuestion()).isNull();
+        assertThat(fridge(first.state(),"출장 접수할게요",interpretation("SERVICE",null,0)).state().dialogue().pendingQuestion()).isNull();
+        assertThat(route(ConsultationState.start(),"세탁기 물이 안 빠져요",interpretation("SYMPTOM","DRAIN",.95)).state().dialogue().pendingQuestion()).isNull();
+    }
     @Test void vibrationWithoutErrorPersistsAndAsksWhenItOccurs(){
         var first=route(ConsultationState.start(),"본체가 원 위치에서 크게 벗어나요",interpretation("SYMPTOM","VIBRATION",.95));
         assertThat(first.state().symptomCode()).isEqualTo("VIBRATION");assertThat(first.state().riskStatus()).isEqualTo("CLEAR");

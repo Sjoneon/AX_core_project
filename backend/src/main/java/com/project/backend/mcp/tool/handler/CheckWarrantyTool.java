@@ -25,9 +25,9 @@ public class CheckWarrantyTool implements HomeCareTool {
         var value=warranty.check(request);
         Map<String,Object> data=JSON.convertValue(value,new TypeReference<>(){});
         var product=value.productWarranty();
-        // Quality warranty counts from purchase/delivery; parts retention counts from manufacture and is a different period.
+        // Quality warranty starts at the registered purchase date; retention is a separate manufacture-date period.
         data.put("coverage_periods",map(
-                "quality_warranty",map("label","품질보증기간","basis_label","구입일(배송일이 있으면 배송일) 기준","basis_date",value.basisDate(),
+                "quality_warranty",map("label","품질보증기간","basis_label","구입일 기준","basis_date",value.basisDate(),
                         "period_months",product.periodMonths(),"expires_on",product.expiresOn(),"status",product.periodStatus()),
                 "parts_retention",map("label","부품보유기간","basis_label","제조일 기준","status","UNAVAILABLE","fact_ids",List.of(),
                         "reason","B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다.")));

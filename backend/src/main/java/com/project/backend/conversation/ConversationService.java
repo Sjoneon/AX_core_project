@@ -155,6 +155,15 @@ public class ConversationService {
     public record DialogueMessage(String role,String content,String displayedStep,Long contextVersion,String displayedCondition,String planScope) {
         public DialogueMessage(String role,String content,String displayedStep,Long contextVersion){this(role,content,displayedStep,contextVersion,null,null);}
     }
+    /** True when an earlier answer here already explained this symptom/error without an approved self-care plan. */
+    @Transactional(readOnly=true)
+    public boolean explainedWithoutApproval(Long id,String email,String symptomCode,String errorCode){
+        if(symptomCode==null&&errorCode==null)return false;
+        findOwned(id,email);
+        return messageRepository.findTop12ByConversationIdOrderByIdDesc(id).stream().map(message->message.getTools().get("get_diagnostic_plan"))
+                .anyMatch(plan->plan!=null&&plan.data()!=null&&"NOT_VERIFIED".equals(plan.data().get("skip_reason"))
+                        &&java.util.Objects.equals(plan.data().get("symptom_code"),symptomCode)&&java.util.Objects.equals(plan.data().get("error_code"),errorCode));
+    }
     @Transactional(readOnly=true)
     public List<DialogueMessage> dialogueHistory(Long id,String email){
         findOwned(id,email);

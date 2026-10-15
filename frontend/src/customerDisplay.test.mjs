@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { collectKnowledge, customerText, knowledgeView, sourceUrl, warrantyView } from './customerDisplay.js'
+import { collectKnowledge, customerText, knowledgeView, linkParts, sourceUrl, warrantyView } from './customerDisplay.js'
 
 const resources = new URL('../../backend/src/main/resources/homecare/', import.meta.url)
 const raw = JSON.parse(readFileSync(new URL('knowledge.json', resources), 'utf8'))
@@ -74,6 +74,16 @@ test('plain historical evidence remains readable and embedded, array or truncate
   assert.doesNotMatch(customerText('homecare/knowledge.json backend/Tool.java\ncurrent_QA_review: test\n' + 'a'.repeat(64)), forbidden)
   assert.equal(knowledgeView({ content: '{"unknown":"internal"}' }).content, '')
   assert.equal(customerText(null), '')
+  const manual = '[제조사 설명서](https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45)'
+  assert.equal(customerText(`근거 ${manual}`), `근거 ${manual}`)
+  assert.doesNotMatch(customerText('C:\\Users\\a\\x.txt D:/data'), /[CD]:/)
+})
+
+test('bubble links keep only safe https targets', () => {
+  assert.deepEqual(linkParts('보기 [설명서](https://www.lge.co.kr/support) 끝'), [
+    { text: '보기 ' }, { text: '설명서', href: 'https://www.lge.co.kr/support' }, { text: ' 끝' }])
+  assert.deepEqual(linkParts('[x](javascript:alert(1))'), [{ text: 'x', href: null }, { text: ')' }])
+  assert.deepEqual(linkParts('링크 없음'), [{ text: '링크 없음' }])
 })
 
 test('unsafe links are omitted and missing warranty values are never recalculated', () => {

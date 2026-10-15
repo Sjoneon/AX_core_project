@@ -48,6 +48,15 @@ public final class DialogueRouter {
                 if(old.pendingQuestion()!=null&&old.pendingQuestion().id().equals("SYMPTOM"))answers.put("SYMPTOM",SymptomCatalog.label(category,code));
                 if(pending!=null&&pending.id().equals("SYMPTOM"))pending=null;
             }
+            if(pending!=null&&pending.id().equals(COOLING_STATE)){
+                // A service/cost request ends the observation question instead of repeating it.
+                if(inquiry)pending=null;
+                else{
+                    String state=coolingState(input,true);
+                    if(state!=null||unknown||answers.containsKey("COOLING_STATE_REASK")){answers.put(COOLING_STATE,state==null?"UNKNOWN":state);pending=null;}
+                    else{answers.put("COOLING_STATE_REASK","ASKED");reply=pending.text();}
+                }
+            }
             if(pending!=null&&pending.id().equals("VIBRATION_WHEN")&&!inquiry){
                 String timing=timing(input);
                 if(timing!=null){answers.put("VIBRATION_WHEN",timing);pending=null;}
@@ -67,6 +76,12 @@ public final class DialogueRouter {
                 String timing=timing(input);
                 if(timing!=null)answers.put("VIBRATION_WHEN",timing);
                 else{pending=new DialogueState.Question("VIBRATION_WHEN","세탁기가 언제 심하게 흔들리나요?",List.of("탈수할 때","세탁할 때","항상","잘 모르겠어요"));reply=pending.text();}
+            }
+            // Manuals separate a full stop from weak cooling. Ask once, after the explanation (no reply: the agent still answers).
+            if(category==ProductCategory.REFRIGERATOR&&"COOLING".equals(symptom)&&!answers.containsKey(COOLING_STATE)&&pending==null&&!inquiry&&reply==null){
+                String state=coolingState(input,false);
+                if(state!=null)answers.put(COOLING_STATE,state);
+                else pending=new DialogueState.Question(COOLING_STATE,"냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?",List.of(COOLING_OPTIONS.get("NONE"),COOLING_OPTIONS.get("WEAK"),"잘 모르겠어요"));
             }
         }
         boolean symptomChanged=!Objects.equals(previous.symptomCode(),symptom);
@@ -105,6 +120,19 @@ public final class DialogueRouter {
         return new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),symptom,same?done:List.of(),same?current:0,closed,dialogue,selfCare);
     }
     private static String normalize(String text){return text.replaceAll("[\\s\\p{Punct}]","");}
+    public static final String COOLING_STATE="COOLING_STATE";
+    private static final Map<String,String> COOLING_OPTIONS=Map.of("NONE","모두 전혀 차갑지 않아요","WEAK","차갑긴 하지만 약해요");
+    private static final Map<String,String> COOLING_LABELS=Map.of("NONE","냉장·냉동 모두 전혀 차갑지 않음","WEAK","차갑긴 하지만 냉각이 약함");
+    /** Customer-facing label of a stored cooling observation; null when absent or unknown. */
+    public static String coolingLabel(String state){return state==null?null:COOLING_LABELS.get(state);}
+    /** A first message needs an explicit marker; an answer to the question may use plainer words. */
+    static String coolingState(String input,boolean answering){
+        String text=input.strip();
+        if(text.matches("(?s).*(약해|약하|약함|덜\\s*(시원|차가)|미지근).*"))return "WEAK";
+        if(text.matches("(?s).*(전혀|아예|하나도|완전히).*"))return "NONE";
+        if(answering&&text.matches("(?s).*(안\\s*차가|차갑지\\s*않|안\\s*돼|안\\s*되|둘\\s*다|모두).*"))return "NONE";
+        return null;
+    }
     private static String timing(String input){
         if(input.contains("탈수"))return "SPIN";
         if(input.matches("(?s).*(세탁할|세탁 중|세탁중|세탁 때).*"))return "WASH";

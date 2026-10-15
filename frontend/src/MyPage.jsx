@@ -193,7 +193,8 @@ export default function MyPage({ session, onLogout, onBack }) {
                     <th scope="row" data-label="표시 이름">{item.name || productName(item.category)}</th>
                     <td data-label="모델명">{item.model || '미입력'}</td>
                     <td data-label="구매일">{item.purchaseDate || '미입력'}</td>
-                    <td data-label="설치 주소"><div>{item.postcode && <small>{item.postcode}<br /></small>}{item.address || (!item.postcode ? '미입력' : '')}{item.addressDetail && <><br />{item.addressDetail}</>}</div></td>
+                    <td data-label="설치 주소"><div>{item.postcode && <small>{item.postcode}<br /></small>}{item.address || (!item.postcode ? '미입력' : '')}{item.addressDetail && <><br />{item.addressDetail}</>}
+                      {item.address && <><br /><small>{item.deliverySido ? `A/S 지역 ${item.deliverySido} ${item.deliverySigungu || ''}`.trim() : 'A/S 지역 미확인 · 수정에서 주소 검색'}</small></>}</div></td>
                     <td className="my-product-edit"><div className="my-product-actions">
                       <button className="logout-button" type="button" aria-label={`${item.name || productName(item.category)} 수정`} onClick={() => edit(item)} disabled={isBusy}>수정</button>
                       <button className="logout-button" type="button" aria-label={`${item.name || productName(item.category)} 삭제`} onClick={() => beginDelete(item)} disabled={isBusy}>삭제</button>

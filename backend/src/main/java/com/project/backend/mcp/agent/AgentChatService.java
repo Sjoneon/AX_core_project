@@ -199,7 +199,8 @@ public class AgentChatService {
                     if(!session.results.containsKey(next))policyFallback(session,next);
                 }
             }
-            RepairFollowupPolicy.complete(s,session.results,(name,args)->policyFallback(session,name,args),catalog.route);
+            boolean explained=history.explainedWithoutApproval(s.id(),email,s.state().symptomCode(),s.state().errorCode());
+            RepairFollowupPolicy.complete(s,session.results,(name,args)->policyFallback(session,name,args),catalog.route,explained);
             calls.addAll(session.calls);outputs.putAll(session.results);
             if(session.results.isEmpty()&&session.calls.stream().anyMatch(c->"TOOL_UNAVAILABLE".equals(c.errorCode())))return unavailable(s,outputs,"MCP_UNAVAILABLE",null);
             String fixed=format(outputs,warrantyOf(outputs.get("check_warranty")));
@@ -292,12 +293,13 @@ public class AgentChatService {
                 case "search_knowledge"->{
                     if(data.get("safety_notices") instanceof List<?> notices&&!notices.isEmpty())first.add("안전 주의: 관련 안전 문서가 있어요. 다른 안내보다 먼저 확인하고, 이상하면 사용을 멈춰 주세요.");
                     boolean found=data.get("documents") instanceof List<?> documents&&!documents.isEmpty()||data.get("safety_notices") instanceof List<?> notices&&!notices.isEmpty();
-                    lines.add(!found?"이 모델·질문에 맞는 확인된 근거를 찾지 못했어요.":"질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.");
+                    // Found documents are explained by their own facts; only their absence needs a sentence here.
+                    if(!found)lines.add("이 모델·질문에 맞는 확인된 근거를 찾지 못했어요.");
                     if(data.get("model_code")==null&&!results.containsKey("get_product_context"))lines.add("정확한 안내를 위해 제품 라벨에 있는 모델명을 알려 주세요.");
                 }
                 case "check_warranty"->{
                     if(Set.of("WARRANTY","COST").contains(intent)){
-                        if(result.status().equals("NEEDS_INPUT"))lines.add("보증기간을 확인하려면 구입일(배송일이 있으면 배송일)이 필요해요. 마이페이지에서 등록 제품의 구입일을 확인해 주세요.");
+                        if(result.status().equals("NEEDS_INPUT"))lines.add("보증기간을 확인하려면 구입일이 필요해요. 마이페이지에서 등록 제품의 구입일을 확인해 주세요.");
                         else if(warrantyResult!=null)lines.add("WARRANTY".equals(intent)?warranty.summarize(warrantyResult):warrantyResult.headline()+" 비용은 보증 적용·고장 부품·증빙 확인 후 달라질 수 있습니다. 부품비·기술료·출장비 조건은 아래 보증 결과에서 확인해 주세요.");
                         if("WARRANTY".equals(intent))lines.add("품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준으로 서로 다릅니다. 부품보유기간은 확인된 자료가 없어 제공하지 않습니다.");
                     }
@@ -315,11 +317,12 @@ public class AgentChatService {
                 }
                 case "estimate_repair_cost"->lines.addAll(cost(data));
                 case "find_service_centers"->{
-                    if(result.status().equals("NEEDS_INPUT"))lines.add(needsProduct());
+                    if(result.status().equals("NEEDS_INPUT"))lines.add("CONFIRM_REGION".equals(data.get("interaction"))
+                            ?"제품의 설치 지역이 저장되어 있지 않아요. 마이페이지 제품 정보에서 주소 검색으로 설치 주소를 다시 저장하면 지역이 함께 저장됩니다.":needsProduct());
                     else if(data.get("centers") instanceof List<?> centers&&!centers.isEmpty()){
                         lines.add("등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.");
                         for(var raw:centers){var center=(Map<?,?>)raw;lines.add(center.get("name")+" · "+center.get("address")+" · [센터 정보]("+center.get("detail_url")+")");}
-                    }else lines.add("등록 배송지역에 맞는 센터 자료가 없습니다. 전국 센터 찾기나 고객센터로 확인해 주세요.");
+                    }else lines.add("점검은 LG 공식 출장 접수로 신청할 수 있어요. 센터 방문을 원하시면 공식 센터 찾기에서 접수 가능한 센터를 확인해 주세요.");
                     lines.add(serviceRoute());
                 }
                 case "prepare_service_handoff"->{if(data.get("summary_text")!=null){
@@ -340,6 +343,8 @@ public class AgentChatService {
             }
         }
         first.addAll(lines);
+        // The observation question closes the answer so its option buttons follow the explanation.
+        if(dialogue!=null&&dialogue.data().get("question") instanceof DialogueState.Question q&&DialogueRouter.COOLING_STATE.equals(q.id()))first.add(q.text());
         return first.isEmpty()?"확인된 도구 결과가 부족합니다. 제품과 증상 정보를 확인해 주세요.":String.join("\n\n",new LinkedHashSet<>(first));
     }
     private String serviceRoute(){return "공식 접수: [LG 출장 서비스 예약]("+route("apply_url")+") · [전국 센터 찾기]("+route("center_finder_url")+") · 고객센터 "+route("phone")+". 실제 예약은 공식 채널에서 진행해 주세요.";}

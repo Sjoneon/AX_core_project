@@ -20,6 +20,6 @@ public final class DiagnosticGuidance {
         if("OK".equals(result.status())&&data.get("steps") instanceof List<?> steps&&!steps.isEmpty()){
             var step=(Map<?,?>)steps.getFirst();return Objects.toString(step.get("text"),"")+"\n"+Objects.toString(step.get("caution"),"")+"\n이 단계 후 해결됐는지 알려 주세요. 이미 수행했고 해결되지 않았다면 아니요로 답해 주세요.";
         }
-        return "현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 실행 승인은 미확인이며, 자가조치가 없다고 확정한 상태는 아닙니다. 원문 근거와 공식 상담 경로를 확인해 주세요.";
+        return "이 제품·증상에는 검토를 마친 단계별 자가점검 절차가 아직 없어요. 자가조치가 없다고 확정한 것은 아니며, 문제가 계속되면 공식 점검을 받아 주세요.";
     }
 }

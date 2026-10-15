@@ -41,6 +41,16 @@ public class UserProduct {
         this.deliverySido=sido; this.deliverySigungu=sigungu;
     }
     public void update(ProductRequest request, LocalDate purchaseDate) {
+        update(request, purchaseDate, null, null);
+    }
+    /**
+     * A searched region replaces the stored one. Replacing a stored address by typing clears the region, so it never
+     * describes a different address; a region registered without any address is kept when an address is first added.
+     */
+    public void update(ProductRequest request, LocalDate purchaseDate, String sido, String sigungu) {
+        boolean addressReplaced = address != null && !Objects.equals(address, request.address());
+        if (sido != null) { deliverySido = sido; deliverySigungu = sigungu == null ? "" : sigungu; }
+        else if (addressReplaced) { deliverySido = ""; deliverySigungu = ""; }
         var previous = warrantyInput == null ? null : warranty();
         boolean sameCategory = previous != null && previous.category() == request.category();
         boolean sameModel = sameCategory && Objects.equals(previous.modelName(), request.model());
@@ -62,7 +72,7 @@ public class UserProduct {
     public ProductResponse response() {
         var input = warranty();
         return new ProductResponse(id, category, displayName, input.modelName(), input.purchaseDate(), postcode,
-                address, addressDetail, createdAt, updatedAt);
+                address, addressDetail, deliverySido, deliverySigungu, createdAt, updatedAt);
     }
     public Long getId(){return id;}
     public ProductCategory getCategory(){return category;}

@@ -55,6 +55,19 @@ class KnowledgeRetrievalTests {
             assertThat(result.documents()).isEmpty();assertThat(result.safety()).isEmpty();
         }
     }
+    @Test void coolingComplaintsSelectCoolingFactsNotInteriorFacts(){
+        for(String query:List.of("냉장고가 시원하지 않아요.","냉장이 안 돼요","냉장·냉동이 잘되지 않아요","냉동이 약해요")){
+            var result=retriever.retrieve(query,"REFRIGERATOR","S836MEE022","MANUAL",null,3);
+            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).as(query).contains("B15-MFL71401523-no_cooling")
+                    .doesNotContain("B16-MFL71401523-topic_46-000","B16-MFL71401523-topic_46-001");
+        }
+        // "냉장고 안" is the interior, not a cooling failure.
+        var odor=retriever.retrieve("냉장고 안에서 냄새가 나요","REFRIGERATOR","S836MEE022","MANUAL",null,3);
+        assertThat(odor.documents()).extracting(KnowledgeRetriever.Hit::id).contains("B16-MFL71401523-topic_46-000")
+                .doesNotContain("B15-MFL71401523-no_cooling","B15-MFL71401523-weak_cooling");
+        assertThat(retriever.retrieve("냉장고가 안 켜져요","REFRIGERATOR","S836MEE022","MANUAL",null,3).documents())
+                .extracting(KnowledgeRetriever.Hit::id).doesNotContain("B15-MFL71401523-no_cooling","B15-MFL71401523-weak_cooling");
+    }
     @Test void negatedVibrationDoesNotOverrideTheDrainSymptom(){
         var result=retriever.retrieve("진동은 없고 물이 안 빠져요","WASHER","F24WDWPR","MANUAL",null,3);
         assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).contains("T3-001").doesNotContain("T2-010","T3-137");

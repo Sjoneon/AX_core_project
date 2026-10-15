@@ -55,6 +55,23 @@ class ToolBackendTests {
     static Map<String,Object> range(ToolEnvelope result){return asMap(first(result).get("expected_range"));}
     static String reason(Throwable error){return error.getMessage();}
 
+    // ---- find_service_centers: official connection, never the seed centers as a nationwide lookup ----
+    @Test void serviceConnectionReportsTheStoredRegionAndNeverListsSeedCenters(){
+        snapshot=new ConsultationService.Snapshot(1L,ProductCategory.REFRIGERATOR,2L,"출장 접수하고 싶어요",ConsultationState.start(),3);
+        var backend=backend(real);
+        var missing=backend.execute("find_service_centers","owner",map("conversation_id",1),3L);
+        assertThat(missing.status()).isEqualTo("NEEDS_INPUT");
+        assertThat(missing.data()).containsEntry("interaction","CONFIRM_REGION").containsEntry("region_status","REQUIRED").containsEntry("centers",List.of());
+        for(var region:List.of(List.of("제주","제주시"),List.of("서울","강남구"))){
+            when(product.getDeliverySido()).thenReturn(region.get(0));when(product.getDeliverySigungu()).thenReturn(region.get(1));
+            var known=backend.execute("find_service_centers","owner",map("conversation_id",1),3L);
+            assertThat(known.status()).isEqualTo("OK");
+            assertThat(known.data()).containsEntry("region_status","KNOWN").containsEntry("directory_status","NOT_INTEGRATED")
+                    .containsEntry("booking_status","NOT_SUBMITTED").containsEntry("centers",List.of()).containsEntry("base_region",map("sido",region.get(0),"sigungu",region.get(1)));
+            assertThat(asMap(known.data().get("channels"))).containsEntry("onsite_booking_url",real.route.get("apply_url")).containsEntry("phone",real.route.get("phone"));
+        }
+    }
+
     // ---- lookup_model (data interpretation rule 1) ----
     @Test void lookupPreservesSalesCodeAndUsesRepresentativeOnlyForCommonData(){
         consult(ProductCategory.WASHER,null,"fx24ener 세탁기 배수가 안 돼요");
@@ -244,7 +261,7 @@ class ToolBackendTests {
         var result=backend(real).execute("check_warranty","owner",map("conversation_id",1),3L);
         assertThat(result.status()).isEqualTo("NEEDS_INPUT");assertThat(result.missing_fields()).containsExactly("purchase_date");
         var periods=(Map<?,?>)result.data().get("coverage_periods");
-        assertThat(asMap(periods.get("quality_warranty"))).containsEntry("basis_label","구입일(배송일이 있으면 배송일) 기준");
+        assertThat(asMap(periods.get("quality_warranty"))).containsEntry("basis_label","구입일 기준");
         assertThat(asMap(periods.get("parts_retention"))).containsEntry("basis_label","제조일 기준").containsEntry("status","UNAVAILABLE");
     }
 

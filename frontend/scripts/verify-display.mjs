@@ -12,7 +12,9 @@ const read = async (name) => JSON.parse(await readFile(new URL(name, resources),
 const raw = (await read('knowledge.json')).find((doc) => doc.id === 'T2-003')
 const plan = (await read('approved-plans.json'))[0]
 const route = await read('route.json')
-const fixture = { raw, plan, route }
+const warrantyVerification = process.env.HOMECARE_WARRANTY_VERIFICATION_OUTPUT
+  ? JSON.parse(await readFile(process.env.HOMECARE_WARRANTY_VERIFICATION_OUTPUT, 'utf8')) : null
+const fixture = { raw, plan, route, warrantyVerification }
 const entry = `
 import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -20,7 +22,7 @@ import Message from '/src/components/ConsultationMessage.jsx'
 import Trace from '/src/components/ToolCallTrace.jsx'
 import '/src/index.css'
 import '/src/App.css'
-const {raw, plan, route} = ${JSON.stringify(fixture)}
+const {raw, plan, route, warrantyVerification} = ${JSON.stringify(fixture)}
 const wrap = (data, status = 'OK') => ({data, status, meta: {context_version: 7}})
 const history = {id: 1, content: '저장한 자료입니다.\\n' + raw.text, sources: [{documentId: raw.id, title: raw.title, content: raw.text, file: 'homecare/knowledge.json'}]}
 const final = {content: '미해결 상담의 참고 비용과 공식 경로입니다.', tools: {
@@ -37,7 +39,9 @@ function App() {
     : phase === 1 ? {content: '다음 승인 단계입니다.', tools: {get_diagnostic_plan: wrap({steps: [plan.steps[0]]})}}
     : phase === 2 ? final
     : phase === 3 ? {content: '어떤 증상인가요?', tools: {consultation: wrap({question: {text: '어떤 증상인가요?', options: ['흔들림', '배수 불량']}})}}
-    : {content: '위험 상황을 확인해 주세요.', tools: {safety: wrap({risk_status: 'SUSPECT', question: '현재 위험 상황인가요?'})}}
+    : phase === 4 ? {content: '위험 상황을 확인해 주세요.', tools: {safety: wrap({risk_status: 'SUSPECT', question: '현재 위험 상황인가요?'})}}
+    : phase === 5 ? {...warrantyVerification.response, content: warrantyVerification.response.reply}
+    : warrantyVerification.savedAnswer
   window.setPhase = setPhase
   return <><main id="customer" style={{maxWidth: 800, margin: 'auto', padding: 16}}>
     <h1>상담 표시 검증</h1><div className="message-content"><Message message={history} active={false} />
@@ -73,6 +77,7 @@ async function until(expression) {
   throw new Error(`Browser condition failed: ${expression}`)
 }
 const report = []
+const purchaseWarrantyChecks = []
 try {
   server = await createServer({ logLevel: 'error', server: { host: '127.0.0.1', port: 0, strictPort: false }, plugins: [{
     name: 'local-display-fixtures',
@@ -148,7 +153,30 @@ try {
   await until('document.querySelector("#customer").textContent.includes("위험 상황")')
   await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "모르겠어요").click()')
   assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'risk', answer: 'UNSURE', version: 7 })
-  console.log(JSON.stringify({ passed: true, scope: 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer'], viewports: report }, null, 2))
+  if (warrantyVerification) {
+    for (const phase of [5, 6]) {
+      await evaluate(`window.setPhase(${phase})`)
+      await until('!!document.querySelector("#customer .warranty-result .warranty-row")')
+      const product = await evaluate('document.querySelector("#customer .warranty-result .warranty-row").textContent')
+      assert.match(product, /보증기간 안/)
+      assert.match(product, /2027-05-05/)
+      assert.equal(await evaluate('document.querySelector("#customer .warranty-result .warranty-status").textContent'), '보증기간 안')
+      assert.match(await evaluate('document.querySelector("#customer .warranty-result").textContent'), /구매일 2026-05-05/)
+      assert.doesNotMatch(product, /조건 충족 시 무상|0원/)
+      purchaseWarrantyChecks.push({ source: phase === 5 ? 'HTTP chat response' : 'saved history response', productText: product })
+    }
+    for (const width of [1280, 390]) {
+      await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 })
+      await evaluate('document.querySelector("#customer .warranty-result").scrollIntoView({block: "start"})')
+      const dimensions = await evaluate('({width: innerWidth, content: document.querySelector("#customer").scrollWidth})')
+      assert.ok(dimensions.content <= dimensions.width, JSON.stringify(dimensions))
+      const capture = await cdp('Page.captureScreenshot', { format: 'png' })
+      const screenshot = join(profile, `purchase-warranty-${width}.png`)
+      await writeFile(screenshot, Buffer.from(capture.data, 'base64'))
+      report.push({ width, purchaseWarranty: true, overflow: false, screenshot })
+    }
+  }
+  console.log(JSON.stringify({ passed: true, scope: warrantyVerification ? 'local fixtures plus captured authenticated backend/MCP and history responses; no real model' : 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer'], purchaseWarrantyChecks, viewports: report }, null, 2))
 } finally {
   socket?.close()
   for (const call of pending.values()) clearTimeout(call.timer)

@@ -26,6 +26,7 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
     name: initial?.name || '', model: initial?.model || '',
     purchaseDate: (initial?.purchaseDate || '').replaceAll('-', ''),
     postcode: initial?.postcode || '', address: initial?.address || '', addressDetail: initial?.addressDetail || '',
+    deliverySido: initial?.deliverySido || '', deliverySigungu: initial?.deliverySigungu || '',
   })
   const [error, setError] = useState('')
   const [addressError, setAddressError] = useState('')
@@ -49,7 +50,9 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
 
   function change(event) {
     const { name, value } = event.target
-    setForm((previous) => ({ ...previous, [name]: name === 'purchaseDate' ? value.replace(/[^0-9]/g, '').slice(0, 8) : value }))
+    // A typed address has no verified region; only an address search result fills it.
+    const region = name === 'address' || name === 'postcode' ? { deliverySido: '', deliverySigungu: '' } : {}
+    setForm((previous) => ({ ...previous, ...region, [name]: name === 'purchaseDate' ? value.replace(/[^0-9]/g, '').slice(0, 8) : value }))
   }
 
   function searchAddress() {
@@ -60,7 +63,8 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
         oncomplete(data) {
           if (!alive.current || savingRef.current) return
           setForm((previous) => ({ ...previous, postcode: data.zonecode,
-            address: data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress, addressDetail: '' }))
+            address: data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress, addressDetail: '',
+            deliverySido: data.sido || '', deliverySigungu: data.sigungu || '' }))
           detailRef.current?.focus()
         },
       }).open()
@@ -110,6 +114,9 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
           </div>
           <label>기본 주소<input name="address" value={form.address} onChange={change} maxLength={160} autoComplete="address-line1" /></label>
           <label>상세 주소<input ref={detailRef} name="addressDetail" value={form.addressDetail} onChange={change} maxLength={100} autoComplete="address-line2" placeholder="동·호수 등을 입력해 주세요" /></label>
+          {form.address && <p className="product-help" role="status">{form.deliverySido
+            ? `A/S 지역: ${form.deliverySido} ${form.deliverySigungu}`.trim()
+            : 'A/S 지역이 확인되지 않았어요. 주소 검색으로 입력하면 지역이 함께 저장됩니다.'}</p>}
         </fieldset>
         {postcodeStatus === 'error' && <p className="product-help" role="status">주소 검색을 불러오지 못했습니다. 주소를 직접 입력해 주세요.</p>}
         {addressError && <p className="error" role="alert">{addressError}</p>}

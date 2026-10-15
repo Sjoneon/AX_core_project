@@ -4,7 +4,9 @@ const object = (value) => value && typeof value === 'object' && !Array.isArray(v
 export const list = (value) => Array.isArray(value) ? value : []
 const unique = (values) => [...new Set(values.filter(Boolean))]
 const internal = /(?:sha256|current_QA_review|latest_applicability_update|fieldOrigins|field_verified_at|source_variants|use_policy|DOM_selector|candidate_set_id|context_version)/i
-const filePath = /(?:[A-Za-z]:[\\/]|(?:backend|frontend|mcp_server|homecare)[\\/][\w./\\-]+|\b[\w.-]+\.(?:java|py|jsx?|jsonl?|csv)\b)/g
+// A drive letter must stand alone, so the "s:/" inside "https://" is not a path.
+const filePath = /(?:(?<![A-Za-z])[A-Za-z]:[\\/]|(?:backend|frontend|mcp_server|homecare)[\\/][\w./\\-]+|\b[\w.-]+\.(?:java|py|jsx?|jsonl?|csv)\b)/g
+const markdownLink = /\[([^\]\n]+)\]\(([^)\s]+)\)/g
 const hash = /\b[0-9a-f]{64}\b/gi
 
 export function sourceUrl(value) {
@@ -13,6 +15,19 @@ export function sourceUrl(value) {
     const url = new URL(value)
     return url.protocol === 'https:' && !url.username && !url.password ? url.href : null
   } catch { return null }
+}
+
+// Splits [label](url) out of bubble text. Unsafe targets keep only their label.
+export function linkParts(value) {
+  const parts = []
+  let last = 0
+  for (const match of value.matchAll(markdownLink)) {
+    if (match.index > last) parts.push({ text: value.slice(last, match.index) })
+    parts.push({ text: match[1], href: sourceUrl(match[2]) })
+    last = match.index + match[0].length
+  }
+  if (last < value.length) parts.push({ text: value.slice(last) })
+  return parts
 }
 
 function parse(value) {

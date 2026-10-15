@@ -29,9 +29,11 @@ public record AnswerContext(List<Fact> facts) {
             }
             String symptom=SymptomCatalog.label(s.category(),s.state().symptomCode());
             if(!symptom.isBlank()){
-                String timing=s.state().dialogue().answers().get("VIBRATION_WHEN");
-                String when=Map.of("SPIN","탈수할 때","WASH","세탁할 때","ALWAYS","항상").getOrDefault(Objects.toString(timing,""),"");
-                facts.add(new Fact("SYMPTOM","CONFIRMED","상담에서 확인한 증상은 ‘"+symptom+"’"+(when.isBlank()?"":"이며 발생 시점은 ‘"+when+"’")+"입니다.",List.of(),true));
+                var answers=s.state().dialogue().answers();
+                String when=Map.of("SPIN","탈수할 때","WASH","세탁할 때","ALWAYS","항상").getOrDefault(Objects.toString(answers.get("VIBRATION_WHEN"),""),"");
+                String cooling=DialogueRouter.coolingLabel(answers.get("COOLING_STATE"));
+                String detail=!when.isBlank()?"이며 발생 시점은 ‘"+when+"’":cooling!=null?"이며 상태는 ‘"+cooling+"’":"";
+                facts.add(new Fact("SYMPTOM","CONFIRMED","상담에서 확인한 증상은 ‘"+symptom+"’"+detail+"입니다.",List.of(),true));
             }
             var search=outputs.get("search_knowledge");
             String model=selectedModel==null?null:ToolSupport.model(selectedModel);
@@ -67,8 +69,12 @@ public record AnswerContext(List<Fact> facts) {
                     var text=new ArrayList<String>();
                     if(!descriptions.isEmpty())text.add("제조사 자료에는 ‘"+String.join(" / ",descriptions)+"’ 증상이 설명되어 있어요.");
                     var safeCauses=causes.stream().distinct().filter(c->!ACTION.matcher(c).find()).limit(2).toList();
+                    // Observation items only; the manual's operating steps stay out of the answer.
+                    var checks=ManualCheckItems.of(projection).stream().limit(3).toList();
                     if(!safeCauses.isEmpty())text.add("자료에서 구분하는 원인 후보·상황은 ‘"+String.join(" / ",safeCauses)+"’입니다. 현재 제품의 실제 원인은 아직 확인되지 않았어요.");
-                    else text.add("이 자료만으로는 현재 증상의 원인을 특정할 수 없어 원인 확인을 위한 공식 점검이 필요합니다.");
+                    if(!checks.isEmpty())text.add("설명서가 이 증상과 관련해 다루는 확인 항목은 ‘"+String.join(" / ",checks)+"’입니다.");
+                    if(ManualCheckItems.stopSelfCare(projection))text.add("설명서는 이 증상에 서비스 점검을 안내합니다.");
+                    else if(safeCauses.isEmpty()&&checks.isEmpty())text.add("이 자료만으로는 현재 증상의 원인을 특정할 수 없어 원인 확인을 위한 공식 점검이 필요합니다.");
                     if(!projection.preconditions().isEmpty())text.add("자료의 적용 조건(현재 확인되지 않음): "+String.join(" / ",projection.preconditions().stream().map(Builder::customerCondition).toList()));
                     if("CONDITIONAL".equals(status))text.add("이 자료는 모델 적용 조건을 추가로 확인해야 하는 후보입니다.");
                     else if("UNDETERMINED".equals(status))text.add("검증된 품목 공통 자료이며 이 제품 모델의 직접 적용은 확정되지 않았어요.");

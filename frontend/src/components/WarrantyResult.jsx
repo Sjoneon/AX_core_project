@@ -12,7 +12,9 @@ function WarrantyRow({ row }) {
       <div className="warranty-row-heading"><strong>{text(row.name) || '보증 정책'}</strong><span>{duration(row.periodMonths)}</span></div>
       <p className={`warranty-status ${status.toLowerCase()}`}>{statusLabels[status]}</p>
       {row.expiresOn && <p>만료일: {text(row.expiresOn)}</p>}
-      {row.applicability === 'NEEDS_CONFIRMATION' && <p>아래 조건이 이 제품에 적용되는지 확인해야 합니다.</p>}
+      {row.applicability === 'NEEDS_CONFIRMATION' && <p>{row.expiresOn && status !== 'UNKNOWN'
+        ? '무상 수리와 비용 적용은 아래 조건을 추가로 확인해야 합니다.'
+        : '아래 조건이 이 제품에 적용되는지 확인해야 합니다.'}</p>}
       <dl className="warranty-fees">
         <div><dt>부품비</dt><dd>{feeLabels[row.partFee] || feeLabels.CONFIRM_REQUIRED}</dd></div>
         <div><dt>기술료</dt><dd>{feeLabels[row.laborFee] || feeLabels.CONFIRM_REQUIRED}</dd></div>

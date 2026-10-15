@@ -42,8 +42,8 @@ public class WarrantyService {
         if (request.deliveryDate() != null && request.deliveryDate().isBefore(request.purchaseDate())) {
             badRequest("배송일은 구매일보다 빠를 수 없습니다.");
         }
-        LocalDate basis = request.deliveryDate() != null ? request.deliveryDate() : request.purchaseDate();
-        String basisSource = basis == null ? "NEEDS_DATE" : request.deliveryDate() != null ? "DELIVERY" : "PURCHASE";
+        LocalDate basis = request.purchaseDate();
+        String basisSource = basis == null ? "NEEDS_DATE" : "PURCHASE";
         var selected = catalog.data().policies().stream()
                 .filter(policy -> policy.category() == request.category()).toList();
         String variant = normalize(request.coreVariant());
@@ -65,9 +65,10 @@ public class WarrantyService {
         notes.add("제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.");
         notes.add("제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.");
         notes.add("기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.");
+        if (basis != null) notes.add("등록된 구매일을 보증 시작일로 계산합니다. 배송일이나 증빙 확인 여부로 시작일을 바꾸지 않습니다.");
         notes.add("주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.");
         if (basis == null) notes.add("구매일을 입력하면 만료일을 계산할 수 있습니다.");
-        if (!Boolean.TRUE.equals(request.proofAvailable())) notes.add("구입 증빙이 확인되지 않아 실제 만료일은 추가 확인이 필요합니다. 제조일을 추측하지 않습니다.");
+        if (!Boolean.TRUE.equals(request.proofAvailable())) notes.add("구입 증빙은 실제 무상 적용을 확인할 때 필요합니다. 구매일 기준 기간 계산과는 별개입니다.");
         if (!Boolean.TRUE.equals(request.domesticNewHousehold())) notes.add("국내 신품의 가정용 사용 여부가 확인되지 않았습니다. 영업용·중고·해외 구매·계약 제품은 별도 조건을 확인해야 합니다.");
         if (variant == null) notes.add("주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다.");
         String headline = headline(product, parts);
@@ -78,19 +79,21 @@ public class WarrantyService {
 
     private WarrantyModels.Row row(WarrantyModels.Policy policy, WarrantyModels.Request request,
             LocalDate basis, LocalDate today, String productType, boolean variantKnown) {
-        boolean applies = Boolean.TRUE.equals(request.domesticNewHousehold()) && variantKnown;
+        boolean policyKnown = variantKnown;
         var conditions = new ArrayList<>(policy.conditions());
-        if (policy.requiredProductType() != null && !Objects.equals(policy.requiredProductType(), productType)) applies = false;
+        if (policy.requiredProductType() != null && !Objects.equals(policy.requiredProductType(), productType)) policyKnown = false;
         if (policy.producedFrom() != null && (request.productionDate() == null
-                || request.productionDate().isBefore(policy.producedFrom()))) applies = false;
-        // A reference policy is not evidence that this particular product meets its model conditions.
-        boolean dated = applies && basis != null && Boolean.TRUE.equals(request.proofAvailable())
-                && policy.periodMonths() != null;
+                || request.productionDate().isBefore(policy.producedFrom()))) policyKnown = false;
+        // Purchase date starts the period. Evidence/use conditions qualify fees, not the date calculation.
+        boolean dated = policyKnown && basis != null && policy.periodMonths() != null;
         LocalDate expiry = dated ? basis.plusMonths(policy.periodMonths()) : null;
         String status = expiry == null ? "UNKNOWN" : today.isAfter(expiry) ? "EXPIRED" : "IN_WARRANTY";
+        boolean applies = policyKnown && Boolean.TRUE.equals(request.domesticNewHousehold())
+                && Boolean.TRUE.equals(request.proofAvailable());
+        String feeStatus = applies ? status : "UNKNOWN";
         return new WarrantyModels.Row(policy.id(), policy.scope(), policy.name(), policy.variant(),
                 policy.periodMonths(), expiry, status, applies ? "USER_DECLARED_CONDITIONAL" : "NEEDS_CONFIRMATION",
-                fee(status, policy.freePart()), fee(status, policy.freeLabor()), fee(status, policy.freeVisit()),
+                fee(feeStatus, policy.freePart()), fee(feeStatus, policy.freeLabor()), fee(feeStatus, policy.freeVisit()),
                 List.copyOf(conditions));
     }
 
@@ -111,7 +114,7 @@ public class WarrantyService {
         if ("EXPIRED".equals(product.periodStatus()) && partActive) {
             return "제품 전체 보증은 만료됐지만 주요 부품의 별도 보증은 남아 있습니다. 해당 부품 고장인지 확인이 필요합니다.";
         }
-        if ("IN_WARRANTY".equals(product.periodStatus())) return "제품 전체 보증기간 안입니다. 주요 부품의 별도 보증과 무상 조건도 따로 확인하세요.";
+        if ("IN_WARRANTY".equals(product.periodStatus())) return "등록 구매일 기준 제품 전체 보증기간 안입니다. 실제 무상 적용과 주요 부품 조건은 별도로 확인합니다.";
         if ("EXPIRED".equals(product.periodStatus())) return "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.";
         return "제품 전체 보증과 주요 부품 보증을 나눠 안내합니다. 적용 조건·증빙이 확인되면 만료일을 계산할 수 있습니다.";
     }

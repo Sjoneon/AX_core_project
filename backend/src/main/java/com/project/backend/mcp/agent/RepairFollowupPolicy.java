@@ -11,6 +11,11 @@ public final class RepairFollowupPolicy {
     private RepairFollowupPolicy(){ }
     public static void complete(ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,
             BiFunction<String,Map<String,Object>,ToolEnvelope> call,Map<String,Object> route){
+        complete(s,outputs,call,route,true);
+    }
+    /** @param explained an earlier answer in this consultation already explained the same unapproved symptom */
+    public static void complete(ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,
+            BiFunction<String,Map<String,Object>,ToolEnvelope> call,Map<String,Object> route,boolean explained){
         if(s.state().closed()||List.of("SUSPECT","CONFIRMED").contains(s.state().riskStatus()))return;
         var pending=new ArrayList<String>();String intent=s.state().dialogue().intent();
         boolean cost="COST".equals(intent),service="SERVICE".equals(intent);
@@ -27,7 +32,9 @@ public final class RepairFollowupPolicy {
         }else if("WARRANTY".equals(intent))ensure("check_warranty",Map.of(),outputs,call,pending);
         var estimate=outputs.get("estimate_repair_cost");
         boolean unanswered=s.state().dialogue().pendingQuestion()!=null;
-        boolean needsService=service||Set.of("ALL_DONE","NO_SELF_CARE","PRECONDITION_NOT_MET","PRECONDITION_UNCONFIRMED","NOT_VERIFIED").contains(reason)
+        // A missing approval alone is not a service request: explain first, then expand when the same symptom continues.
+        boolean unresolvedAfterExplanation="NOT_VERIFIED".equals(reason)&&explained&&!unanswered;
+        boolean needsService=service||unresolvedAfterExplanation||Set.of("ALL_DONE","NO_SELF_CARE","PRECONDITION_NOT_MET","PRECONDITION_UNCONFIRMED").contains(reason)
                 ||"UNCLASSIFIED".equals(intent)||cost&&!unanswered&&(estimate==null||"NO_DATA".equals(estimate.status()));
         if(needsService){
             ensure("check_warranty",Map.of(),outputs,call,pending);

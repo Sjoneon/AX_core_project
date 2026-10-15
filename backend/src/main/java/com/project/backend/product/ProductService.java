@@ -42,7 +42,8 @@ public class ProductService {
         var user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
         var product = new UserProduct(user);
-        product.update(request, purchaseDate);
+        String sido = sido(request);
+        product.update(request, purchaseDate, sido, sido == null ? null : sigungu(request));
         return productRepository.save(product).response();
     }
 
@@ -52,7 +53,8 @@ public class ProductService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "제품을 찾을 수 없습니다."));
         var purchaseDate = validate(request);
         boolean sameCategory = product.getCategory() == request.category();
-        product.update(request, purchaseDate);
+        String sido = sido(request);
+        product.update(request, purchaseDate, sido, sido == null ? null : sigungu(request));
         refreshConsultations(id, email, sameCategory ? id : null);
         return product.response();
     }
@@ -72,6 +74,24 @@ public class ProductService {
                     old.errorCode(), null, List.of(), 0, old.closed());
             conversation.setConsultation(selectedProductId, conversation.getLatestInput(), JSON.writeValueAsString(state));
         }
+    }
+
+    /** Normalized region from the address search, or null when the request carries none. */
+    private static String sido(ProductRequest request) {
+        if (request.deliverySido() == null) {
+            if (request.deliverySigungu() != null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시·도를 확인해 주세요.");
+            return null;
+        }
+        if (request.address() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "설치 지역은 주소 검색으로 입력해 주세요.");
+        return UserProductService.normalizeSido(request.deliverySido());
+    }
+
+    // Sejong has no 시·군·구 in address search results, so an empty value is kept as empty.
+    private static String sigungu(ProductRequest request) {
+        String value = request.deliverySigungu();
+        if (value == null) return "";
+        if (!value.matches("[가-힣A-Za-z0-9 ·.-]{1,30}")) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "시·군·구를 확인해 주세요.");
+        return value;
     }
 
     private LocalDate validate(ProductRequest request) {
