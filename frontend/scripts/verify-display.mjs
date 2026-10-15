@@ -33,6 +33,10 @@ const final = {content: '미해결 상담의 참고 비용과 공식 경로입�
   prepare_service_handoff: wrap({summary_text: '모델: TR15WV5\\n증상: UE\\n자가조치: 미해결', route})
 }}
 window.calls = []
+const questions = [
+  {id: 'SOUND', label: '작동 소리', text: '작동 소리가 나나요?', note: '조용한 제품은 소리가 작을 수 있어요.', options: [{value: 'YES', label: '소리가 나요'}, {value: 'NO', label: '소리가 안 나요'}]},
+  {id: 'FROST', label: '냉동실 성에', text: '성에가 두껍게 끼어 있나요?', note: null, options: [{value: 'BACK_WALL', label: '안쪽 벽에 두껍게 있어요'}, {value: 'NONE', label: '없어요'}]},
+]
 function App() {
   const [phase, setPhase] = useState(0)
   const current = phase === 0 ? {content: '원문과 실제 제품 조건을 확인해 주세요.', tools: {get_diagnostic_plan: wrap({question: plan.preconditions[0], plan_scope: 'SAVED_SCOPE'}, 'NEEDS_INPUT')}}
@@ -41,13 +45,14 @@ function App() {
     : phase === 3 ? {content: '어떤 증상인가요?', tools: {consultation: wrap({question: {text: '어떤 증상인가요?', options: ['흔들림', '배수 불량']}})}}
     : phase === 4 ? {content: '위험 상황을 확인해 주세요.', tools: {safety: wrap({risk_status: 'SUSPECT', question: '현재 위험 상황인가요?'})}}
     : phase === 7 ? {content: '증상으로 확인했어요.', tools: {consultation: wrap({question: {id: 'SELF_CHECK', text: '안내한 항목을 확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 해결되지 않았어요']}}),
-        card: wrap({type: 'SELF_CHECK', steps: ['첫째 항목을 확인해 주세요.', '둘째 항목을 확인해 주세요.', '셋째 항목을 확인해 주세요.']})}}
+        card: wrap({type: 'SELF_CHECK', steps: ['첫째 항목을 확인해 주세요.', '둘째 항목을 확인해 주세요.', '셋째 항목을 확인해 주세요.'], questions})}}
+    : phase === 8 ? {content: '점검 방법은 없어요.', tools: {card: wrap({type: 'SELF_CHECK', steps: [], questions})}}
     : phase === 5 ? {...warrantyVerification.response, content: warrantyVerification.response.reply}
     : warrantyVerification.savedAnswer
   window.setPhase = setPhase
   return <><main id="customer" style={{maxWidth: 800, margin: 'auto', padding: 16}}>
     <h1>상담 표시 검증</h1><div className="message-content"><Message message={history} active={false} />
-    <Message message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} onSelfCheck={(result, step, version, label) => window.calls.push({kind: 'selfCheck', result, step, version, label})} /></div>
+    <Message key={phase} message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} onSelfCheck={(result, step, version, label, observations) => window.calls.push({kind: 'selfCheck', result, step, version, label, observations})} /></div>
   </main><aside id="dev"><Trace request={async () => []} conversationId={77} message={history} /></aside></>
 }
 createRoot(document.getElementById('root')).render(<App />)
@@ -155,7 +160,7 @@ try {
   await until('document.querySelector("#customer").textContent.includes("위험 상황")')
   await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "모르겠어요").click()')
   assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'risk', answer: 'UNSURE', version: 7 })
-  // Self-check steps advance in the browser; only the final answer is sent.
+  // Self-check steps and observation questions advance in the browser; only the final answer is sent.
   await evaluate('window.setPhase(7)')
   await until('document.querySelector("#customer").textContent.includes("1/3단계")')
   const sentBefore = await evaluate('window.calls.length')
@@ -165,11 +170,26 @@ try {
   }
   assert.equal(await evaluate('window.calls.length'), sentBefore)
   assert.equal(await evaluate('document.querySelectorAll("#customer .self-check-steps li.checked").length'), 2)
-  await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "아니요, 해결되지 않았어요").click()')
-  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'NOT_RESOLVED', step: 3, version: 7, label: '3단계까지 모두 확인했지만 해결되지 않았어요' })
-  await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "해결됐어요").click()')
+  const click = (label) => evaluate(`Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "${label}").click()`)
+  await click('해결됐어요')
   assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'SOLVED', step: 3, version: 7, label: '3단계에서 해결됐어요' })
+  await click('아니요, 해결되지 않았어요')
+  await until('document.querySelector("#customer").textContent.includes("원인을 좁히는 질문 · 1/2")')
+  assert.equal(await evaluate('window.calls.length'), sentBefore + 1)
+  await click('소리가 안 나요')
+  await until('document.querySelector("#customer").textContent.includes("원인을 좁히는 질문 · 2/2")')
+  assert.equal(await evaluate('window.calls.length'), sentBefore + 1)
+  await click('안쪽 벽에 두껍게 있어요')
+  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'NOT_RESOLVED', step: 3, version: 7, label: '3단계까지 모두 확인했지만 해결되지 않았어요', observations: { SOUND: 'NO', FROST: 'BACK_WALL' } })
   assert.equal(await evaluate('window.calls.length'), sentBefore + 2)
+  // Without steps the questions come first and the outcome carries step 0.
+  await evaluate('window.setPhase(8)')
+  await until('document.querySelector("#customer").textContent.includes("원인을 좁히는 질문 · 1/2")')
+  await click('소리가 나요')
+  await until('document.querySelector("#customer").textContent.includes("원인을 좁히는 질문 · 2/2")')
+  await click('없어요')
+  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'NOT_RESOLVED', step: 0, version: 7, label: '확인 질문에 답했어요', observations: { SOUND: 'YES', FROST: 'NONE' } })
+  assert.equal(await evaluate('window.calls.length'), sentBefore + 3)
   if (warrantyVerification) {
     for (const phase of [5, 6]) {
       await evaluate(`window.setPhase(${phase})`)
@@ -193,7 +213,7 @@ try {
       report.push({ width, purchaseWarranty: true, overflow: false, screenshot })
     }
   }
-  console.log(JSON.stringify({ passed: true, scope: warrantyVerification ? 'local fixtures plus captured authenticated backend/MCP and history responses; no real model' : 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer', 'self-check local steps'], purchaseWarrantyChecks, viewports: report }, null, 2))
+  console.log(JSON.stringify({ passed: true, scope: warrantyVerification ? 'local fixtures plus captured authenticated backend/MCP and history responses; no real model' : 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer', 'self-check local steps and questions'], purchaseWarrantyChecks, viewports: report }, null, 2))
 } finally {
   socket?.close()
   for (const call of pending.values()) clearTimeout(call.timer)
