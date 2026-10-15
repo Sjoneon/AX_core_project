@@ -4,11 +4,14 @@ import WarrantyResult from './WarrantyResult.jsx'
 import RiskQuestion from './RiskQuestion.jsx'
 import ToolResults from './ToolResults.jsx'
 import KnowledgeSources from './KnowledgeSources.jsx'
+import ConsultationCard from './ConsultationCard.jsx'
 
 // Live replies, follow-up actions and history all use the same display path.
 export default function ConsultationMessage({ message, active, disabled, onAnswerRisk, onSelectSymptom, onAnswerSelfCare }) {
   const question = message.tools?.consultation?.data?.question
-  const warranty = warrantyView(message)
+  // A response with one consultation card shows only that card; older saved replies keep their tool cards.
+  const card = message.tools?.card?.data
+  const warranty = card ? null : warrantyView(message)
   const reply = customerText(message.content)
   const text = customerText(question?.text)
   return <>
@@ -21,8 +24,10 @@ export default function ConsultationMessage({ message, active, disabled, onAnswe
       {!reply.includes(text) && <p>{text}</p>}
       {list(question.options).length > 0 && <div className="tool-actions">{list(question.options).map((option) => <button type="button" key={option} disabled={!active || disabled} onClick={(event) => onSelectSymptom(event, option)}>{customerText(option)}</button>)}</div>}
     </div>}
-    {warranty && <WarrantyResult result={warranty} />}
-    <ToolResults tools={message.tools} active={active && !disabled} onAnswerSelfCare={onAnswerSelfCare} />
-    <KnowledgeSources tools={message.tools} sources={message.sources} />
+    {card ? <ConsultationCard card={card} /> : <>
+      {warranty && <WarrantyResult result={warranty} />}
+      <ToolResults tools={message.tools} active={active && !disabled} onAnswerSelfCare={onAnswerSelfCare} />
+      <KnowledgeSources tools={message.tools} sources={message.sources} />
+    </>}
   </>
 }

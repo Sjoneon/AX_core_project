@@ -145,3 +145,29 @@ test('a missing reviewed plan is described as such, not as a blocked approval', 
   assert.match(html, /검토를 마친 단계별 자가점검 절차가 아직 없어요/)
   assert.doesNotMatch(html, /실행 승인 미확인/)
 })
+
+test('summary response shows one card with warranty, cost and A/S instead of separate tool cards', () => {
+  const card = { type: 'SUMMARY', lead: '안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.',
+    warranty: { status: 'IN_WARRANTY', text: '구매일 2026-05-05 기준 제품 보증기간 안이에요(만료 2027-05-05). 무상 수리 여부는 점검 때 확정돼요.' },
+    estimate: { status: 'OK', base: { min: 48195, max: 184042, parts: ['제상 센서', '응축기(기계실) 팬모터', '메인 PCB'] },
+      separate: [{ id: 'R01', name: '컴프레서', min: 231395, max: 427509, is_core: true }], overall: { min: 48195, max: 427509 },
+      candidates: [{ id: 'R01', name: '컴프레서', min: 231395, max: 427509, repair_cases: 6, official_facts: 1, guides: 0 }] },
+    region: { sido: '인천', sigungu: '연수구' }, centers: [], route, handoff_summary: '품목: 냉장고' }
+  const html = render({ content: '안내한 항목을 모두 확인했지만 해결되지 않았어요.', warranty: { productWarranty: { periodStatus: 'IN_WARRANTY' }, partWarranties: [] }, tools: {
+    card: envelope(card), check_warranty: envelope({ productWarranty: { periodStatus: 'IN_WARRANTY' }, partWarranties: [] }),
+    find_service_centers: envelope({ directory_status: 'NOT_INTEGRATED', region_status: 'KNOWN', route }), prepare_service_handoff: envelope({ summary_text: '품목: 냉장고', route }),
+  } })
+  assert.equal((html.match(/class="tool-result/g) || []).length, 1)
+  for (const expected of ['점검 안내', '보증기간 안이에요', '약 48,000원 ~ 184,000원', '컴프레서 고장이면 약 231,000원 ~ 428,000원', '전체 범위 약 48,000원 ~ 428,000원',
+    '인천 연수구 설치 제품', '출장 수리 접수', '상담원 연결 1544-7777', '상담 내용 복사', '국내 수리 사례 6건']) assert.ok(html.includes(expected), expected)
+  assert.doesNotMatch(html, /제품 전체 보증<\/h3>|상담원 전달 요약|A\/S 연결 <small>/)
+})
+
+test('a self-check step shows the step and its two answers without extra cards', () => {
+  const question = { id: 'SELF_CHECK', text: '확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 다음 단계'] }
+  const html = render({ content: '1/5단계: 정전 여부와 전원 플러그 연결을 확인해 주세요.\n\n확인한 뒤 해결됐나요?', tools: { consultation: envelope({ question }) } })
+  assert.match(html, /1\/5단계/)
+  assert.match(html, />해결됐어요<\/button>/)
+  assert.match(html, />아니요, 다음 단계<\/button>/)
+  assert.doesNotMatch(html, /class="tool-result|제조사 근거/)
+})

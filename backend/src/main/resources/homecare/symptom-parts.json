@@ -1,0 +1,932 @@
+[
+ {
+  "category": "DISHWASHER",
+  "kind": "ERROR",
+  "code": "HE",
+  "partId": "DW04",
+  "partName": "히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-039",
+    "note": "HE 제품 내부 물이 차가움(가열 안 됨)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DISHWASHER",
+  "kind": "ERROR",
+  "code": "LE",
+  "partId": "DW02",
+  "partName": "세척(순환)펌프",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-041",
+    "note": "LE 세척 모터 이상: 세척 모터 미동작"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DISHWASHER",
+  "kind": "ERROR",
+  "code": "OE",
+  "partId": "DW01",
+  "partName": "배수펌프",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S01",
+    "note": "OE 배수 오류 → 배수모터 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S04",
+    "note": "OE 배수 오류로 작동 멈춤 → 배수모터 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DISHWASHER",
+  "kind": "SYMPTOM",
+  "code": "DRAIN",
+  "partId": "DW01",
+  "partName": "배수펌프",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S01",
+    "note": "OE 배수 오류 → 배수모터 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S04",
+    "note": "OE 배수 오류로 작동 멈춤 → 배수모터 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DISHWASHER",
+  "kind": "SYMPTOM",
+  "code": "POWER",
+  "partId": "DW05",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S02",
+    "note": "작동 중 전원이 나감 → 디스플레이 메인보드 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S03",
+    "note": "자동으로 꺼지고 표시창이 깜빡임 → 제어창 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/S10",
+    "note": "오류 표시 없이 자동으로 꺼짐 → 메인 패널 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SS04",
+    "note": "전원이 켜지지 않음 → 전원 메인보드 교체"
+   }
+  ],
+  "repairCases": 4,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "ERROR",
+  "code": "TE1",
+  "partId": "D03",
+  "partName": "온도센서 키트",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-055",
+    "note": "tE1 온도 센서 작동 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "ERROR",
+  "code": "TE2",
+  "partId": "D03",
+  "partName": "온도센서 키트",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-055",
+    "note": "tE2 온도 센서 작동 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "ERROR",
+  "code": "TE4",
+  "partId": "D03",
+  "partName": "온도센서 키트",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-055",
+    "note": "tE4 온도 센서 작동 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "ERROR",
+  "code": "TE5",
+  "partId": "D03",
+  "partName": "온도센서 키트",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-055",
+    "note": "tE5 온도 센서 작동 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "ERROR",
+  "code": "TE6",
+  "partId": "D03",
+  "partName": "온도센서 키트",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-055",
+    "note": "tE6 온도 센서 작동 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "SYMPTOM",
+  "code": "DRYING",
+  "partId": "D06",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D01",
+    "note": "남은 시간이 줄지 않고 안이 뜨겁지 않아 빨래가 안 마름 → 회로기판 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SD04",
+    "note": "따뜻한 바람이 나오지 않음 → 메인 PCB 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SD08",
+    "note": "열이 오르지 않아 건조가 안 됨 → PCB 교체"
+   }
+  ],
+  "repairCases": 3,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "SYMPTOM",
+  "code": "NOISE",
+  "partId": "D05",
+  "partName": "드럼 모터",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SD06",
+    "note": "굉음 → 모터·베어링 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "SYMPTOM",
+  "code": "NOISE",
+  "partId": "D07",
+  "partName": "드럼 롤러",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D04",
+    "note": "떵떵거리는 소음 → 롤러 등 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D05",
+    "note": "끼익 소리 → 롤러 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D06",
+    "note": "쇠 긁히는 소음 → 베어링·롤러 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D12",
+    "note": "회전 소음이 점점 심해짐 → 롤러 등 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D15",
+    "note": "큰 소음 → 롤러 4개 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D17",
+    "note": "때리는 듯한 큰 소리 → 롤러 교체"
+   }
+  ],
+  "repairCases": 6,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
+  "kind": "SYMPTOM",
+  "code": "POWER",
+  "partId": "D06",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/D03",
+    "note": "전원이 켜지는 소리만 반복됨 → 디스플레이 PCB 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SD07",
+    "note": "작동이 멈춘 뒤 다시 켜지지 않음 → 회로기판 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERCH",
+  "partId": "R01",
+  "partName": "컴프레서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-029",
+    "note": "Er CH 냉각 부족: 냉매·압축기·밸브 계통 이상 또는 문 열림"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERCL",
+  "partId": "R01",
+  "partName": "컴프레서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-028",
+    "note": "Er CL 냉각 부족: 냉매·압축기·밸브 계통 이상 또는 문 열림"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERFF",
+  "partId": "R03",
+  "partName": "증발기(냉동실) 팬모터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-030",
+    "note": "ER FF 냉동실 팬 이상: 팬 주변 결빙 또는 팬 모터 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "FDH",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "FDH",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "FDH",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "H1",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-045",
+    "note": "H1 상칸 좌측 제상 이상: 결빙·온도퓨즈·히터·제어부 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "H1",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-045",
+    "note": "H1 상칸 좌측 제상 이상: 결빙·온도퓨즈·히터·제어부 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "H2",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-046",
+    "note": "H2 상칸 우측 제상 이상: 결빙·온도퓨즈·히터·제어부 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "H2",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-046",
+    "note": "H2 상칸 우측 제상 이상: 결빙·온도퓨즈·히터·제어부 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "RDH",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-033",
+    "note": "r dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "RDH",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-033",
+    "note": "r dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "RDH",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-033",
+    "note": "r dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "COOLING",
+  "partId": "R01",
+  "partName": "컴프레서",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R01",
+    "note": "냉장·냉동이 시원하지 않고 바닥에 물이 고임 → 컴프레서 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R02",
+    "note": "냉기가 약해져 컴프레서 교체 후 냉기 회복"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R04",
+    "note": "냉동식품이 녹고 바닥에 물이 고임 → 컴프레서 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R05",
+    "note": "냉동실 음식이 녹음 → 컴프레서 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR07",
+    "note": "냉동실 얼음이 녹고 압축기가 작동하지 않음"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR20",
+    "note": "냉동실 아이스크림이 녹음 → 컴프레서 교체"
+   },
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-028",
+    "note": "Er CL 냉각 부족: 냉매·압축기·밸브 계통 이상 또는 문 열림"
+   }
+  ],
+  "repairCases": 6,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "COOLING",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R14",
+    "note": "표시창이 깜빡이며 냉장·냉동 모두 안 됨 → 메인 기판 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R17",
+    "note": "동작이 멈춰 냉장실 음식이 차갑지 않음 → 메인 기판 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R22",
+    "note": "컴프레서가 멈춰 냉각이 안 됨 → 메인보드 고장"
+   }
+  ],
+  "repairCases": 3,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "COOLING",
+  "partId": "R04",
+  "partName": "응축기(기계실) 팬모터",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR11",
+    "note": "냉장·냉동이 시원하지 않고 기계실 팬이 돌지 않음 → 팬모터 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "COOLING",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR15",
+    "note": "냉장실이 미지근하고 온도 표시가 깜빡임 → 제상센서·온도퓨즈 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "FROST",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "FROST",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR10",
+    "note": "냉동실 아래칸에 얼음이 계속 커짐 → 히터 추가"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "NOISE",
+  "partId": "R01",
+  "partName": "컴프레서",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R08",
+    "note": "고주파 소음 → 컴프레서 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR01",
+    "note": "작동 소리가 커짐 → 컴프레서 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "NOISE",
+  "partId": "R03",
+  "partName": "증발기(냉동실) 팬모터",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R20",
+    "note": "냉동실 문을 열면 멈추는 소음 → 냉동실 팬 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "NOISE",
+  "partId": "R04",
+  "partName": "응축기(기계실) 팬모터",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R15",
+    "note": "찍찍거리는 소리·기계실 팬모터 이상 감지 → 팬모터 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R18",
+    "note": "귀뚜라미 같은 소리와 ECF 표시 → 기계실 팬모터 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R19",
+    "note": "끼릭끼릭 소음과 ECF 표시 → 팬모터 교체"
+   }
+  ],
+  "repairCases": 3,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "SYMPTOM",
+  "code": "POWER",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR02",
+    "note": "전원 버튼을 눌러도 켜지지 않음 → 메인보드 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR06",
+    "note": "냉장·냉동 표시가 모두 꺼지고 켜지지 않음 → 메인보드 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "LE",
+  "partId": "W04",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/W01",
+    "note": "LE 표시 후 멈춤 → 메인보드 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/W13",
+    "note": "LE 표시와 함께 세탁조가 돌지 않음 → 홀센서·메인보드 교체"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "OE",
+  "partId": "W01",
+  "partName": "배수펌프",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-01",
+    "note": "OE 배수 불량: 필터를 청소해도 배수가 안 되면 배수펌프 문제(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "PE",
+  "partId": "W09",
+  "partName": "수위센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-007",
+    "note": "PE 수위 감지 이상: 수위 센서 이상"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "TE",
+  "partId": "W10",
+  "partName": "히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-009",
+    "note": "tE 가열 이상: 물이 가열되지 않음"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "SYMPTOM",
+  "code": "DRAIN",
+  "partId": "W01",
+  "partName": "배수펌프",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-01",
+    "note": "OE 배수 불량: 필터를 청소해도 배수가 안 되면 배수펌프 문제(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "WASHER",
+  "kind": "SYMPTOM",
+  "code": "FILL",
+  "partId": "W02",
+  "partName": "급수밸브",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW21",
+    "note": "동파로 급수밸브가 파손돼 물 유입 불량·물샘 → 급수밸브 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "SYMPTOM",
+  "code": "POWER",
+  "partId": "W04",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/W03",
+    "note": "전원 버튼을 눌러도 전원이 들어오지 않음 → 메인보드 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW06",
+    "note": "버튼음이 나지 않고 작동하지 않음 → 메인보드 컨트롤 모듈 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW07",
+    "note": "동작 버튼이 실행되지 않음 → 메인보드 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW11",
+    "note": "전원이 꺼진 뒤 버튼이 눌리지 않음 → 메인 PCB 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW14",
+    "note": "소리만 나고 작동하지 않음 → 회로기판 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW15",
+    "note": "13E 표시와 함께 전원·동작 버튼 무반응 → PCB 교체"
+   }
+  ],
+  "repairCases": 6,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "SYMPTOM",
+  "code": "VIBRATION",
+  "partId": "W07",
+  "partName": "댐퍼",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/W15",
+    "note": "세탁 중 쿵쾅거리는 소음이 심함 → 댐퍼 교체"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SW17",
+    "note": "UB 오류(수평·댐퍼 불량) → 댐퍼 교체 견적"
+   }
+  ],
+  "repairCases": 2,
+  "officialFacts": 0,
+  "guides": 0
+ }
+]

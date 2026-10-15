@@ -24,7 +24,7 @@ CORE_PART_CODES = {'W05', 'W06', 'R01'}
 # Every file Spring reads. The manifest itself is the trust root packaged with the application.
 VERIFIED_FILES = ['homecare/knowledge.json', 'homecare/models.json', 'homecare/parts.json', 'homecare/centers.json',
                   'homecare/route.json', 'homecare/approved-plans.json', 'homecare/repair-cases.json',
-                  'homecare/knowledge-structured.json', 'warranty/policies.json']
+                  'homecare/knowledge-structured.json', 'homecare/symptom-parts.json', 'warranty/policies.json']
 
 
 def sha256(data: bytes) -> str:

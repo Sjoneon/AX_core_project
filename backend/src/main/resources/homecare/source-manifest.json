@@ -113,7 +113,8 @@
     "homecare/approved-plans.json": "3d28e45234eaeb78e624a46447d1a4515f0412999a432b728b38ea9b4d7e95ae",
     "homecare/repair-cases.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
     "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f",
-    "homecare/knowledge-structured.json": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e"
+    "homecare/knowledge-structured.json": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e",
+    "homecare/symptom-parts.json": "4bc3cc65ce24f87150d120ede8fd32468b2948ca9f87e2e3ea220cf655e1bbc9"
   },
   "structuredKnowledgeCount": 1542,
   "knowledgeProjection": {
@@ -172,5 +173,11 @@
     "reviewDate": "2026-10-14",
     "manufacturerApproval": false,
     "bulkModelApprovalAllowed": false
+  },
+  "symptomParts": {
+    "version": "SYMPTOM-PARTS-V1-20261015",
+    "evidenceFile": "수리비_정규화_과정/증상_부품_근거_v1.csv",
+    "evidenceSha256": "1717af20a61bfabebe82686648cd645e077b4128dd395ace9bf5d85382d3d1dc",
+    "links": 45
   }
 }

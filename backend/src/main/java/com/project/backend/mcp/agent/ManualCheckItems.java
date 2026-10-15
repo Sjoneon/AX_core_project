@@ -15,6 +15,46 @@ public final class ManualCheckItems {
     private static final Pattern CONNECTIVE=Pattern.compile("(고|후|면|며|서|해|여|라|게|어|도록)\\s");
     private static final Pattern POINTER=Pattern.compile("(절차|방법|안내|설명|알림|여부를 판단)$");
     private ManualCheckItems(){ }
+    public static final int MAX_STEPS=6;
+    // Situations a customer can see for themselves; internal parts, repairs and network setup are not self-checks.
+    private static final Pattern NOT_OBSERVABLE=Pattern.compile("분해|교체|수리|부품|센서|PCB|기판|모터|히터|압축기|컴프레서|냉매|퓨즈|배선|누전|합선|서비스|제어부|펌프|공유기|네트워크|와이파이|스마트폰");
+    /** "운송용 고정볼트가 남은 경우" style branch conditions of a manual record. */
+    public static List<String> conditions(KnowledgeDocument document){
+        if(stopSelfCare(document)||!(document.fields().get("branches") instanceof Map<?,?> branches)||!(branches.get("action_branches") instanceof List<?> list))return List.of();
+        var result=new LinkedHashSet<String>();
+        for(Object raw:list)if(raw instanceof Map<?,?> branch&&branch.get("feature_gate")==null&&branch.get("condition_summary") instanceof String condition){
+            String value=condition.strip();
+            if(value.endsWith("경우")&&value.length()<=40&&!NOT_OBSERVABLE.matcher(value).find())result.add(value);
+        }
+        return List.copyOf(result);
+    }
+    /** Self-check sentences for the matched manual records, at most {@link #MAX_STEPS}. */
+    public static List<String> sentences(List<KnowledgeDocument> documents){
+        var result=new LinkedHashSet<String>();
+        for(var document:documents){
+            for(String item:steps(of(document)))result.add(withObjectParticle(item)+" 확인해 주세요.");
+            for(String condition:conditions(document))result.add(condition+"에 해당하는지 확인해 주세요.");
+        }
+        return result.stream().limit(MAX_STEPS).toList();
+    }
+    /** 을/를 by the final syllable; a non-Hangul ending keeps both forms. */
+    static String withObjectParticle(String noun){
+        char last=noun.charAt(noun.length()-1);
+        if(last<0xAC00||last>0xD7A3)return noun+"을(를)";
+        return noun+((last-0xAC00)%28==0?"를":"을");
+    }
+    /** One step per checked object: "보관 온도, 문 닫힘, 식품 배치와 주위 설치 환경" → four steps; other phrases stay whole. */
+    public static List<String> steps(List<String> items){
+        var steps=new LinkedHashSet<String>();
+        for(String item:items){
+            if(!item.contains(",")){steps.add(item.strip());continue;}
+            var parts=new ArrayList<>(List.of(item.split(",\\s*")));
+            String last=parts.removeLast();
+            parts.addAll(List.of(last.split("(?<=[가-힣])(?:와|과)\\s+",2)));
+            for(String part:parts)if(!part.isBlank())steps.add(part.strip());
+        }
+        return List.copyOf(steps);
+    }
     public static boolean stopSelfCare(KnowledgeDocument document){
         return document.fields().get("constraints") instanceof Map<?,?> constraints&&constraints.get("original") instanceof Map<?,?> original
                 &&Boolean.TRUE.equals(original.get("stop_selfcare_and_contact_service"));

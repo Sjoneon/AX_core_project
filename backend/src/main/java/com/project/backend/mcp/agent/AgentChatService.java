@@ -59,6 +59,8 @@ public class AgentChatService {
     private final AnswerContext.Builder answerContext;
     private final GroundedAnswerGenerator answers;
     private final SelfCareChatService selfCare;
+    // Lexical retrieval is deterministic, so the same consultation always yields the same self-check steps.
+    private final com.project.backend.mcp.retrieval.KnowledgeRetriever checkRetriever;
     public AgentChatService(ChatClient.Builder builder,McpGateway gateway,ConsultationService consultations,ConversationService history,
             WarrantyService warranty,ToolBackend policyTools,ToolDataCatalog catalog,AgentLimits limits,SelfCareChatService selfCare){
         this.model=builder.build();this.gateway=gateway;this.consultations=consultations;this.history=history;this.warranty=warranty;
@@ -67,6 +69,7 @@ public class AgentChatService {
         this.interpreter=new MessageInterpreter(this.model);
         this.answerContext=new AnswerContext.Builder(catalog);
         this.answers=new GroundedAnswerGenerator(this.model,limits.toolTimeout());
+        this.checkRetriever=com.project.backend.mcp.retrieval.KnowledgeRetriever.lexical(catalog);
     }
     public ChatResponse chat(ChatRequest request,String email,String authorization){
         if(request.category()==null&&request.conversationId()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"품목을 선택해 주세요.");
@@ -104,6 +107,7 @@ public class AgentChatService {
                 s=consultations.applyDialogue(email,s.id(),s.version(),transition.state());
                 outputs.put("consultation",dialogueResult(s));
                 reply=transition.reply();
+                if(reply==null&&guided(s)){reply=guidedReply(email,s,outputs,calls);s=consultations.snapshot(email,s.id());}
                 if(reply==null||"UNCLASSIFIED".equals(s.state().dialogue().intent()))reply=agent(request,email,authorization,s,outputs,calls);
             }
             if(outputs.containsKey("safety"))outputs.get("safety").meta().put("risk_source",assessment.source());
@@ -165,9 +169,77 @@ public class AgentChatService {
         return String.join("\n",lines);
     }
     private ToolEnvelope policy(String name,String email,ConsultationService.Snapshot s,Map<String,Object> args,List<ToolCallRecord> calls){
+        return policy(name,email,s,args,calls,"SAFETY_POLICY");
+    }
+    private ToolEnvelope policy(String name,String email,ConsultationService.Snapshot s,Map<String,Object> args,List<ToolCallRecord> calls,String source){
         long started=System.nanoTime();var result=policyTools.execute(name,email,args,s.version());
-        calls.add(ToolCallRecord.success(name,args,"SAFETY_POLICY",result,Duration.ofNanos(System.nanoTime()-started).toMillis()));
+        calls.add(ToolCallRecord.success(name,args,source,result,Duration.ofNanos(System.nanoTime()-started).toMillis()));
         return result;
+    }
+    /** A registered product's symptom/error without an approved plan: manual self-check steps, then one summary card. */
+    private boolean guided(ConsultationService.Snapshot s){
+        var d=s.state().dialogue();
+        return s.productId()!=null&&(s.state().symptomCode()!=null||s.state().errorCode()!=null)&&d.pendingQuestion()==null&&!s.state().closed()
+                &&!Set.of("COST","WARRANTY","SERVICE","OUT_OF_SCOPE","CATEGORY_MISMATCH","UNCLASSIFIED").contains(d.intent());
+    }
+    private String guidedReply(String email,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
+        var d=s.state().dialogue();var answers=new LinkedHashMap<>(d.answers());
+        var items=DialogueRouter.checkItems(answers);
+        if(!answers.containsKey(DialogueRouter.CHECK_ITEMS)){
+            items=checkSteps(email,s);
+            answers.put(DialogueRouter.CHECK_ITEMS,String.join("\n",items));answers.put(DialogueRouter.CHECK_INDEX,"0");
+            if(items.isEmpty())answers.put(DialogueRouter.CHECK_DONE,"NONE");
+        }
+        boolean stepping=!items.isEmpty()&&!answers.containsKey(DialogueRouter.CHECK_DONE);
+        int index=Integer.parseInt(answers.getOrDefault(DialogueRouter.CHECK_INDEX,"0"));
+        var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),stepping?DialogueRouter.stepQuestion(items,index):null,
+                d.symptomQuestionCount(),answers,d.interpretationSource(),d.selfCareReply());
+        var state=s.state();
+        s=consultations.applyDialogue(email,s.id(),s.version(),new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),
+                state.symptomCode(),state.doneSteps(),state.currentStep(),state.closed(),next,state.selfCare()));
+        outputs.put("consultation",dialogueResult(s));
+        if(stepping)return DialogueRouter.stepReply(items,index,index==0?intro(s):null);
+        return summary(email,s,outputs,calls);
+    }
+    private static String intro(ConsultationService.Snapshot s){
+        String label=SymptomCatalog.label(s.category(),s.state().symptomCode());
+        String cooling=DialogueRouter.coolingLabel(s.state().dialogue().answers().get(DialogueRouter.COOLING_STATE));
+        String subject=label.isBlank()?"‘"+s.state().errorCode()+"’ 표시로":"‘"+label+"’"+(cooling==null?"":"("+cooling+")")+" 증상으로";
+        return subject+" 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 안내할게요.";
+    }
+    /** Observation items of the manuals that apply to this model and symptom, split into one step each. */
+    private List<String> checkSteps(String email,ConsultationService.Snapshot s){
+        String model=consultations.selectedModel(email,s);if(model==null)return List.of();
+        var found=checkRetriever.retrieve(s.state().searchQuery(s.input()),s.category().name(),ToolSupport.model(model),"MANUAL",s.state().errorCode(),3);
+        return ManualCheckItems.sentences(found.documents().stream().map(hit->catalog.structuredKnowledgeById.get(hit.id())).toList());
+    }
+    /** One card: warranty line, reference repair cost, region and official routes; tools are policy calls (no model). */
+    private String summary(String email,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
+        boolean tried="NOT_RESOLVED".equals(s.state().dialogue().answers().get(DialogueRouter.CHECK_DONE));
+        String lead=tried?"안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.":"이 증상은 직접 해 볼 수 있는 점검 방법이 없어요. 점검이 필요해요.";
+        var args=map("conversation_id",s.id());
+        var checked=policy("check_warranty",email,s,args,calls,"POLICY_FALLBACK");outputs.put("check_warranty",checked);
+        var centers=policy("find_service_centers",email,s,args,calls,"POLICY_FALLBACK");outputs.put("find_service_centers",centers);
+        ToolEnvelope handoff=null;
+        try{handoff=policy("prepare_service_handoff",email,s,map("conversation_id",s.id(),"reason","NOT_VERIFIED"),calls,"POLICY_FALLBACK");outputs.put("prepare_service_handoff",handoff);}
+        catch(ResponseStatusException unavailable){LOG.info("homecare_summary_handoff_skipped status={}",unavailable.getStatusCode().value());}
+        var coverage=warrantyOf(checked);var place=centers.data()==null?Map.<String,Object>of():centers.data();
+        outputs.put("card",ToolEnvelope.policy("OK",map("type","SUMMARY","lead",lead,"warranty",warrantyLine(coverage),
+                "estimate",SymptomRepairEstimate.of(catalog,s.category(),s.state().symptomCode(),s.state().errorCode()),
+                "region",place.get("base_region"),"region_status",place.get("region_status"),"centers",place.getOrDefault("centers",List.of()),
+                "route",catalog.route,"handoff_summary",handoff==null||handoff.data()==null?null:handoff.data().get("summary_text")),
+                map("context_version",s.version()),List.of()));
+        return lead+"\n\n예상 수리비와 보증, 접수 방법을 아래에 정리했어요.";
+    }
+    private static Map<String,Object> warrantyLine(WarrantyModels.Result coverage){
+        if(coverage==null)return map("status","UNKNOWN","text","구매일이 등록되어 있지 않아 보증기간을 확인하지 못했어요.");
+        var product=coverage.productWarranty();
+        String text=switch(product.periodStatus()){
+            case "IN_WARRANTY"->"구매일 "+coverage.basisDate()+" 기준 제품 보증기간 안이에요(만료 "+product.expiresOn()+"). 무상 수리 여부는 점검 때 확정돼요.";
+            case "EXPIRED"->"제품 보증기간이 지났어요(만료 "+product.expiresOn()+"). 주요 부품은 별도 보증이 남아 있을 수 있어요.";
+            default->"보증기간을 확인하지 못했어요. 구매일을 확인해 주세요.";
+        };
+        return map("status",product.periodStatus(),"expires_on",product.expiresOn(),"text",text);
     }
     /** Select tools, then compose a separately validated final answer inside the remaining session budget. */
     private String agent(ChatRequest request,String email,String authorization,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){

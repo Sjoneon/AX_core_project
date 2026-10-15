@@ -12,7 +12,7 @@ public final class DialogueRouter {
         var old=previous.dialogue();var answers=new LinkedHashMap<>(old.answers());
         String symptom=previous.symptomCode(),symptomText=old.symptomText();
         var pending=old.pendingQuestion();int questions=old.symptomQuestionCount();String reply=null;
-        String intent=interpretation.intent();
+        String intent=interpretation.intent();boolean checkSolved=false;
         boolean supportedMention=Arrays.stream(ProductCategory.values()).anyMatch(c->c.isSupported()&&c.name().equals(interpretation.mentionedCategory())&&input.contains(c.getLabel()));
         boolean outside="OUT_OF_SCOPE".equals(intent)&&!supportedMention||Set.of("UNSUPPORTED","AIR_CONDITIONER").contains(Objects.toString(interpretation.mentionedCategory(),""));
         boolean mismatch=interpretation.mentionedCategory()!=null&&!outside&&!category.name().equals(interpretation.mentionedCategory());
@@ -48,14 +48,27 @@ public final class DialogueRouter {
                 if(old.pendingQuestion()!=null&&old.pendingQuestion().id().equals("SYMPTOM"))answers.put("SYMPTOM",SymptomCatalog.label(category,code));
                 if(pending!=null&&pending.id().equals("SYMPTOM"))pending=null;
             }
-            if(pending!=null&&pending.id().equals(COOLING_STATE)){
-                // A service/cost request ends the observation question instead of repeating it.
-                if(inquiry)pending=null;
-                else{
-                    String state=coolingState(input,true);
-                    if(state!=null||unknown||answers.containsKey("COOLING_STATE_REASK")){answers.put(COOLING_STATE,state==null?"UNKNOWN":state);pending=null;}
-                    else{answers.put("COOLING_STATE_REASK","ASKED");reply=pending.text();}
+            if(pending!=null&&pending.id().equals(SELF_CHECK)){
+                var items=checkItems(answers);int index=Integer.parseInt(answers.getOrDefault(CHECK_INDEX,"0"));
+                // The step answer is read first: an interpreter may label "아니요, 다음 단계" as a product reply.
+                switch(checkResult(input)){
+                    case "SOLVED"->{pending=null;answers.put(CHECK_DONE,"SOLVED");checkSolved=true;}
+                    case "NOT_SOLVED"->{
+                        index++;answers.put(CHECK_INDEX,String.valueOf(index));
+                        if(index<items.size()){pending=stepQuestion(items,index);reply=stepReply(items,index,null);}
+                        else{pending=null;answers.put(CHECK_DONE,"NOT_RESOLVED");}
+                    }
+                    // A service/cost request leaves the self-check; anything else repeats the current step.
+                    default->{if(inquiry)pending=null;else reply=stepReply(items,index,null);}
                 }
+            }
+            if(pending!=null&&pending.id().equals(COOLING_STATE)){
+                // The answer is read first; a service/cost request ends the question instead of repeating it.
+                String state=coolingState(input,true);
+                if(state!=null||unknown){answers.put(COOLING_STATE,state==null?"UNKNOWN":state);pending=null;}
+                else if(inquiry)pending=null;
+                else if(answers.containsKey("COOLING_STATE_REASK")){answers.put(COOLING_STATE,"UNKNOWN");pending=null;}
+                else{answers.put("COOLING_STATE_REASK","ASKED");reply=pending.text();}
             }
             if(pending!=null&&pending.id().equals("VIBRATION_WHEN")&&!inquiry){
                 String timing=timing(input);
@@ -77,11 +90,11 @@ public final class DialogueRouter {
                 if(timing!=null)answers.put("VIBRATION_WHEN",timing);
                 else{pending=new DialogueState.Question("VIBRATION_WHEN","세탁기가 언제 심하게 흔들리나요?",List.of("탈수할 때","세탁할 때","항상","잘 모르겠어요"));reply=pending.text();}
             }
-            // Manuals separate a full stop from weak cooling. Ask once, after the explanation (no reply: the agent still answers).
-            if(category==ProductCategory.REFRIGERATOR&&"COOLING".equals(symptom)&&!answers.containsKey(COOLING_STATE)&&pending==null&&!inquiry&&reply==null){
+            // Manuals separate a full stop from weak cooling. With too little information, ask only this, with choices.
+            if(category==ProductCategory.REFRIGERATOR&&"COOLING".equals(symptom)&&!answers.containsKey(COOLING_STATE)&&!answers.containsKey(CHECK_ITEMS)&&pending==null&&!inquiry&&reply==null){
                 String state=coolingState(input,false);
                 if(state!=null)answers.put(COOLING_STATE,state);
-                else pending=new DialogueState.Question(COOLING_STATE,"냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?",List.of(COOLING_OPTIONS.get("NONE"),COOLING_OPTIONS.get("WEAK"),"잘 모르겠어요"));
+                else{pending=new DialogueState.Question(COOLING_STATE,"냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?",List.of(COOLING_OPTIONS.get("NONE"),COOLING_OPTIONS.get("WEAK"),"잘 모르겠어요"));reply=pending.text();}
             }
         }
         boolean symptomChanged=!Objects.equals(previous.symptomCode(),symptom);
@@ -109,6 +122,7 @@ public final class DialogueRouter {
                 selfCare=solved?"RESOLVED":"NOT_RESOLVED";closed=solved;
             }
         }
+        if(checkSolved){closed=true;selfCare="RESOLVED";}
         if(closed){pending=null;reply="해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요.";}
         var dialogue=new DialogueState(intent,interpretation.mentionedCategory(),interpretation.symptomCandidates(),symptomText,pending,questions,answers,interpretation.source(),selfCare);
         return new Transition(copy(previous,symptom,done,current,closed,dialogue),reply);
@@ -120,6 +134,27 @@ public final class DialogueRouter {
         return new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),symptom,same?done:List.of(),same?current:0,closed,dialogue,selfCare);
     }
     private static String normalize(String text){return text.replaceAll("[\\s\\p{Punct}]","");}
+    // Manual self-check steps (observation items), one per turn: "해결됐나요?" then the next step or the summary.
+    public static final String SELF_CHECK="SELF_CHECK",CHECK_ITEMS="CHECK_ITEMS",CHECK_INDEX="CHECK_INDEX",CHECK_DONE="CHECK_DONE";
+    private static final List<String> NEXT_OPTIONS=List.of("해결됐어요","아니요, 다음 단계"),LAST_OPTIONS=List.of("해결됐어요","아니요, 해결되지 않았어요");
+    public static List<String> checkItems(Map<String,String> answers){
+        String value=answers.get(CHECK_ITEMS);return value==null||value.isBlank()?List.of():List.of(value.split("\n"));
+    }
+    public static DialogueState.Question stepQuestion(List<String> items,int index){
+        return new DialogueState.Question(SELF_CHECK,"확인한 뒤 해결됐나요?",index+1<items.size()?NEXT_OPTIONS:LAST_OPTIONS);
+    }
+    public static String stepReply(List<String> items,int index,String intro){
+        var lines=new ArrayList<String>();if(intro!=null)lines.add(intro);
+        lines.add((index+1)+"/"+items.size()+"단계: "+items.get(index));
+        lines.add(stepQuestion(items,index).text());
+        return String.join("\n\n",lines);
+    }
+    static String checkResult(String input){
+        String text=input.strip();
+        if(text.matches("(?s).*(아니|안\\s*돼|안\\s*되|여전히|그대로|해결되지|다음\\s*단계|못\\s*했).*"))return "NOT_SOLVED";
+        if(text.matches("(?s).*(해결\\s*됐|해결되었|이제\\s*(돼|되)|정상).*"))return "SOLVED";
+        return "UNKNOWN";
+    }
     public static final String COOLING_STATE="COOLING_STATE";
     private static final Map<String,String> COOLING_OPTIONS=Map.of("NONE","모두 전혀 차갑지 않아요","WEAK","차갑긴 하지만 약해요");
     private static final Map<String,String> COOLING_LABELS=Map.of("NONE","냉장·냉동 모두 전혀 차갑지 않음","WEAK","차갑긴 하지만 냉각이 약함");

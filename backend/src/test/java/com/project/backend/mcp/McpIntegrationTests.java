@@ -367,27 +367,38 @@ class McpIntegrationTests {
         assertThat(created.statusCode()).isEqualTo(201);
         long registeredId=JSON.readTree(created.body()).get("id").asLong();
         interpretations.add(decision("SYMPTOM",null,List.of(map("code","COOLING","confidence",.98)),List.of(),null));
-        script.add(call("get_diagnostic_plan",Map.of()));
-        var chat=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/chat"))
-                .header("Authorization",token(owner)).header("Content-Type","application/json")
-                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(map(
-                        "message","냉장고가 시원하지 않아요.","category","REFRIGERATOR","productId",registeredId)))).build();
-        var sent=client.send(chat,java.net.http.HttpResponse.BodyHandlers.ofString());
-        assertThat(sent.statusCode()).isEqualTo(200);
-        // The first answer explains and asks one observation question; warranty and service follow once it continues.
-        var first=JSON.readTree(sent.body());
-        assertThat(first.get("tools").has("check_warranty")).isFalse();assertThat(first.get("tools").has("prepare_service_handoff")).isFalse();
+        var conversation=new long[1];
+        java.util.function.Function<String,tools.jackson.databind.JsonNode> send=message->{
+            try{
+                var body=conversation[0]==0?map("message",message,"category","REFRIGERATOR","productId",registeredId):map("message",message,"conversationId",conversation[0]);
+                var post=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/chat")).header("Authorization",token(owner)).header("Content-Type","application/json")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build();
+                var sent=client.send(post,java.net.http.HttpResponse.BodyHandlers.ofString());
+                assertThat(sent.statusCode()).isEqualTo(200);
+                var node=JSON.readTree(sent.body());conversation[0]=node.get("conversationId").asLong();return node;
+            }catch(Exception error){throw new IllegalStateException(error);}
+        };
+        // Too little information: only the observation question and its choices, no tool card.
+        var first=send.apply("냉장고가 시원하지 않아요.");
+        assertThat(first.get("reply").asText()).isEqualTo("냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
+        assertThat(first.get("tools").has("check_warranty")).isFalse();
         assertThat(first.get("tools").get("consultation").get("data").get("question").get("id").asText()).isEqualTo("COOLING_STATE");
-        assertThat(first.get("reply").asText()).contains("정전 여부와 전원 플러그 연결","냉장실과 냉동실이 모두 전혀 차갑지 않나요");
-        interpretations.add(decision("SYMPTOM",null,List.of(map("code","COOLING","confidence",.98)),List.of(),null));
-        script.add(call("get_diagnostic_plan",Map.of()));
-        var answer=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/chat"))
-                .header("Authorization",token(owner)).header("Content-Type","application/json")
-                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(map(
-                        "message","모두 전혀 차갑지 않아요","conversationId",first.get("conversationId").asLong())))).build();
-        sent=client.send(answer,java.net.http.HttpResponse.BodyHandlers.ofString());
-        assertThat(sent.statusCode()).isEqualTo(200);
-        var response=JSON.readTree(sent.body());
+        // The manual's checks come one step at a time, without disclaimers or manual links.
+        var step=send.apply("모두 전혀 차갑지 않아요");
+        assertThat(step.get("reply").asText()).contains("‘냉장·냉동이 잘되지 않아요’(냉장·냉동 모두 전혀 차갑지 않음) 증상으로 확인했어요",
+                "1/5단계: 정전 여부와 전원 플러그 연결을 확인해 주세요.","확인한 뒤 해결됐나요?").doesNotContain("제조사 자료","승인","제조사 설명서");
+        assertThat(step.get("tools").get("consultation").get("data").get("question").get("id").asText()).isEqualTo("SELF_CHECK");
+        // The per-user chat rate limit applies to HTTP; the remaining step answers go to the same service directly.
+        java.util.function.Function<String,tools.jackson.databind.JsonNode> direct=message->JSON.valueToTree(agent.chat(new ChatRequest(message,conversation[0],null,null,null),owner,token(owner)));
+        assertThat(direct.apply("아니요, 다음 단계").get("reply").asText()).startsWith("2/5단계: 보관 온도를 확인해 주세요.");
+        for(int i=0;i<3;i++)direct.apply("아니요, 다음 단계");
+        var response=direct.apply("아니요, 해결되지 않았어요");
+        assertThat(response.get("reply").asText()).startsWith("안내한 항목을 모두 확인했지만 해결되지 않았어요.");
+        var card=response.get("tools").get("card").get("data");
+        assertThat(card.get("type").asText()).isEqualTo("SUMMARY");
+        assertThat(card.get("estimate").get("base").get("min").asInt()).isEqualTo(48195);
+        assertThat(card.get("estimate").get("separate").get(0).get("name").asText()).isEqualTo("컴프레서");
+        assertThat(card.get("warranty").get("status").asText()).isEqualTo("IN_WARRANTY");
         assertThat(response.get("tools").get("prepare_service_handoff").get("data").get("summary_text").asText()).contains("냉장·냉동 모두 전혀 차갑지 않음");
         var checked=response.get("warranty");
         assertThat(checked.get("basisSource").asText()).isEqualTo("PURCHASE");
@@ -630,31 +641,30 @@ class McpIntegrationTests {
         assertThat(consultations.begin(email,null,ProductCategory.WASHER,"F21VDSK와 FX24ENER 중 어느 제품인지 몰라요",null).productId()).isNull();
         assertThatThrownBy(()->consultations.begin(email,null,ProductCategory.WASHER,"흔들려요",productId)).hasMessageContaining("제품을 찾을 수 없습니다");
     }
-    @Test void knowledgeOnlyModelResponseStillChecksRegisteredModelSelfCareAndExplainsMissingApproval(){
-        script.add(call("search_knowledge",map("query","탈수할 때 심하게 흔들려요")));
+    @Test void registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard(){
         var response=agent.chat(new ChatRequest("탈수할 때 심하게 흔들려요",null,ProductCategory.WASHER,null,null),owner,token(owner));
-        assertThat(response.tools().get("search_knowledge").data()).containsEntry("model_code","F21VDSK");
-        assertThat(response.tools().get("get_diagnostic_plan").status()).isEqualTo("NOT_VERIFIED");
-        assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("steps",List.of());
-        assertThat(response.reply()).contains("검토를 마친 단계별 자가점검 절차가 아직 없어요").doesNotContain("모델명을 알려","999999");
-        assertThat(modelRequests.getFirst()).contains("F21VDSK").doesNotContain("Bearer ");
+        assertThat(response.reply()).contains("직접 해 볼 수 있는 점검 방법이 없어요").doesNotContain("제조사 자료","승인","모델명을 알려","999999");
+        var card=response.tools().get("card").data();
+        assertThat(card).containsEntry("type","SUMMARY");
+        assertThat(((Map<?,?>)((Map<?,?>)card.get("estimate")).get("base")).get("parts")).isEqualTo(List.of("댐퍼"));
+        assertThat(modelCalls.get()).isZero();assertThat(answerRequests).isEmpty();
         var recorded=history.toolCalls(response.conversationId(),owner);
-        // A missing approval alone does not expand into warranty, centers and a handoff on the first explanation.
-        assertThat(recorded).extracting(ConversationService.ToolCallView::toolName).containsExactly("search_knowledge","get_diagnostic_plan");
-        assertThat(recorded).extracting(ConversationService.ToolCallView::selectionSource).containsExactly("MODEL","POLICY_FALLBACK");
-        assertThat(history.detail(response.conversationId(),owner).messages().getLast().tools()).containsKey("get_diagnostic_plan");
+        assertThat(recorded).extracting(ConversationService.ToolCallView::toolName).containsExactly("check_warranty","find_service_centers","prepare_service_handoff");
+        assertThat(recorded).extracting(ConversationService.ToolCallView::selectionSource).containsOnly("POLICY_FALLBACK");
+        assertThat(history.detail(response.conversationId(),owner).messages().getLast().tools()).containsKey("card");
         assertNumbersComeFromTools(response);
     }
     @Test void mcpOutageGivesGeneralGuidanceAndStillSavesTheConsultation(CapturedOutput output) throws Exception {
         int closed;try(var socket=new ServerSocket(0)){closed=socket.getLocalPort();}
         var offline=new AgentChatService(chatClient,new McpGateway("http://127.0.0.1:"+closed,limits),consultations,history,warranty,tools,catalog,limits,selfCare);
-        var response=offline.chat(new ChatRequest("세탁기 문이 안 열려요",null,ProductCategory.WASHER,null,null),owner,token(owner));
+        // A warranty question still needs the model and MCP; the guided self-check path does not.
+        var response=offline.chat(new ChatRequest("세탁기 보증기간이 궁금해요",null,ProductCategory.WASHER,null,null),owner,token(owner));
         assertThat(modelCalls.get()).isZero();
         assertThat(response.reply()).contains("일반 안내","1544-7777");
         assertThat(response.tools()).containsKey("agent_fallback");
         assertThat(history.detail(response.conversationId(),owner).messages()).hasSize(2);
         assertThat(output.getAll()).contains("homecare_agent_fallback","reason=MCP_UNAVAILABLE")
-                .doesNotContain("127.0.0.1:"+closed,"세탁기 문이 안 열려요",owner);
+                .doesNotContain("127.0.0.1:"+closed,"세탁기 보증기간이 궁금해요",owner);
     }
     @Test void injectedArgumentsAreRejectedAndAmountsStayFromTheCostTable(){
         interpretations.add(decision("PRODUCT_REPLY",null,List.of(),List.of(),null));
@@ -682,16 +692,13 @@ class McpIntegrationTests {
         assertThat(state.state().symptomCode()).isEqualTo("VIBRATION");assertThat(state.state().errorCode()).isNull();
         assertThat(first.reply()).contains("언제");assertThat(state.state().dialogue().pendingQuestion().id()).isEqualTo("VIBRATION_WHEN");
         assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(first.conversationId(),owner)).isEmpty();
-        script.add(call("search_knowledge",map("query","세탁기 본체가 심하게 흔들려요")));
         var second=agent.chat(new ChatRequest("탈수할 때",first.conversationId(),null,null,null),owner,token(owner));
         state=consultations.snapshot(owner,first.conversationId());
         assertThat(state.productId()).isEqualTo(productId);assertThat(state.state().dialogue().answers()).containsEntry("VIBRATION_WHEN","SPIN");
         assertThat(state.state().dialogue().pendingQuestion()).isNull();
-        assertThat(second.reply()).doesNotContain("언제 심하게","모델명을 알려");
-        assertThat(second.tools().get("get_diagnostic_plan").status()).isEqualTo("NOT_VERIFIED");
-        assertThat(modelRequests.getFirst()).contains("심하게 흔들려요","탈수할 때","SPIN","F21VDSK");
+        assertThat(second.reply()).doesNotContain("언제 심하게","모델명을 알려").contains("직접 해 볼 수 있는 점검 방법이 없어요");
+        assertThat(second.tools()).containsKey("card");
         interpretations.add(decision("SELF_CARE_REPLY",null,List.of(),List.of("INVENTED"),"NOT_RESOLVED"));
-        script.add(call("search_knowledge",map("query","세탁기 본체가 심하게 흔들려요")));
         var third=agent.chat(new ChatRequest("그건 이미 확인했어요. 그래도 안 돼요",first.conversationId(),null,null,null),owner,token(owner));
         state=consultations.snapshot(owner,first.conversationId());
         assertThat(state.state().doneSteps()).isEmpty();assertThat(state.state().symptomCode()).isEqualTo("VIBRATION");
@@ -758,24 +765,21 @@ class McpIntegrationTests {
         assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("skip_reason","RESOLVED");
         assertThat(modelCalls.get()).isZero();
     }
-    @Test void generatedVibrationReplyUsesCanonicalConditionsAndPreservesMissingApproval(){
+    @Test void manualConditionsBecomeOneSelfCheckStepAtATime(){
         String email="answer-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
         var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
         products.create(email,new UserProductService.Create("설명 검증 세탁기",input,"서울","강남구"));
-        interpretations.add("not JSON");
-        script.add(call("search_knowledge",map("query","탈수할 때 많이 흔들려요")));
-        var response=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
-        assertThat(response.reply()).contains("확인된 내용부터 말씀드릴게요","운송용 고정볼트가 남은 경우","제품 수평이 맞지 않는 경우","실제 원인은 아직 확인되지","검토를 마친 단계별 자가점검 절차가 아직 없어요");
-        assertThat(response.reply()).doesNotContain("제거하세요","수평을 맞춘다","터보샷 소음","{{");
-        assertThat(response.reply()).doesNotContain("주요 부품 보증 —","고객 증상 설명:");
-        assertThat(response.tools()).doesNotContainKeys("check_warranty","find_service_centers","prepare_service_handoff");
-        assertThat(response.tools().get("get_diagnostic_plan").data().get("route")).isEqualTo(catalog.route);
-        assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
-        assertThat(response.tools().get("consultation").meta()).containsEntry("interpretation_source","INVALID_OR_ERROR_FALLBACK_EXPLICIT_SYMPTOM");
-        assertThat(answerRequests).hasSize(1);assertThat(answerRequests.getFirst()).doesNotContain("action_summary","actionDescriptions","current_QA_review","Bearer ",email);
-        assertThat(history.toolCalls(response.conversationId(),email)).hasSize(2);
-        assertThat(history.detail(response.conversationId(),email).messages().getLast().content()).isEqualTo(response.reply());
-        assertThat(history.detail(response.conversationId(),email).messages().getLast().tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
+        var first=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
+        assertThat(first.reply()).contains("‘소음·진동이 심해요’ 증상으로 확인했어요","1/2단계: 운송용 고정볼트가 남은 경우에 해당하는지 확인해 주세요.","확인한 뒤 해결됐나요?")
+                .doesNotContain("제조사 자료","승인","제조사 설명서","{{");
+        var question=(DialogueState.Question)first.tools().get("consultation").data().get("question");
+        assertThat(question.id()).isEqualTo("SELF_CHECK");assertThat(question.options()).containsExactly("해결됐어요","아니요, 다음 단계");
+        var second=agent.chat(new ChatRequest("아니요, 다음 단계",first.conversationId(),null,null,null),email,token(email));
+        assertThat(second.reply()).startsWith("2/2단계: 제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요.");
+        assertThat(((DialogueState.Question)second.tools().get("consultation").data().get("question")).options()).containsExactly("해결됐어요","아니요, 해결되지 않았어요");
+        var solved=agent.chat(new ChatRequest("해결됐어요",first.conversationId(),null,null,null),email,token(email));
+        assertThat(solved.reply()).contains("해결되었습니다");assertThat(consultations.snapshot(email,first.conversationId()).state().closed()).isTrue();
+        assertThat(answerRequests).isEmpty();assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(first.conversationId(),email)).isEmpty();
     }
     @Test void ungroundedFinalPriceFallsBackToVerifiedToolSentences(CapturedOutput output){
         script.add(call("get_repair_candidates",Map.of()));script.add(estimate(map("candidate_ids",List.of("W01"),"confidence",0.8)));
@@ -785,11 +789,12 @@ class McpIntegrationTests {
         assertThat(response.reply()).contains("169,319원","견적이 아닙니다").doesNotContain("수리비는 0원이고");
         assertNumbersComeFromTools(response);assertThat(output.getAll()).doesNotContain("수리비는 0원이고","메인 PCB 수리비가 얼마인가요?",owner);
     }
-    @Test void unresolvedKnowledgeExplainsMissingFactsWithoutInventedCauses(){
+    @Test void aSymptomWithoutManualStepsShowsOnlyReviewedCostLinks(){
         interpretations.add(decision("SYMPTOM",null,List.of(map("code","POWER","confidence",.9)),List.of(),null));
-        script.add(call("search_knowledge",map("query","화성 지하실의 달빛 전자부품 이상")));
         var response=agent.chat(new ChatRequest("전원이 안 켜져요",null,ProductCategory.WASHER,null,null),owner,token(owner));
-        assertThat(response.reply()).contains("확인된 설명 근거가 부족");
-        assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
+        assertThat(response.reply()).contains("직접 해 볼 수 있는 점검 방법이 없어요");
+        var estimate=(Map<?,?>)response.tools().get("card").data().get("estimate");
+        assertThat(((Map<?,?>)estimate.get("base")).get("parts")).isEqualTo(List.of("메인 PCB"));
+        assertThat((List<?>)estimate.get("separate")).isEmpty();assertThat(answerRequests).isEmpty();
     }
 }

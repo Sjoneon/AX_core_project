@@ -36,10 +36,12 @@ class DialogueRouterTests {
     DialogueRouter.Transition fridge(ConsultationState state,String input,MessageInterpreter.Interpretation parsed){
         return DialogueRouter.route(ProductCategory.REFRIGERATOR,state,input,parsed,List.of(),null);
     }
-    @Test void coolingAsksOneObservationQuestionWithoutReplacingTheExplanation(){
+    @Test void coolingAsksOnlyTheObservationQuestionWhileInformationIsMissing(){
         var first=fridge(ConsultationState.start(),"냉장고가 시원하지 않아요.",interpretation("SYMPTOM","COOLING",.95));
-        assertThat(first.reply()).isNull();assertThat(first.state().dialogue().pendingQuestion().id()).isEqualTo("COOLING_STATE");
-        var answered=fridge(first.state(),"모두 전혀 차갑지 않아요",interpretation("SYMPTOM","COOLING",.95));
+        assertThat(first.reply()).isEqualTo("냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
+        assertThat(first.state().dialogue().pendingQuestion().id()).isEqualTo("COOLING_STATE");
+        // The answer is read even when the interpreter labels it a product reply.
+        var answered=fridge(first.state(),"모두 전혀 차갑지 않아요",interpretation("PRODUCT_REPLY",null,0));
         assertThat(answered.reply()).isNull();assertThat(answered.state().dialogue().pendingQuestion()).isNull();
         assertThat(answered.state().dialogue().answers()).containsEntry("COOLING_STATE","NONE");
         assertThat(fridge(first.state(),"차갑긴 하지만 약해요",interpretation("SYMPTOM","COOLING",.95)).state().dialogue().answers()).containsEntry("COOLING_STATE","WEAK");
@@ -49,6 +51,22 @@ class DialogueRouterTests {
         assertThat(weak.state().dialogue().answers()).containsEntry("COOLING_STATE","WEAK");assertThat(weak.state().dialogue().pendingQuestion()).isNull();
         assertThat(fridge(first.state(),"출장 접수할게요",interpretation("SERVICE",null,0)).state().dialogue().pendingQuestion()).isNull();
         assertThat(route(ConsultationState.start(),"세탁기 물이 안 빠져요",interpretation("SYMPTOM","DRAIN",.95)).state().dialogue().pendingQuestion()).isNull();
+    }
+    @Test void selfCheckStepsAdvanceOneAtATimeAndEndResolvedOrForTheSummary(){
+        var answers=Map.of("CHECK_ITEMS",String.join("\n","A를 확인해 주세요.","B를 확인해 주세요."),"CHECK_INDEX","0");
+        var dialogue=new DialogueState("SYMPTOM",null,List.of(),"냉장고가 시원하지 않아요",DialogueRouter.stepQuestion(List.of("A","B"),0),0,answers,"AI",null);
+        var state=new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false,dialogue);
+        var next=fridge(state,"아니요, 다음 단계",interpretation("PRODUCT_REPLY",null,0));
+        assertThat(next.reply()).startsWith("2/2단계: B를 확인해 주세요.");
+        assertThat(next.state().dialogue().answers()).containsEntry("CHECK_INDEX","1");
+        assertThat(next.state().dialogue().pendingQuestion().options()).containsExactly("해결됐어요","아니요, 해결되지 않았어요");
+        var done=fridge(next.state(),"아니요, 해결되지 않았어요",interpretation("OTHER",null,0));
+        assertThat(done.reply()).isNull();assertThat(done.state().dialogue().pendingQuestion()).isNull();
+        assertThat(done.state().dialogue().answers()).containsEntry("CHECK_DONE","NOT_RESOLVED");
+        var solved=fridge(state,"해결됐어요",interpretation("SELF_CARE_REPLY",null,0));
+        assertThat(solved.state().closed()).isTrue();assertThat(solved.reply()).contains("해결되었습니다");
+        assertThat(fridge(state,"잘 모르겠어요",interpretation("OTHER",null,0)).reply()).startsWith("1/2단계: A를 확인해 주세요.");
+        assertThat(fridge(state,"수리비가 궁금해요",interpretation("COST",null,0)).state().dialogue().pendingQuestion()).isNull();
     }
     @Test void vibrationWithoutErrorPersistsAndAsksWhenItOccurs(){
         var first=route(ConsultationState.start(),"본체가 원 위치에서 크게 벗어나요",interpretation("SYMPTOM","VIBRATION",.95));

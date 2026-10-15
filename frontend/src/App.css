@@ -242,3 +242,8 @@
 .message-sources li { margin: 4px 0; overflow-wrap: anywhere; }
 .safety-card { padding: 12px; margin-top: 12px; border: 2px solid #cc3737; border-radius: 8px; background: #fff3f3; }
 .tool-route { margin-top: 12px; }
+.consultation-card dl > div { display: block; padding: 10px 0; border-top: 1px solid #d7e2ec; }
+.consultation-card dl > div:first-child { border-top: 0; padding-top: 0; }
+.consultation-card dt { font-weight: 700; margin-bottom: 4px; }
+.consultation-card dd p { margin: 4px 0; }
+.consultation-card .card-note { font-size: 14px; color: #5b6b78; }
