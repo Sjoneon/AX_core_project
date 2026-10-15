@@ -864,6 +864,35 @@ class McpIntegrationTests {
         assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",1,version,null)).hasMessageContaining("변경됐습니다");
         assertThat(answerRequests).isEmpty();assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(id,email)).isEmpty();
     }
+    @Test void withTwoRegisteredRefrigeratorsTheCustomerPicksOneBeforeTheQuestionIsAnswered(){
+        String email="choice-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        long first=products.create(email,new UserProductService.Create("냉장고",new WarrantyModels.Request(ProductCategory.REFRIGERATOR,"S836MEE022",LocalDate.of(2026,5,5),null,null,null,null,true,true),"서울","강남구")).id();
+        long second=products.create(email,new UserProductService.Create("냉장고 2",new WarrantyModels.Request(ProductCategory.REFRIGERATOR,"S834MEE111",LocalDate.of(2025,3,1),null,null,null,null,true,true),"서울","강남구")).id();
+        var asked=agent.chat(new ChatRequest("냉장고가 시원하지 않아요",null,ProductCategory.REFRIGERATOR,null,null),email,token(email));
+        assertThat(asked.reply()).isEqualTo("등록하신 냉장고가 2대 있어요. 어느 냉장고인지 선택해 주세요.");
+        var card=asked.tools().get("card");
+        assertThat(card.data()).containsEntry("type","PRODUCT_CHOICE");
+        assertThat(card.data().get("products")).isEqualTo(List.of(map("id",first,"category","REFRIGERATOR","name","냉장고","model","S836MEE022"),
+                map("id",second,"category","REFRIGERATOR","name","냉장고 2","model","S834MEE111")));
+        assertThat(asked.tools()).doesNotContainKey("consultation");
+        Long id=asked.conversationId();long version=((Number)card.meta().get("context_version")).longValue();
+        assertThat(consultations.snapshot(email,id).productId()).isNull();
+        assertThatThrownBy(()->agent.chooseProduct(id,email,token(email),second,version-1)).hasMessageContaining("변경됐습니다");
+        assertThatThrownBy(()->agent.chooseProduct(id,email,token(email),Long.MAX_VALUE,version)).hasMessageContaining("선택할 수 있는 제품");
+        // The message that asked for the choice is answered for the chosen refrigerator.
+        interpretations.add(decision("SYMPTOM",null,List.of(map("code","COOLING","confidence",.98)),List.of(),null));
+        var answered=agent.chooseProduct(id,email,token(email),second,version);
+        assertThat(answered.reply()).isEqualTo("냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
+        assertThat(consultations.snapshot(email,id).productId()).isEqualTo(second);
+        assertThat(history.detail(id,email).messages()).extracting(message->message.content()).containsExactly("냉장고가 시원하지 않아요",
+                "등록하신 냉장고가 2대 있어요. 어느 냉장고인지 선택해 주세요.","냉장고 2 · S834MEE111","냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
+        assertThatThrownBy(()->agent.chooseProduct(id,email,token(email),first,version)).hasMessageContaining("변경됐습니다");
+        // The nickname "냉장고" is only the category name, but "냉장고 2" in the message names the second one.
+        interpretations.add(decision("SYMPTOM",null,List.of(map("code","COOLING","confidence",.98)),List.of(),null));
+        var named=agent.chat(new ChatRequest("냉장고 2가 시원하지 않아요",null,ProductCategory.REFRIGERATOR,null,null),email,token(email));
+        assertThat(consultations.snapshot(email,named.conversationId()).productId()).isEqualTo(second);
+        assertThat(named.reply()).isEqualTo("냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
+    }
     @Test void ungroundedFinalPriceFallsBackToVerifiedToolSentences(CapturedOutput output){
         script.add(call("get_repair_candidates",Map.of()));script.add(estimate(map("candidate_ids",List.of("W01"),"confidence",0.8)));
         answerScript.add(input->JSON.writeValueAsString(map("paragraphs",List.of(map("text","수리비는 0원이고 무상입니다. {{TOOL_GUIDANCE}}","fact_ids",List.of("TOOL_GUIDANCE"))))));
