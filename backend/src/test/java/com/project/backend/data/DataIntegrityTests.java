@@ -14,7 +14,7 @@ import com.project.backend.warranty.WarrantyCatalog;
 /** A data file that differs from source-manifest.json by even one byte must stop the application from starting. */
 class DataIntegrityTests {
     static final List<String> FILES=List.of(DataManifest.MANIFEST,"homecare/knowledge.json","homecare/models.json","homecare/parts.json",
-            "homecare/centers.json","homecare/route.json","homecare/approved-plans.json","homecare/repair-cases.json","homecare/knowledge-structured.json","homecare/symptom-parts.json","warranty/policies.json");
+            "homecare/centers.json","homecare/route.json","homecare/approved-plans.json","homecare/repair-cases.json","homecare/knowledge-structured.json","homecare/symptom-parts.json","homecare/error-guides.json","warranty/policies.json");
     @TempDir Path root;
 
     @BeforeEach void copyPackagedData() throws Exception {
