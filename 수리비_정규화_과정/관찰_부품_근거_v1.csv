@@ -1,0 +1,14 @@
+﻿품목,증상,질문,답,부품코드,근거 종류,근거 ID,근거 요지
+REFRIGERATOR,COOLING,DISPLAY,OFF,R02,REPAIR_GUIDE,GUIDE-02,표시창·실내등이 모두 꺼짐 → 전원 공급 또는 메인 보드 고장(수리업체 가이드)
+REFRIGERATOR,COOLING,DISPLAY,OFF,R02,REPAIR_CASE,삼성/SR06,냉장·냉동 표시가 모두 꺼지고 켜지지 않음 → 메인보드 교체
+REFRIGERATOR,COOLING,DISPLAY,FLASHING,R02,REPAIR_CASE,LG/R14,표시창이 깜빡이며 냉장·냉동 모두 안 됨 → 메인 기판 교체
+REFRIGERATOR,COOLING,DISPLAY,FLASHING,R05,REPAIR_CASE,삼성/SR15,냉장실이 미지근하고 온도 표시가 깜빡임 → 제상센서·온도퓨즈 교체
+REFRIGERATOR,COOLING,SOUND,NO,R01,REPAIR_GUIDE,GUIDE-02,표시창은 켜져 있는데 컴프레서가 조용함 → 시동 릴레이·인버터 보드·컴프레서(수리업체 가이드)
+REFRIGERATOR,COOLING,SOUND,NO,R02,REPAIR_GUIDE,GUIDE-02,표시창은 켜져 있는데 컴프레서가 조용함 → 시동 릴레이·인버터 보드·컴프레서(수리업체 가이드)
+REFRIGERATOR,COOLING,SOUND,NO,R01,REPAIR_CASE,삼성/SR07,냉동실 얼음이 녹고 압축기가 작동하지 않음 → 컴프레서 교체
+REFRIGERATOR,COOLING,SOUND,NO,R02,REPAIR_CASE,LG/R22,컴프레서가 멈춰 냉각이 안 됨 → 메인보드 고장
+REFRIGERATOR,COOLING,FROST,BACK_WALL,R09,REPAIR_GUIDE,GUIDE-03,냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 뒷벽·증발기 주변에 얼음이 쌓임(수리업체 가이드)
+REFRIGERATOR,COOLING,FROST,BACK_WALL,R05,OFFICIAL_ERROR,T2-032,F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능
+REFRIGERATOR,COOLING,FROST,BACK_WALL,R09,OFFICIAL_ERROR,T2-032,F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능
+REFRIGERATOR,COOLING,FROST,BACK_WALL,R02,OFFICIAL_ERROR,T2-032,F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능
+REFRIGERATOR,COOLING,FROST,DOOR,R10,REPAIR_GUIDE,GUIDE-03,성에가 뒷벽보다 문틀 주변에 몰려 있으면 도어 가스켓 손상(수리업체 가이드)
