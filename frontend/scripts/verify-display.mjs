@@ -47,12 +47,14 @@ function App() {
     : phase === 7 ? {content: '증상으로 확인했어요.', tools: {consultation: wrap({question: {id: 'SELF_CHECK', text: '안내한 항목을 확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 해결되지 않았어요']}}),
         card: wrap({type: 'SELF_CHECK', steps: ['첫째 항목을 확인해 주세요.', '둘째 항목을 확인해 주세요.', '셋째 항목을 확인해 주세요.'], questions})}}
     : phase === 8 ? {content: '점검 방법은 없어요.', tools: {card: wrap({type: 'SELF_CHECK', steps: [], questions})}}
+    : phase === 9 ? {content: '등록하신 냉장고가 2대 있어요. 어느 냉장고인지 선택해 주세요.', tools: {card: wrap({type: 'PRODUCT_CHOICE', products: [
+        {id: 1, category: 'REFRIGERATOR', name: '냉장고', model: 'S836MEE022'}, {id: 6, category: 'REFRIGERATOR', name: '냉장고 2', model: 'S834MEE111'}]})}}
     : phase === 5 ? {...warrantyVerification.response, content: warrantyVerification.response.reply}
     : warrantyVerification.savedAnswer
   window.setPhase = setPhase
   return <><main id="customer" style={{maxWidth: 800, margin: 'auto', padding: 16}}>
     <h1>상담 표시 검증</h1><div className="message-content"><Message message={history} active={false} />
-    <Message key={phase} message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} onSelfCheck={(result, step, version, label, observations) => window.calls.push({kind: 'selfCheck', result, step, version, label, observations})} /></div>
+    <Message key={phase} message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} onSelfCheck={(result, step, version, label, observations) => window.calls.push({kind: 'selfCheck', result, step, version, label, observations})} onChooseProduct={(productId, version, label) => window.calls.push({kind: 'product', productId, version, label})} /></div>
   </main><aside id="dev"><Trace request={async () => []} conversationId={77} message={history} /></aside></>
 }
 createRoot(document.getElementById('root')).render(<App />)
@@ -190,6 +192,21 @@ try {
   await click('없어요')
   assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'NOT_RESOLVED', step: 0, version: 7, label: '확인 질문에 답했어요', observations: { SOUND: 'YES', FROST: 'NONE' } })
   assert.equal(await evaluate('window.calls.length'), sentBefore + 3)
+  // Two registered refrigerators: one readable button per product, sent with the label of the history bubble.
+  await evaluate('window.setPhase(9)')
+  await until('document.querySelectorAll("#customer .product-choice").length === 2')
+  for (const width of [1280, 390]) {
+    await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 500 })
+    await evaluate('document.querySelector("#customer .product-choices").scrollIntoView({block: "center"})')
+    const dimensions = await evaluate('({width: innerWidth, content: document.querySelector("#customer").scrollWidth})')
+    assert.ok(dimensions.content <= dimensions.width, JSON.stringify(dimensions))
+    const capture = await cdp('Page.captureScreenshot', { format: 'png' })
+    const screenshot = join(profile, `product-choice-${width}.png`)
+    await writeFile(screenshot, Buffer.from(capture.data, 'base64'))
+    report.push({ width, productChoice: true, overflow: false, screenshot })
+  }
+  await evaluate('Array.from(document.querySelectorAll("#customer .product-choice")).find(button => button.textContent.includes("냉장고 2")).click()')
+  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'product', productId: 6, version: 7, label: '냉장고 2 · S834MEE111' })
   if (warrantyVerification) {
     for (const phase of [5, 6]) {
       await evaluate(`window.setPhase(${phase})`)
