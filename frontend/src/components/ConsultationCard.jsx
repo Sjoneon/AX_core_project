@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { customerText as text, list, sourceUrl } from '../customerDisplay.js'
+import { productName } from '../data/products.js'
+import Icon from './Icon.jsx'
 
 const won = (value) => typeof value === 'number' && Number.isFinite(value) ? `${(Math.round(value / 1000) * 1000).toLocaleString('ko-KR')}원` : null
 const range = (value) => value && won(value.min) && won(value.max) ? `약 ${won(value.min)} ~ ${won(value.max)}` : null
@@ -98,9 +100,32 @@ function SelfCheck({ card, version, active, disabled, onSelfCheck }) {
   </section>
 }
 
-// One card per reply: the self-check steps, or the summary with warranty, reference repair cost and official A/S routes.
-export default function ConsultationCard({ card, version, active, disabled, onSelfCheck }) {
+// Two or more registered products of the category: the customer picks one, and the label matches the saved history bubble.
+function ProductChoice({ card, version, active, disabled, onChooseProduct }) {
+  const products = list(card.products).filter((product) => Number.isInteger(product?.id))
+  if (!active || products.length === 0) return null
+  return <section className="tool-result consultation-card" aria-label="제품 선택">
+    <h3>상담할 제품을 선택해 주세요</h3>
+    <div className="product-choices">{products.map((product) => {
+      const category = productName(product.category), name = text(product.name) || category, model = text(product.model)
+      return <button type="button" className="product-choice" key={product.id} disabled={disabled}
+        onClick={() => onChooseProduct(product.id, version, model ? `${name} · ${model}` : name)}>
+        <span className="product-choice-icon"><Icon name={product.category} size={26} /></span>
+        <span className="product-choice-text">
+          <small>{category}</small>
+          <strong>{name}</strong>
+          <span>{model ? `모델명 ${model}` : '모델명 미입력'}</span>
+        </span>
+        <Icon name="chevron" size={18} />
+      </button>
+    })}</div>
+  </section>
+}
+
+// One card per reply: the product choice, the self-check steps, or the summary with warranty, reference repair cost and official A/S routes.
+export default function ConsultationCard({ card, version, active, disabled, onSelfCheck, onChooseProduct }) {
   const [copyStatus, setCopyStatus] = useState('')
+  if (card?.type === 'PRODUCT_CHOICE') return <ProductChoice card={card} version={version} active={active} disabled={disabled} onChooseProduct={onChooseProduct} />
   if (card?.type === 'SELF_CHECK') return <SelfCheck card={card} version={version} active={active} disabled={disabled} onSelfCheck={onSelfCheck} />
   if (card?.type !== 'SUMMARY') return null
   const estimate = card.estimate || {}
