@@ -196,6 +196,23 @@
  },
  {
   "category": "DRYER",
+  "kind": "ERROR",
+  "code": "드럼모터이상",
+  "partId": "D05",
+  "partName": "드럼 모터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71831442:드럼모터이상",
+    "note": "드럼 모터 이상: 모터가 갑자기 멈추는 현상(LG 설명서)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "DRYER",
   "kind": "SYMPTOM",
   "code": "DRYING",
   "partId": "D06",
@@ -339,6 +356,182 @@
  {
   "category": "REFRIGERATOR",
   "kind": "ERROR",
+  "code": "ERD",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD",
+    "note": "Er d: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERD",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD",
+    "note": "Er d: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERD1",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD1",
+    "note": "Er d1: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERD1",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD1",
+    "note": "Er d1: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERD2",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD2",
+    "note": "Er d2: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERD2",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERD2",
+    "note": "Er d2: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERDH",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERDH",
+    "note": "Er dH: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERDH",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERDH",
+    "note": "Er dH: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
   "code": "ERFF",
   "partId": "R03",
   "partName": "증발기(냉동실) 팬모터",
@@ -356,6 +549,111 @@
  {
   "category": "REFRIGERATOR",
   "kind": "ERROR",
+  "code": "ERH1",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERH1",
+    "note": "Er H1: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERH1",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERH1",
+    "note": "Er H1: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERH2",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERH2",
+    "note": "Er H2: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERH2",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "solutions-20155399741079:ERH2",
+    "note": "Er H2: 냉각판에 있는 얼음을 제거하면 정상 작동할 수 있음(LG 지원 페이지)"
+   },
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 얼음이 쌓임(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
+  "code": "ERRF",
+  "partId": "R03",
+  "partName": "증발기(냉동실) 팬모터",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-031",
+    "note": "ER rF 냉장실 팬 이상: 팬 주변 결빙 또는 팬 모터 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "ERROR",
   "code": "FDH",
   "partId": "R02",
   "partName": "메인 PCB",
@@ -522,6 +820,197 @@
   "repairCases": 0,
   "officialFacts": 1,
   "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "DISPLAY",
+  "answer": "FLASHING",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R14",
+    "note": "표시창이 깜빡이며 냉장·냉동 모두 안 됨 → 메인 기판 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "DISPLAY",
+  "answer": "FLASHING",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR15",
+    "note": "냉장실이 미지근하고 온도 표시가 깜빡임 → 제상센서·온도퓨즈 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "DISPLAY",
+  "answer": "OFF",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-02",
+    "note": "표시창·실내등이 모두 꺼짐 → 전원 공급 또는 메인 보드 고장(수리업체 가이드)"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR06",
+    "note": "냉장·냉동 표시가 모두 꺼지고 켜지지 않음 → 메인보드 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "FROST",
+  "answer": "BACK_WALL",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "FROST",
+  "answer": "BACK_WALL",
+  "partId": "R05",
+  "partName": "제상 센서",
+  "evidence": [
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 0
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "FROST",
+  "answer": "BACK_WALL",
+  "partId": "R09",
+  "partName": "제상 히터",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "냉동실 뒷벽의 두꺼운 성에는 제상 계통 고장이며 제상 히터가 끊기면 뒷벽·증발기 주변에 얼음이 쌓임(수리업체 가이드)"
+   },
+   {
+    "type": "OFFICIAL_ERROR",
+    "ref": "T2-032",
+    "note": "F dH 제상 이상: 제상 센서 주변 결빙·온도퓨즈/히터 단선·메인PCB 이상 가능"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 1,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "FROST",
+  "answer": "DOOR",
+  "partId": "R10",
+  "partName": "도어 가스켓",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-03",
+    "note": "성에가 뒷벽보다 문틀 주변에 몰려 있으면 도어 가스켓 손상(수리업체 가이드)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "SOUND",
+  "answer": "NO",
+  "partId": "R01",
+  "partName": "컴프레서",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-02",
+    "note": "표시창은 켜져 있는데 컴프레서가 조용함 → 시동 릴레이·인버터 보드·컴프레서(수리업체 가이드)"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "삼성/SR07",
+    "note": "냉동실 얼음이 녹고 압축기가 작동하지 않음 → 컴프레서 교체"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 1
+ },
+ {
+  "category": "REFRIGERATOR",
+  "kind": "OBSERVATION",
+  "code": "COOLING",
+  "question": "SOUND",
+  "answer": "NO",
+  "partId": "R02",
+  "partName": "메인 PCB",
+  "evidence": [
+   {
+    "type": "REPAIR_GUIDE",
+    "ref": "GUIDE-02",
+    "note": "표시창은 켜져 있는데 컴프레서가 조용함 → 시동 릴레이·인버터 보드·컴프레서(수리업체 가이드)"
+   },
+   {
+    "type": "REPAIR_CASE",
+    "ref": "LG/R22",
+    "note": "컴프레서가 멈춰 냉각이 안 됨 → 메인보드 고장"
+   }
+  ],
+  "repairCases": 1,
+  "officialFacts": 0,
+  "guides": 1
  },
  {
   "category": "REFRIGERATOR",
@@ -761,6 +1250,57 @@
  {
   "category": "WASHER",
   "kind": "ERROR",
+  "code": "DE4",
+  "partId": "W03",
+  "partName": "도어락 스위치",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71964311:DE4",
+    "note": "dE4 문이 닫혀 있으나 작동되지 않음(LG 설명서)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "DL",
+  "partId": "W03",
+  "partName": "도어락 스위치",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71831233:DL",
+    "note": "dL 문이 닫혔으나 잠기지 않으면 문 잠금장치 확인(LG 설명서)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
+  "code": "FE",
+  "partId": "W02",
+  "partName": "급수밸브",
+  "evidence": [
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71964311:FE",
+    "note": "FE 물높이 높음: 급수와 배수를 반복하며 급수구가 이상할 때 나타남(LG 설명서)"
+   }
+  ],
+  "repairCases": 0,
+  "officialFacts": 0,
+  "guides": 0
+ },
+ {
+  "category": "WASHER",
+  "kind": "ERROR",
   "code": "LE",
   "partId": "W04",
   "partName": "메인 PCB",
@@ -791,6 +1331,11 @@
     "type": "REPAIR_GUIDE",
     "ref": "GUIDE-01",
     "note": "OE 배수 불량: 필터를 청소해도 배수가 안 되면 배수펌프 문제(수리업체 가이드)"
+   },
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71964311:OE",
+    "note": "OE 배수 안됨: 배수 펌프 속 금속류 이물질로 펌프가 멈춤(LG 설명서)"
    }
   ],
   "repairCases": 0,
@@ -808,6 +1353,11 @@
     "type": "OFFICIAL_ERROR",
     "ref": "T2-007",
     "note": "PE 수위 감지 이상: 수위 센서 이상"
+   },
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71964311:PE",
+    "note": "PE 물높이 감지 안됨: 물 조절 센서에 이상이 있을 경우 나타남(LG 설명서)"
    }
   ],
   "repairCases": 0,
@@ -825,6 +1375,11 @@
     "type": "OFFICIAL_ERROR",
     "ref": "T2-009",
     "note": "tE 가열 이상: 물이 가열되지 않음"
+   },
+   {
+    "type": "OFFICIAL_GUIDE",
+    "ref": "MFL71964311:TE",
+    "note": "tE 온도 감지 안됨: 제품 내부의 물이 가열되지 않음(LG 설명서)"
    }
   ],
   "repairCases": 0,
