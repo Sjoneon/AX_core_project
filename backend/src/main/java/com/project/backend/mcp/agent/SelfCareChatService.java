@@ -49,9 +49,9 @@ public class SelfCareChatService {
         },catalog.route);
         var checked=outputs.get("check_warranty");var coverage=checked==null?null:JSON.convertValue(checked.data(),WarrantyModels.Result.class);
         var lines=new ArrayList<String>();lines.add(DiagnosticGuidance.format(result));
-        if(coverage!=null)lines.add(warranty.explain(coverage));
+        if(coverage!=null)lines.add(coverage.headline()+" 실제 무상 여부는 고장 부품·증빙·모델 조건 확인이 필요하며, 상세 내용은 보증 결과에서 확인해 주세요.");
         var centers=outputs.get("find_service_centers");if(centers!=null)lines.add("등록 제품 배송지역의 센터와 공식 접수 경로를 준비했어요. 운영·접수 가능 여부는 공식 페이지에서 확인해 주세요.");
-        var handoff=outputs.get("prepare_service_handoff");if(handoff!=null)lines.add(handoff.data().get("summary_text")+"\n상담 요약 준비이며 외부 전송·예약은 하지 않았습니다.");
+        var handoff=outputs.get("prepare_service_handoff");if(handoff!=null)lines.add("상담 요약을 준비했으며 외부 전송·예약은 하지 않았습니다. 아래 요약을 복사해 [LG 공식 출장 접수]("+catalog.route.get("apply_url")+") 또는 고객센터 "+catalog.route.get("phone")+"로 문의해 주세요.");
         if(outputs.containsKey("followup"))lines.add("일부 후속 조회를 마치지 못했어요. 공식 상담 경로를 이용하거나 다음 대화에서 다시 문의해 주세요.");
         String reply=String.join("\n\n",lines);
         history.saveExchange(s.id(),email,input,reply,s.category(),List.of(),coverage,outputs,calls);

@@ -1,0 +1,1098 @@
+{
+  "evaluated_date" : "2026-10-15",
+  "run_id" : "holdout_power_fix",
+  "real_model" : true,
+  "model" : "gpt-4o-mini",
+  "data_version" : "B30-COST-V3-20261014-R5",
+  "git_commit" : "e3394c53b24a62f0edcf88975e48a97fe35c1d3a",
+  "worktree_dirty" : true,
+  "runtime_class_sha256" : {
+    "com.project.backend.mcp.ConsultationEvaluationTests" : "5ecdb244dcac0a3f41eff2cf1ca46d0bd77b7d51f75e2b5901a059eacd462381",
+    "com.project.backend.mcp.agent.AgentChatService" : "965a1328a188bc93e563eb117b2e890d9e4d51e85725015313b1ce68b2584203",
+    "com.project.backend.mcp.consultation.DialogueRouter" : "de29adaf165afdf0dd3e95ef9ec9564f6fed3f4c4c44604c5372c17e202ba68d",
+    "com.project.backend.mcp.consultation.MessageInterpreter" : "400c8de1bbd47840186f79daf971b513ae571166ebe90a884f8f1728b08b8550",
+    "com.project.backend.mcp.consultation.RiskRules" : "39bb0fcc54dd64e88d012f44c5b67c8bf25b39b9f9629fed7601c20a0a6a7153",
+    "com.project.backend.mcp.retrieval.KnowledgeRetriever" : "5583fb09898172151024911a915e81339b9f0f09a381abe5b8a9dc427e6930c9"
+  },
+  "model_preflight_verified" : true,
+  "spec_sha256" : "7cb73294fe30627f9e32fa9782c6af3e377b68cb30f67276328d084ff7b0d814",
+  "filtered_cases" : [ "holdout-dishwasher-power" ],
+  "isolated_h2" : true,
+  "http_jwt_mcp" : true,
+  "physical_operations" : false,
+  "index_metrics" : {
+    "corpus" : "MANUFACTURER_ONLY",
+    "cache_hit" : true,
+    "payload_sha256" : "43ae06e90ba3b52f00574d0ffc69da0b1fd471522dffff971a6a57d71a866b4b",
+    "fingerprint" : "7f3d9e30617efdb134101710abd829d3d15a2c91427971d01596ac03623241fd",
+    "initialization_ms" : 878,
+    "build_initialization_ms" : 27291,
+    "model" : "text-embedding-3-small",
+    "unit_count" : 1542,
+    "embedding_tokens" : 155721,
+    "dimensions" : 1536,
+    "status" : "READY",
+    "query_embedding_tokens" : 42,
+    "query_embedding_requests" : 2
+  },
+  "total" : 1,
+  "passed" : 1,
+  "failed" : 0,
+  "turn_count" : 1,
+  "selection_sources" : {
+    "MODEL" : 1,
+    "POLICY_FALLBACK" : 4
+  },
+  "latency_ms" : {
+    "p50" : 9814,
+    "p95" : 9814,
+    "max" : 9814
+  },
+  "cases" : [ {
+    "id" : "holdout-dishwasher-power",
+    "expected_outcome" : "DATA_LIMIT",
+    "outcome" : "DATA_LIMIT",
+    "passed" : true,
+    "failures" : [ ],
+    "elapsed_ms" : 10042,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.",
+      "answer" : null,
+      "elapsed_ms" : 9814,
+      "reply" : "안전 주의: 관련 안전 문서가 있어요. 다른 안내보다 먼저 확인하고, 이상하면 사용을 멈춰 주세요.\n\n상담에서 확인한 증상은 ‘전원이 켜지지 않아요’입니다.\n\n제조사 자료에는 ‘제품에 전원이 들어오지 않아요.’ 증상이 설명되어 있어요. 자료에서 구분하는 원인 후보·상황은 ‘전원이 꺼진 경우 / 플러그가 빠진 경우’입니다. 현재 제품의 실제 원인은 아직 확인되지 않았어요. 이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다. [제조사 설명서](https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64)\n\n질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.\n\n현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 실행 승인은 미확인이며, 자가조치가 없다고 확정한 상태는 아닙니다. 원문 근거와 공식 상담 경로를 확인해 주세요.\n\n등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.\n\n대치서비스센터 · 서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층 · [센터 정보](https://www.lge.co.kr/support/find-service-center-252)\n\n공식 접수: [LG 출장 서비스 예약](https://www.lge.co.kr/support/service-engineer-reservation) · [전국 센터 찾기](https://www.lge.co.kr/support/find-service-center) · 고객센터 1544-7777. 실제 예약은 공식 채널에서 진행해 주세요.\n\n상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.",
+      "state" : {
+        "riskStatus" : "CLEAR",
+        "riskCase" : null,
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : "POWER",
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "SYMPTOM",
+          "mentionedCategory" : "DISHWASHER",
+          "symptomCandidates" : [ {
+            "code" : "POWER",
+            "confidence" : 0.9
+          } ],
+          "symptomText" : "식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.",
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "AI",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "DUE6BGL2E",
+      "tools" : {
+        "consultation" : {
+          "status" : "OK",
+          "data" : {
+            "intent" : "SYMPTOM",
+            "symptom_code" : "POWER",
+            "symptom_candidates" : [ {
+              "code" : "POWER",
+              "confidence" : 0.9
+            } ],
+            "question" : null,
+            "answers" : { },
+            "done_steps" : [ ],
+            "self_care_reply" : null,
+            "closed" : false
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "interpretation_source" : "AI"
+          }
+        },
+        "search_knowledge" : {
+          "status" : "OK",
+          "data" : {
+            "safety_notices" : [ {
+              "content" : "제조사 참고 자료\n손상된 전원선·플러그 또는 헐거운 콘센트\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "손상된 전원선·플러그 또는 헐거운 콘센트" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "사용하지 말고 LG전자 서비스센터1544-7777 연락." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-074",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-074" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6378559557568964,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제조사 참고 자료\n젖은 손으로 전원 플러그 접촉\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "젖은 손으로 전원 플러그 접촉" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "젖은 손으로 전원 플러그를 만지지 않기." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-073",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-073" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6321255368950252,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            } ],
+            "documents" : [ {
+              "content" : "사용 관련\n제품에 전원이 들어오지 않아요.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "전원 버튼을 누른다. / 플러그 연결을 확인한다. / 차단기를 확인한다. / 다른 콘센트의 제품이 동작하는지 확인한다. / 16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "전원이 꺼진 경우",
+                  "action_summary" : "전원 버튼을 누른다.",
+                  "evidence_terms" : [ "전원 버튼" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "플러그가 빠진 경우",
+                  "action_summary" : "플러그 연결을 확인한다.",
+                  "evidence_terms" : [ "플러그" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "차단기가 꺼진 경우",
+                  "action_summary" : "차단기를 확인한다.",
+                  "evidence_terms" : [ "차단기" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "정전이 의심되는 경우",
+                  "action_summary" : "다른 콘센트의 제품이 동작하는지 확인한다.",
+                  "evidence_terms" : [ "다른 콘센트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "멀티탭 용량이 부족한 경우",
+                  "action_summary" : "16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다.",
+                  "evidence_terms" : [ "16 A", "전용" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_64",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71959117-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGE", "DUE6BGL1E", "DUE6BGL2E", "DUE6EWL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71959117-topic_64-001",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71959117-topic_64-001" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7529438809679011,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제품에 전원이 들어오지 않아요\n제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함\n적용 조건: 모델 DUE6BGL2E 확인 / 실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용. / 실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요" ],
+              "error_codes" : [ ],
+              "causes" : [ "제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함" ],
+              "action_descriptions" : [ ],
+              "branches" : {
+                "cause_branches" : [ {
+                  "printed_page" : 47,
+                  "condition" : "제품 전원이 꺼져 있음",
+                  "user_action" : "제품 전원 버튼 누르기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-01",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-01",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "전원 플러그가 콘센트에서 빠짐",
+                  "user_action" : "전원 플러그를 콘센트에 바르게 끼우기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-02",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-02",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "누전 차단기가 OFF임",
+                  "user_action" : "누전 차단기를 ON으로 변경.",
+                  "explanation" : "",
+                  "author_rule_refs" : [ "ordinary_power_action_gate", "hazard_first" ],
+                  "source_branch_id" : "MFL71959117-07-no_power-03",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-03",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "정전으로 전기 공급이 끊김",
+                  "user_action" : "다른 콘센트에 연결된 제품이 작동하는지 확인.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-04",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-04",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함",
+                  "user_action" : "16A 이상 멀티 콘센트로 교체하고 식기세척기 전용으로 사용.",
+                  "explanation" : "",
+                  "numeric_evidence" : [ {
+                    "value" : 16,
+                    "unit" : "A",
+                    "qualifier" : "이상",
+                    "applies_to" : "멀티 콘센트 정격 전류"
+                  } ],
+                  "source_branch_id" : "MFL71959117-07-no_power-05",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-05",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                } ]
+              },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T3-091",
+              "title" : "제품에 전원이 들어오지 않아요",
+              "record_type" : "T3_symptoms",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "T3-091" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7254557773676211,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "supplements" : [ ]
+            } ],
+            "model_code" : "DUE6BGL2E",
+            "model_filter_status" : "EXACT",
+            "retrieval_version" : "B30-COST-V3-20261014-R5",
+            "retrieval_algorithm" : "manufacturer-hybrid-v1",
+            "retrieval_mode" : "HYBRID",
+            "index_status" : "READY",
+            "retrieval_elapsed_ms" : 1506
+          },
+          "evidence" : [ {
+            "evidence_id" : "T4-074",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T4-073",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B17-MFL71959117-topic_64-001",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T3-091",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "안전 주의 문서가 있습니다. 다른 안내보다 먼저 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "f02cbbdd-257e-42bd-a1b2-8d06ad3eb8f7"
+          }
+        },
+        "get_diagnostic_plan" : {
+          "status" : "NOT_VERIFIED",
+          "data" : {
+            "error_code" : null,
+            "symptom_code" : "POWER",
+            "steps" : [ ],
+            "skipped_step_codes" : [ ],
+            "has_self_care" : false,
+            "skip_reason" : "NOT_VERIFIED",
+            "current_step" : 0,
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            },
+            "safety_notices" : [ {
+              "content" : "제조사 참고 자료\n손상된 전원선·플러그 또는 헐거운 콘센트\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "손상된 전원선·플러그 또는 헐거운 콘센트" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "사용하지 말고 LG전자 서비스센터1544-7777 연락." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-074",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-074" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6378559557568964,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제조사 참고 자료\n젖은 손으로 전원 플러그 접촉\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "젖은 손으로 전원 플러그 접촉" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "젖은 손으로 전원 플러그를 만지지 않기." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-073",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-073" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6321255368950252,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            } ],
+            "references" : [ {
+              "content" : "사용 관련\n제품에 전원이 들어오지 않아요.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "전원 버튼을 누른다. / 플러그 연결을 확인한다. / 차단기를 확인한다. / 다른 콘센트의 제품이 동작하는지 확인한다. / 16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "전원이 꺼진 경우",
+                  "action_summary" : "전원 버튼을 누른다.",
+                  "evidence_terms" : [ "전원 버튼" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "플러그가 빠진 경우",
+                  "action_summary" : "플러그 연결을 확인한다.",
+                  "evidence_terms" : [ "플러그" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "차단기가 꺼진 경우",
+                  "action_summary" : "차단기를 확인한다.",
+                  "evidence_terms" : [ "차단기" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "정전이 의심되는 경우",
+                  "action_summary" : "다른 콘센트의 제품이 동작하는지 확인한다.",
+                  "evidence_terms" : [ "다른 콘센트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "멀티탭 용량이 부족한 경우",
+                  "action_summary" : "16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다.",
+                  "evidence_terms" : [ "16 A", "전용" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_64",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71959117-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGE", "DUE6BGL1E", "DUE6BGL2E", "DUE6EWL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71959117-topic_64-001",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71959117-topic_64-001" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7529438809679011,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제품에 전원이 들어오지 않아요\n제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함\n적용 조건: 모델 DUE6BGL2E 확인 / 실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용. / 실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요" ],
+              "error_codes" : [ ],
+              "causes" : [ "제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함" ],
+              "action_descriptions" : [ ],
+              "branches" : {
+                "cause_branches" : [ {
+                  "printed_page" : 47,
+                  "condition" : "제품 전원이 꺼져 있음",
+                  "user_action" : "제품 전원 버튼 누르기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-01",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-01",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "전원 플러그가 콘센트에서 빠짐",
+                  "user_action" : "전원 플러그를 콘센트에 바르게 끼우기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-02",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-02",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "누전 차단기가 OFF임",
+                  "user_action" : "누전 차단기를 ON으로 변경.",
+                  "explanation" : "",
+                  "author_rule_refs" : [ "ordinary_power_action_gate", "hazard_first" ],
+                  "source_branch_id" : "MFL71959117-07-no_power-03",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-03",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "정전으로 전기 공급이 끊김",
+                  "user_action" : "다른 콘센트에 연결된 제품이 작동하는지 확인.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-04",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-04",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함",
+                  "user_action" : "16A 이상 멀티 콘센트로 교체하고 식기세척기 전용으로 사용.",
+                  "explanation" : "",
+                  "numeric_evidence" : [ {
+                    "value" : 16,
+                    "unit" : "A",
+                    "qualifier" : "이상",
+                    "applies_to" : "멀티 콘센트 정격 전류"
+                  } ],
+                  "source_branch_id" : "MFL71959117-07-no_power-05",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-05",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                } ]
+              },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T3-091",
+              "title" : "제품에 전원이 들어오지 않아요",
+              "record_type" : "T3_symptoms",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "T3-091" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7254557773676211,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "supplements" : [ ]
+            } ]
+          },
+          "evidence" : [ {
+            "evidence_id" : "T4-074",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T4-073",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B17-MFL71959117-topic_64-001",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T3-091",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "모델별 실행 승인과 선행 조건이 확인되지 않아 원문 후보만 제공합니다. 임의 조치 방법을 만들지 않습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "2f5e32ff-f955-47a6-b765-b323affed34d",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "check_warranty" : {
+          "status" : "OK",
+          "data" : {
+            "category" : "DISHWASHER",
+            "modelName" : "DUE6BGL2E",
+            "asOfDate" : "2026-10-15",
+            "basisDate" : "2025-01-01",
+            "basisSource" : "PURCHASE",
+            "productWarranty" : {
+              "policyId" : "DISHWASHER_PRODUCT",
+              "scope" : "PRODUCT",
+              "name" : "제품 전체 보증",
+              "variant" : null,
+              "periodMonths" : 12,
+              "expiresOn" : "2026-01-01",
+              "periodStatus" : "EXPIRED",
+              "applicability" : "USER_DECLARED_CONDITIONAL",
+              "partFee" : "PAID",
+              "laborFee" : "PAID",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요" ]
+            },
+            "partWarranties" : [ {
+              "policyId" : "DISHWASHER_STANDARD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "일반 모터",
+              "variant" : "STANDARD_MOTOR",
+              "periodMonths" : 12,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요" ]
+            }, {
+              "policyId" : "DISHWASHER_DD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "DD모터",
+              "variant" : "DD_MOTOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2010-01-01 이후인지 확인 필요" ]
+            } ],
+            "headline" : "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.",
+            "notes" : [ "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.", "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.", "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.", "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.", "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다." ],
+            "policyVersion" : "LG-KR-2026-10-13-v2",
+            "sourceUrl" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "policyVerifiedOn" : "2026-10-13",
+            "coverage_periods" : {
+              "quality_warranty" : {
+                "label" : "품질보증기간",
+                "basis_label" : "구입일(배송일이 있으면 배송일) 기준",
+                "basis_date" : "2025-01-01",
+                "period_months" : 12,
+                "expires_on" : "2026-01-01",
+                "status" : "EXPIRED"
+              },
+              "parts_retention" : {
+                "label" : "부품보유기간",
+                "basis_label" : "제조일 기준",
+                "status" : "UNAVAILABLE",
+                "fact_ids" : [ ],
+                "reason" : "B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다."
+              }
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "08f4ee5c-865c-43f9-b0cd-ceeba09dfd2a",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "find_service_centers" : {
+          "status" : "OK",
+          "data" : {
+            "base_region" : {
+              "sido" : "서울",
+              "sigungu" : "강남구"
+            },
+            "region_source" : "PRODUCT_DELIVERY",
+            "fallback_level" : "SIGUNGU",
+            "centers" : [ {
+              "id" : 252,
+              "name" : "대치서비스센터",
+              "sido" : "서울",
+              "sigungu" : "강남구",
+              "address" : "서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층",
+              "phone" : null,
+              "hours" : "평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인",
+              "detail_url" : "https://www.lge.co.kr/support/find-service-center-252",
+              "base_date" : "2026-10-13"
+            } ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "CENTER_252",
+            "source_type" : "OFFICIAL_SERVICE",
+            "source_ref" : "https://www.lge.co.kr/support/find-service-center-252",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "같은 지역 센터이며 거리순이 아닙니다. 운영시간·접수 가능 제품은 공식 페이지에서 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "2392973a-ac14-43a1-aed0-4f125de40bfa",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "NOT_VERIFIED",
+            "self_care_outcome" : "NOT_VERIFIED",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 식기세척기\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: DUE6BGL2E\n확인한 증상: 전원이 켜지지 않아요\n고객 증상 설명: 식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 식기세척기", "위험 확인: 현재 감지된 위험 징후 없음", "등록 모델: DUE6BGL2E", "확인한 증상: 전원이 켜지지 않아요", "고객 증상 설명: 식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.", "자가조치 상태: 실행 승인 미확인", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "8a1bc304-c293-4980-8674-a8608cdb2fea",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "answer_generation" : {
+          "status" : "ERROR",
+          "data" : {
+            "mode" : "FIXED_FALLBACK",
+            "reason" : "SAFETY_GUIDANCE_REQUIRED",
+            "fact_ids" : [ "SYMPTOM", "REFERENCE_2", "TOOL_GUIDANCE" ],
+            "evidence_ids" : [ "B17-MFL71959117-topic_64-001" ]
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "elapsed_ms" : 0,
+            "trace_id" : "019d934e-0eb2-4930-a7c4-fd2c3589bbe9"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : true,
+      "calls" : [ {
+        "tool" : "search_knowledge",
+        "selection_source" : "MODEL",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 1781
+      }, {
+        "tool" : "get_diagnostic_plan",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "NOT_VERIFIED",
+        "error_code" : null,
+        "elapsed_ms" : 203
+      }, {
+        "tool" : "check_warranty",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 177
+      }, {
+        "tool" : "find_service_centers",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 173
+      }, {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 178
+      } ],
+      "checks" : [ {
+        "name" : "symptom",
+        "passed" : true
+      }, {
+        "name" : "risk",
+        "passed" : true
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "no_cost",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : true
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  } ]
+}

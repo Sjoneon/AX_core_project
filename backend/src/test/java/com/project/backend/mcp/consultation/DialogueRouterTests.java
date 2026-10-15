@@ -9,6 +9,24 @@ import org.junit.jupiter.params.provider.ValueSource;
 import com.project.backend.conversation.ProductCategory;
 
 class DialogueRouterTests {
+    @Test void explicitNoCurrentFaultIsAcknowledgedInsteadOfAskingForASymptom(){
+        String message="설명서에서 타는 냄새라는 말을 읽었을 뿐 지금 제품에 냄새나 고장은 없어요.";
+        var result=route(ConsultationState.start(),message,interpretation("OTHER",null,0));
+        assertThat(result.reply()).contains("추가 확인은 필요하지");assertThat(result.state().dialogue().pendingQuestion()).isNull();
+        var actual=route(ConsultationState.start(),"현재 고장은 없지만 탈수할 때 본체가 흔들려요",interpretation("SYMPTOM","VIBRATION",.95));
+        assertThat(actual.state().symptomCode()).isEqualTo("VIBRATION");
+    }
+    @Test void combinedAlreadyDoneAndUnresolvedReplyAdvancesOnlyTheDisplayedApprovedStep(){
+        var state=new ConsultationState("CLEAR",null,0,"UE",null,List.of(),0,false);
+        var step=map("step_code","TEST-UE-1","text","TEST_ONLY approved instruction","error_code","UE");
+        var parsed=new MessageInterpreter.Interpretation("SELF_CARE_REPLY",null,List.of(),List.of(),"NOT_RESOLVED","AI");
+        var result=DialogueRouter.route(ProductCategory.WASHER,state,"그건 이미 해 봤어요. 그래도 안 돼요.",parsed,List.of(step),"TEST-UE-1");
+        assertThat(result.state().doneSteps()).containsExactly("TEST-UE-1");
+        assertThat(result.state().selfCare().results()).containsEntry("TEST-UE-1","NOT_RESOLVED");
+        assertThat(result.state().closed()).isFalse();
+        assertThat(DialogueRouter.route(ProductCategory.WASHER,state,"다른 필터는 이미 해 봤어요. 그래도 안 돼요.",parsed,List.of(step),"TEST-UE-1").state().doneSteps()).isEmpty();
+        assertThat(DialogueRouter.route(ProductCategory.WASHER,state,"그건 이미 해 봤어요. 그래도 안 돼요.",parsed,List.of(step),null).state().doneSteps()).isEmpty();
+    }
     MessageInterpreter.Interpretation interpretation(String intent,String code,double confidence){
         return new MessageInterpreter.Interpretation(intent,null,code==null?List.of():List.of(new MessageInterpreter.Candidate(code,confidence)),List.of(),null,"AI");
     }

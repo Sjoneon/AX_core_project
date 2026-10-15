@@ -68,7 +68,8 @@ public record AnswerContext(List<Fact> facts) {
                     if(!descriptions.isEmpty())text.add("제조사 자료에는 ‘"+String.join(" / ",descriptions)+"’ 증상이 설명되어 있어요.");
                     var safeCauses=causes.stream().distinct().filter(c->!ACTION.matcher(c).find()).limit(2).toList();
                     if(!safeCauses.isEmpty())text.add("자료에서 구분하는 원인 후보·상황은 ‘"+String.join(" / ",safeCauses)+"’입니다. 현재 제품의 실제 원인은 아직 확인되지 않았어요.");
-                    if(!projection.preconditions().isEmpty())text.add("자료의 적용 조건(현재 확인되지 않음): "+String.join(" / ",projection.preconditions()));
+                    else text.add("이 자료만으로는 현재 증상의 원인을 특정할 수 없어 원인 확인을 위한 공식 점검이 필요합니다.");
+                    if(!projection.preconditions().isEmpty())text.add("자료의 적용 조건(현재 확인되지 않음): "+String.join(" / ",projection.preconditions().stream().map(Builder::customerCondition).toList()));
                     if("CONDITIONAL".equals(status))text.add("이 자료는 모델 적용 조건을 추가로 확인해야 하는 후보입니다.");
                     else if("UNDETERMINED".equals(status))text.add("검증된 품목 공통 자료이며 이 제품 모델의 직접 적용은 확정되지 않았어요.");
                     text.add("이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다.");
@@ -82,6 +83,12 @@ public record AnswerContext(List<Fact> facts) {
             var toolEvidence=outputs.values().stream().flatMap(t->t.evidence().stream()).map(e->Objects.toString(e.get("evidence_id"),"")).filter(id->!id.isBlank()).distinct().toList();
             if(!fixedReply.isBlank())facts.add(new Fact("TOOL_GUIDANCE","AUTHORITATIVE",fixedReply,toolEvidence,true));
             return new AnswerContext(facts);
+        }
+        private static String customerCondition(String condition){
+            if(condition.contains("모델별 T4 우선"))return "위험 징후가 있으면 조작을 중지하고 해당 모델의 안전 안내를 먼저 확인해야 합니다.";
+            if(condition.contains("실제 원인/수치/문장"))return "해당 상황의 원인과 추가 적용 조건을 확인해야 합니다.";
+            if(condition.contains("참조 절차는 해당 모델의 검증 절"))return "해당 모델의 공식 설명서에서 적용 조건을 확인해 주세요.";
+            return condition;
         }
     }
 }

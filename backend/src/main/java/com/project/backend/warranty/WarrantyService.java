@@ -126,6 +126,16 @@ public class WarrantyService {
         return String.join("\n", lines);
     }
 
+    /** Short chat answer; the result card retains the complete policy conditions. */
+    public String summarize(WarrantyModels.Result result) {
+        var lines=new ArrayList<String>();lines.add(result.headline());
+        lines.add("제품 전체 보증: "+describe(result.productWarranty()));
+        for(var part:result.partWarranties())lines.add("주요 부품 보증 — "+part.name()+": "+describe(part));
+        lines.add("기간 계산과 실제 무상 수리 승인은 다릅니다. 고장 부품·증빙·모델 적용 조건과 부품비·기술료·출장비는 별도로 확인해야 합니다.");
+        lines.add("[LG 공식 보증 정책]("+result.sourceUrl()+") · 정책 확인일 "+result.policyVerifiedOn());
+        return String.join("\n",lines);
+    }
+
     private String describe(WarrantyModels.Row row) {
         String duration = row.periodMonths() == null ? "기간 추가 확인"
                 : row.periodMonths() % 12 == 0 ? row.periodMonths() / 12 + "년(" + row.periodMonths() + "개월)"

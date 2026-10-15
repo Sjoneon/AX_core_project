@@ -28,6 +28,7 @@ public final class GroundedAnswerGenerator {
         새로운 원인·조치·확정 진단·수치·예약 완료·보증 승인을 생성하거나 facts를 수정·축약하지 마세요.
         CONFIRMED 증상, REFERENCE의 원인 후보·적용 조건, MISSING 미확인 정보, AUTHORITATIVE 안내를 구분하세요.
         required=true인 fact는 모두 정확히 한 번 사용하세요. REFERENCE가 있으면 최소 하나를 사용해 증상을 설명하세요.
+        같은 증상·원인 설명이 여러 REFERENCE에 반복되면 대표 근거 하나로 설명하세요. 서로 다른 적용 조건을 보충할 때만 추가 근거를 사용하세요.
         TOOL_GUIDANCE는 마지막 문단의 마지막 fact_ids 항목입니다. 내용을 추측해 쓰지 마세요.
         제공된 example은 현재 facts에 유효한 답변입니다. 이 구조에 connectives 목록의 문장만 더하고 문단을 구성하세요.
         JSON 객체 하나만 반환하세요. example에 없는 SYMPTOM 등 ID를 추가하지 마세요.
@@ -92,5 +93,17 @@ public final class GroundedAnswerGenerator {
         return new Result(String.join("\n\n",paragraphs),"MODEL_GROUNDED",null,List.copyOf(used),List.copyOf(references),elapsed(started));
     }
     static Result fallback(String reply,String reason,long started){return new Result(reply,"FIXED_FALLBACK",reason,List.of(),List.of(),elapsed(started));}
+    /** Verified explanatory facts remain useful when safety notices disable model composition. */
+    static Result safetyFallback(AnswerContext context,String fixed,String reason){
+        long started=System.nanoTime();var selected=new ArrayList<AnswerContext.Fact>();
+        context.facts().stream().filter(f->f.kind().equals("CONFIRMED")).forEach(selected::add);
+        context.facts().stream().filter(f->f.kind().equals("REFERENCE")).limit(1).forEach(selected::add);
+        if(selected.isEmpty())return fallback(fixed,reason,started);
+        String explanation=String.join("\n\n",selected.stream().map(AnswerContext.Fact::text).toList());
+        int boundary=fixed.startsWith("안전 주의:")?fixed.indexOf("\n\n"):-1;
+        String reply=boundary>=0?fixed.substring(0,boundary)+"\n\n"+explanation+"\n\n"+fixed.substring(boundary+2):explanation+"\n\n"+fixed;
+        var ids=new ArrayList<>(selected.stream().map(AnswerContext.Fact::id).toList());ids.add("TOOL_GUIDANCE");
+        return new Result(reply,"FIXED_FALLBACK",reason,ids,selected.stream().flatMap(f->f.evidenceIds().stream()).distinct().toList(),elapsed(started));
+    }
     private static long elapsed(long started){return Duration.ofNanos(System.nanoTime()-started).toMillis();}
 }

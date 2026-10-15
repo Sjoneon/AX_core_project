@@ -351,6 +351,8 @@ class McpIntegrationTests {
         var response=agent.chat(new ChatRequest("공식 서비스 센터로 접수하고 싶어요",null,ProductCategory.WASHER,null,productId),owner,token(owner));
         assertThat(response.tools().get("find_service_centers").data()).containsEntry("fallback_level","SIGUNGU");
         assertThat(response.tools().get("prepare_service_handoff").data()).containsEntry("delivery_status","PREPARED_ONLY");
+        assertThat(response.reply()).contains(catalog.route.get("apply_url").toString(),catalog.route.get("phone").toString(),"센터 정보");
+        assertThat(response.reply()).doesNotContain("위험 상태: CLEAR","제품 전체 보증: EXPIRED","주요 부품 보증 —");
         assertThat(history.toolCalls(response.conversationId(),owner)).hasSize(3);assertThat(modelCalls.get()).isZero();
     }
     @Test void editingAProductRefreshesWarrantyAndCandidateBindingForTheNextCostInquiry(){
@@ -700,11 +702,15 @@ class McpIntegrationTests {
         String email="answer-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
         var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
         products.create(email,new UserProductService.Create("설명 검증 세탁기",input,"서울","강남구"));
+        interpretations.add("not JSON");
         script.add(call("search_knowledge",map("query","탈수할 때 많이 흔들려요")));
         var response=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
         assertThat(response.reply()).contains("확인된 내용부터 말씀드릴게요","운송용 고정볼트가 남은 경우","제품 수평이 맞지 않는 경우","실제 원인은 아직 확인되지","직접 실행할 조치가 확인되지");
         assertThat(response.reply()).doesNotContain("제거하세요","수평을 맞춘다","터보샷 소음","{{");
+        assertThat(response.reply()).doesNotContain("주요 부품 보증 —","고객 증상 설명:");
+        assertThat(response.reply()).contains(catalog.route.get("apply_url").toString(),catalog.route.get("phone").toString());
         assertThat(response.tools().get("answer_generation").data()).containsEntry("mode","MODEL_GROUNDED");
+        assertThat(response.tools().get("consultation").meta()).containsEntry("interpretation_source","INVALID_OR_ERROR_FALLBACK_EXPLICIT_SYMPTOM");
         assertThat(answerRequests).hasSize(1);assertThat(answerRequests.getFirst()).doesNotContain("action_summary","actionDescriptions","current_QA_review","Bearer ",email);
         assertThat(history.toolCalls(response.conversationId(),email)).hasSize(5);
         assertThat(history.detail(response.conversationId(),email).messages().getLast().content()).isEqualTo(response.reply());

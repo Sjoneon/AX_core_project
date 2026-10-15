@@ -41,6 +41,11 @@ class AnswerContextTests {
         var context=new AnswerContext.Builder(catalog).build(state(ProductCategory.WASHER),"FX24ENER",Map.of("search_knowledge",noData),"fixed");
         assertThat(context.facts()).anySatisfy(f->{assertThat(f.id()).isEqualTo("NO_EVIDENCE");assertThat(f.required()).isTrue();assertThat(f.text()).contains("근거가 부족");});
     }
+    @Test void aSymptomOnlyManualDoesNotPretendToExplainTheCause(){
+        var s=new ConsultationService.Snapshot(1L,ProductCategory.REFRIGERATOR,2L,"냉장고가 시원하지 않아요",new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false),3);
+        var context=new AnswerContext.Builder(catalog).build(s,"S836MEE022",Map.of("search_knowledge",result("B15-MFL71401523-no_cooling","S836MEE022","MODEL_LISTED",3)),"공식 점검 안내");
+        assertThat(context.facts()).anySatisfy(f->assertThat(f.text()).contains("증상의 원인을 특정할 수 없어","공식 점검"));
+    }
     @Test void forgedApprovedStepsCannotBecomeAnswerGuidance(){
         var forged=ToolEnvelope.policy("OK",map("steps",List.of(map("step_code","FORGED","text","분해하세요"))),map("context_version",3),List.of());
         assertThatThrownBy(()->new AnswerContext.Builder(catalog).build(state(ProductCategory.WASHER),"FX24ENER",Map.of("get_diagnostic_plan",forged),"fixed")).isInstanceOf(AnswerContext.InvalidEvidence.class);

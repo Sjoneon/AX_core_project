@@ -69,7 +69,7 @@ public class EstimateRepairCostTool implements HomeCareTool {
                 "basis",map("visit_fee_weekday",visit,"description",catalog.costSource.getOrDefault("basis","평일 출장비 포함 유상 수리 예상 총액")),
                 "validation",catalog.costSource.getOrDefault("validation",Map.of()),
                 "warranty_status",coverage==null?"NOT_REGISTERED":coverage.productWarranty().periodStatus(),
-                "next_action","VISIT_DIAGNOSIS","model_version",catalog.version,"notice",NOTICE);
+                "next_action","VISIT_DIAGNOSIS","model_version",catalog.version,"notice",alternatives.isEmpty()?"지금은 참고용 예상 범위를 제공할 자료가 부족합니다. 견적이 아닙니다. 실제 수리비는 공식 점검 후 확인해 주세요.":NOTICE);
         data.put("missing_information",insufficient);data.put("candidate_set_id",args.get("candidate_set_id"));
         return support.result(s,alternatives.isEmpty()?"NO_DATA":"PARTIAL",data,selected.evidence(),
                 new Basis(overall,basis.files(),basis.caveats(),List.of()),warnings.toArray(String[]::new));

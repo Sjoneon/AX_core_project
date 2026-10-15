@@ -49,6 +49,13 @@ class WarrantyServiceTests {
         assertThat(exampleService().check(example(LocalDate.of(2024, 10, 12))).productWarranty().periodStatus()).isEqualTo("EXPIRED");
     }
 
+    @Test void chatSummaryDirectlyStatesPeriodsConditionalFeesAndTheOfficialPolicy(){
+        var service=exampleService();var result=service.check(example(LocalDate.of(2023,10,13)));
+        assertThat(service.summarize(result)).contains("전체 보증은 만료","2025-10-13","2027-10-13",
+                "조건 충족 시 무상","출장비 추가 확인 필요","실제 무상 수리 승인은 다릅니다",result.sourceUrl());
+        assertThat(service.summarize(result)).doesNotContain("0원");
+    }
+
     @Test void addsCalendarMonthsAcrossLeapDay() {
         assertThat(exampleService().check(example(LocalDate.of(2024, 2, 29))).productWarranty().expiresOn()).isEqualTo(LocalDate.of(2026, 2, 28));
     }

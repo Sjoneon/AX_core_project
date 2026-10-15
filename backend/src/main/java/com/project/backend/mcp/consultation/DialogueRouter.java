@@ -22,7 +22,11 @@ public final class DialogueRouter {
                 "지금은 세탁기·건조기·냉장고(김치냉장고 포함)·식기세척기만 안내할 수 있어요. 공식 제조사 상담을 이용해 주세요. 다른 제품은 새 상담에서 시작해 주세요.":
                 "현재 "+category.getLabel()+" 상담인데 다른 품목을 말씀하셨어요. 해당 품목을 선택해 새 상담을 시작하거나, 현재 제품의 증상을 알려 주세요.");
         }
-        if(!Set.of("COST","WARRANTY","SERVICE").contains(intent)&&input.matches("(?s).*(지금|현재).{0,8}(고장|이상|문제)(은|는|이|가)?\\s*없.*")){
+        var noFault=java.util.regex.Pattern.compile("(지금|현재).{0,30}(고장|이상|문제)(은|는|이|가)?\\s*없(?:어요|습니다|지만|고|는데|다)?").matcher(input);
+        boolean explicitAbsence=noFault.find();
+        String afterAbsence=explicitAbsence?input.substring(noFault.end()):"";
+        boolean laterSymptom=!interpretation.symptomCandidates().isEmpty()&&afterAbsence.matches("(?s).*(흔들|진동.{0,5}심|물이?.{0,5}안|전원.{0,5}안|문이?.{0,5}안|냄새.{0,5}나|연기.{0,5}나|차갑지|시원하지|미지근).*");
+        if(!Set.of("COST","WARRANTY","SERVICE").contains(intent)&&explicitAbsence&&!laterSymptom){
             var dialogue=new DialogueState("OTHER",interpretation.mentionedCategory(),List.of(),null,null,questions,answers,interpretation.source(),null);
             return new Transition(copy(previous,null,List.of(),0,false,dialogue),"현재 불편한 증상이 없다면 추가 확인은 필요하지 않아요. 증상이 발생하면 알려 주세요.");
         }
@@ -76,7 +80,8 @@ public final class DialogueRouter {
             if(!applicable)continue;
             String shortReply=input.strip().replaceAll("[.!]","");
             boolean referring=code.equals(displayedStep)&&pending==null&&!inquiry&&shortReply.matches(
-                    "(그건|그거|그 단계는|안내한 조치는)?\\s*(이미\\s*)?(확인했어요|해\\s*봤어요|했어요|완료했어요)|"
+                    "(그건|그거|그 단계는|안내한 조치는)?\\s*(이미\\s*)?(확인했어요|해\\s*봤어요|했어요|완료했어요)"
+                    +"(\\s*(그래도|여전히|아직)?\\s*(안\\s*돼요|안\\s*되네요|해결되지\\s*않았어요))?|"
                     +"(그래도|여전히|아직)?\\s*(안\\s*돼요|안\\s*되네요|해결되지\\s*않았어요)|"
                     +"(이제\\s*)?(해결됐어요|해결되었어요|돼요|정상\\s*작동해요)");
             String text=Objects.toString(step.getOrDefault("text",step.get("instruction")),"");

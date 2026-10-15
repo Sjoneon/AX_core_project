@@ -159,6 +159,7 @@ public class AgentChatService {
             if(s.productId()!=null)outputs.put("find_service_centers",policy("find_service_centers",email,s,map("conversation_id",s.id()),calls));
         }
         var lines=new ArrayList<String>();lines.add(RiskRules.warning());
+        if("RC09".equals(s.state().riskCase()))lines.add("겉이 말랐더라도 안전이 확인된 것은 아닙니다. 점검 전에는 다시 전원을 연결하거나 작동하지 말고 공식 점검을 요청하세요.");
         if(question!=null)lines.add(question);
         lines.add(RiskRules.serviceLine(route("phone")));
         return String.join("\n",lines);
@@ -207,11 +208,11 @@ public class AgentChatService {
             try{
                 var searched=outputs.get("search_knowledge");
                 boolean safetyNotice=searched!=null&&searched.data()!=null&&searched.data().get("safety_notices") instanceof List<?> notices&&!notices.isEmpty();
-                if(safetyNotice||outputs.values().stream().anyMatch(o->"BLOCKED_BY_SAFETY".equals(o.status())))
+                if(outputs.values().stream().anyMatch(o->"BLOCKED_BY_SAFETY".equals(o.status())))
                     answer=GroundedAnswerGenerator.fallback(fixed,"SAFETY_GUIDANCE_REQUIRED",System.nanoTime());
                 else{
                     var context=answerContext.build(s,selectedModel,outputs,fixed);
-                    answer=answers.generate(context,session.remaining(),fixed);
+                    answer=safetyNotice?GroundedAnswerGenerator.safetyFallback(context,fixed,"SAFETY_GUIDANCE_REQUIRED"):answers.generate(context,session.remaining(),fixed);
                 }
             }catch(RuntimeException invalid){answer=GroundedAnswerGenerator.fallback(fixed,"INVALID_EVIDENCE",System.nanoTime());}
             outputs.put("answer_generation",ToolEnvelope.policy(answer.mode().equals("MODEL_GROUNDED")?"OK":"ERROR",
@@ -281,6 +282,8 @@ public class AgentChatService {
     }
     private String format(Map<String,ToolEnvelope> results,WarrantyModels.Result warrantyResult){
         var first=new ArrayList<String>();var lines=new ArrayList<String>();
+        var dialogue=results.get("consultation");
+        String intent=dialogue==null?"OTHER":Objects.toString(dialogue.data().get("intent"),"OTHER");
         for(var entry:results.entrySet()){
             var result=entry.getValue();var data=result.data()==null?Map.<String,Object>of():result.data();
             if(result.status().equals("BLOCKED_BY_SAFETY"))first.add(RiskRules.warning());
@@ -293,9 +296,11 @@ public class AgentChatService {
                     if(data.get("model_code")==null&&!results.containsKey("get_product_context"))lines.add("정확한 안내를 위해 제품 라벨에 있는 모델명을 알려 주세요.");
                 }
                 case "check_warranty"->{
-                    if(result.status().equals("NEEDS_INPUT"))lines.add("보증기간을 확인하려면 구입일(배송일이 있으면 배송일)이 필요해요. 마이페이지에서 등록 제품의 구입일을 확인해 주세요.");
-                    else if(warrantyResult!=null)lines.add(warranty.explain(warrantyResult));
-                    lines.add("참고로 품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준이라 서로 다른 기간이에요. 부품보유기간은 확인된 자료가 아직 없어 따로 안내하지 않아요.");
+                    if(Set.of("WARRANTY","COST").contains(intent)){
+                        if(result.status().equals("NEEDS_INPUT"))lines.add("보증기간을 확인하려면 구입일(배송일이 있으면 배송일)이 필요해요. 마이페이지에서 등록 제품의 구입일을 확인해 주세요.");
+                        else if(warrantyResult!=null)lines.add("WARRANTY".equals(intent)?warranty.summarize(warrantyResult):warrantyResult.headline()+" 비용은 보증 적용·고장 부품·증빙 확인 후 달라질 수 있습니다. 부품비·기술료·출장비 조건은 아래 보증 결과에서 확인해 주세요.");
+                        if("WARRANTY".equals(intent))lines.add("품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준으로 서로 다릅니다. 부품보유기간은 확인된 자료가 없어 제공하지 않습니다.");
+                    }
                 }
                 case "get_diagnostic_plan"->lines.add(DiagnosticGuidance.format(result));
                 case "get_repair_candidates"->{
@@ -309,20 +314,35 @@ public class AgentChatService {
                     if(!results.containsKey("estimate_repair_cost"))lines.add("실제 고장 부품은 공식 점검 후 정해집니다.");
                 }
                 case "estimate_repair_cost"->lines.addAll(cost(data));
-                case "find_service_centers"->lines.add(result.status().equals("NEEDS_INPUT")?needsProduct():"배송지역 기준의 센터와 공식 접수 경로를 준비했습니다. 운영시간과 접수 가능 제품은 공식 페이지에서 확인하세요.");
-                case "prepare_service_handoff"->{if(data.get("summary_text")!=null)lines.add(data.get("summary_text")+"\n공식 채널에 전달할 요약이며 아직 전송하지 않았습니다.");}
+                case "find_service_centers"->{
+                    if(result.status().equals("NEEDS_INPUT"))lines.add(needsProduct());
+                    else if(data.get("centers") instanceof List<?> centers&&!centers.isEmpty()){
+                        lines.add("등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.");
+                        for(var raw:centers){var center=(Map<?,?>)raw;lines.add(center.get("name")+" · "+center.get("address")+" · [센터 정보]("+center.get("detail_url")+")");}
+                    }else lines.add("등록 배송지역에 맞는 센터 자료가 없습니다. 전국 센터 찾기나 고객센터로 확인해 주세요.");
+                    lines.add(serviceRoute());
+                }
+                case "prepare_service_handoff"->{if(data.get("summary_text")!=null){
+                    if("SERVICE".equals(intent))lines.add(data.get("summary_text").toString());
+                    lines.add("상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.");
+                    if(!results.containsKey("find_service_centers"))lines.add(serviceRoute());
+                }}
                 case "consultation"->{
                     if(data.get("question") instanceof DialogueState.Question q&&"REPAIR_DETAIL".equals(q.id()))lines.add(q.text());
                     if("UNCLASSIFIED".equals(data.get("intent")))lines.add("증상을 특정하지 못했어요. 원인·조치·수리비를 임의로 정하지 않고 공식 점검을 통해 확인해 주세요.");
                 }
                 case "followup"->lines.add("일부 후속 조회를 마치지 못했어요. 공식 상담 경로를 이용하거나 다음 대화에서 다시 문의해 주세요.");
-                case "get_product_context"->{if(result.status().equals("NEEDS_INPUT"))lines.add(needsProduct());}
+                case "get_product_context"->{if(result.status().equals("NEEDS_INPUT")){
+                    if("CONFIRM_PRODUCT".equals(data.get("next_interaction")))lines.add("같은 품목의 등록 제품이 여러 개라 상담할 제품을 정하지 못했어요. 제품의 표시 이름이나 전체 모델명을 알려 주세요.");
+                    else lines.add(needsProduct());
+                }}
                 default->{ }
             }
         }
         first.addAll(lines);
         return first.isEmpty()?"확인된 도구 결과가 부족합니다. 제품과 증상 정보를 확인해 주세요.":String.join("\n\n",new LinkedHashSet<>(first));
     }
+    private String serviceRoute(){return "공식 접수: [LG 출장 서비스 예약]("+route("apply_url")+") · [전국 센터 찾기]("+route("center_finder_url")+") · 고객센터 "+route("phone")+". 실제 예약은 공식 채널에서 진행해 주세요.";}
     private static String needsProduct(){return "마이페이지에 해당 품목의 제품을 등록해 주세요. 같은 품목의 제품이 여러 개라면 상담할 제품의 표시 이름이나 모델명을 대화로 알려 주세요.";}
     private static List<String> lookup(ToolEnvelope result,Map<String,Object> data){
         if(!"EXACT".equals(data.get("match_status")))

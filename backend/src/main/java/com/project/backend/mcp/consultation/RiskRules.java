@@ -8,7 +8,8 @@ public final class RiskRules {
         new String[]{"RC02","연기.*계속|계속.*연기","E"},new String[]{"RC06","감전|찌릿|전기가 와","E"},
         new String[]{"RC03","연기","S"},new String[]{"RC04","타는\\s*냄새|녹는\\s*냄새","S"},
         new String[]{"RC05","치지직|탁탁.*튀","S"},new String[]{"RC07","플러그.*뜨거|코드.*녹|콘센트.*까맣","S"},
-        new String[]{"RC08","차단기.*(내려|떨어)|두꺼비집","S"},new String[]{"RC09","물.*콘센트|콘센트.*젖|전기.*물.*닿","S"},
+        new String[]{"RC08","차단기.*(내려|떨어)|두꺼비집","S"},
+        new String[]{"RC09","물.*콘센트|콘센트.*젖|전기.*물.*닿|(?:세탁기|건조기|냉장고|식기세척기|제품)(?:가|는|이|도|에|은)?\\s*(?:침수|물에\\s*잠)|(?:침수된|물에\\s*잠긴)\\s*(?:세탁기|건조기|냉장고|식기세척기|제품)","S"},
         new String[]{"RC10","몸통.*뜨거|손.*대기.*뜨거|비정상.*과열","S"},new String[]{"RC11","가스.*냄새|냉매.*누출","S"},new String[]{"RC13","펑.*소리|유리.*깨","S"});
     // Laundry soaked with oil or solvents can ignite in a dryer or washer; checked only for those categories.
     private static final String FLAMMABLE="(기름|식용유|오일|휘발유|등유|경유|시너|신나|아세톤|벤젠|알코올|인화성).{0,15}(묻|젖|오염|빨래|옷|세탁물|수건|걸레)|(묻|젖)은?.{0,10}(기름|식용유|휘발유|등유|시너|신나)";

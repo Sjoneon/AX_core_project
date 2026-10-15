@@ -1,12 +1,12 @@
 # 남은 작업: HomeCare AI MCP 도구 보완 (2026-10-13 21:20 기준)
 
-2026-10-15 갱신: 상담 기능의 현재 작업 순서는 [완료 계획](mcp_completion_plan.md)을 따른다. 제조사 지식 1,542건의 구조화는 [1단계 기록](manufacturer_data_structure.md), MCP 검색 연결·캐시·실제 임베딩 평가는 [2단계 기록](manufacturer_retrieval.md), 증상 분류·대화 상태·실제 해석 38개 평가는 [3단계 기록](symptom_interpretation.md), 최종 답변 구성 14개 평가는 [4단계 기록](grounded_answer_generation.md)에 남겼다. 5단계의 TR15WV5/UE 조건 확인·단계 진행·결과 이력은 [5단계 기록](approved_self_care.md)에 남겼다. 6단계의 비용·보증·공식 서비스 후속 연결은 [6단계 기록](repair_followup.md)에 남겼다. 7단계의 새 답변·저장 이력 표시, 과거 JSON 투영·중복 제거·DEV 원본 분리는 [7단계 기록](consultation_display.md)에 남겼다. 8단계는 후속 작업이다. 아래의 2026-10-13 기록은 당시 운영/환경 후속 항목이며, 상담 기능 전체 완료를 뜻하지 않는다.
+2026-10-15 갱신: 상담 기능의 현재 작업 순서는 [완료 계획](mcp_completion_plan.md)을 따른다. 제조사 지식 1,542건의 구조화는 [1단계 기록](manufacturer_data_structure.md), MCP 검색 연결·캐시·실제 임베딩 평가는 [2단계 기록](manufacturer_retrieval.md), 증상 분류·대화 상태·실제 해석 38개 평가는 [3단계 기록](symptom_interpretation.md), 최종 답변 구성 14개 평가는 [4단계 기록](grounded_answer_generation.md)에 남겼다. 5단계의 TR15WV5/UE 조건 확인·단계 진행·결과 이력은 [5단계 기록](approved_self_care.md)에 남겼다. 6단계의 비용·보증·공식 서비스 후속 연결은 [6단계 기록](repair_followup.md)에 남겼다. 7단계의 새 답변·저장 이력 표시, 과거 JSON 투영·중복 제거·DEV 원본 분리는 [7단계 기록](consultation_display.md)에 남겼다. 8단계의 실제 상담·답변 검토와 회귀 범위는 [8단계 기록](consultation_validation.md)에 남겼다. 분류·도구 성공과 답변 적합성, 수리 완료·자료 부족을 구분한다. 아래의 2026-10-13 기록은 당시 운영/환경 후속 항목이며, 상담 기능 전체 완료를 뜻하지 않는다.
 
 원래 작업 지시(1~12장)와 승인된 결정 1~9는 그대로 지킨다. 코드·테스트·문서 작업은 끝났고, 아래는 사용자 승인·외부 환경이 필요한 일과 이 PC에서 실행하지 못한 검증이다. 운영 DB 마이그레이션, `terraform apply`, main 푸시는 사용자 승인 없이 하지 않는다.
 
 ## 1. PR CI로 확인할 검증 (2026-10-13 환경 기록)
 
-6단계 로컬 Java 286개 중 284개·Python 21개·JAR 빌드, 7단계 프론트엔드 22개·lint·build·로컬 Edge 표시 검사는 통과했다. 7단계는 백엔드·Python·계약을 변경하지 않았다. 아래의 Node 미실행 표기는 당시 기록이며 MySQL 2개·Docker·Terraform·Linux 운영 검증은 별도다.
+6단계 로컬 Java 286개 중 284개·Python 21개·JAR 빌드, 7단계 프론트엔드 22개·lint·build·로컬 Edge 표시 검사는 통과했다. 8단계 최종 회귀는 Java 305개 중 303개·MySQL 2개 건너뜀·JAR, Python MCP 21개·자료/평가 8개, 프론트엔드 24개·lint·build·Edge다. 실제 상담은 개발 세트 24개와 추가 표현 6개를 실행하고 분류·도구 결과와 실제 답변을 별도로 검토했다. 아래의 Node 미실행 표기는 당시 기록이며 MySQL 2개·Docker·Terraform·Linux 운영 검증은 별도다.
 - `frontend`: `npm run lint`, `npm run build` (변경: `src/components/ToolResults.jsx` 비용 카드·안전 주의·안내 기준).
 - `backend`: `gradlew mysqlSchemaTest mysqlTest`(MySQL 8.4에 V001→V005 적용 후 `ddl-auto=validate` 기동).
 - Docker: `docker build mcp_server`(digest 고정 베이스), MCP 컨테이너 health 스모크, `ops/checks/test-proxy.py`(`/api/tools` 404, 429).
@@ -19,7 +19,7 @@
 2. Terraform: `terraform plan` 결과 검토(예상: ECR `homecare-prod/mcp`·수명 정책·로그 그룹 `/homecare/prod/mcp` 추가 3개, GitHub 배포·EC2 런타임 IAM 정책의 리소스 목록 변경 2개). 승인 후 `apply`.
 3. GitHub `production` 변수 `ECR_MCP_REPOSITORY=homecare-prod/mcp` 추가.
 4. 운영 RDS에 V002 → V003 → V004 → V005 적용(`ops/docs/rds_initialization.md` 절차). 이 코드가 main에 들어가기 전에 해야 한다(운영 `validate`).
-5. 운영에서 `HOMECARE_AGENT_ENABLED=true`로 켜는 시점·방법 결정(현재 기본 false, MCP 컨테이너만 실행).
+5. 운영에서 `HOMECARE_AGENT_ENABLED=true`로 켜는 시점·방법 결정(현재 코드 기본 true이며 실제 운영 환경변수는 별도 확인).
 6. 업로드한 `수리비_정규화_과정/` 폴더를 커밋할지 결정(현재 미추적. `CostTableSourceTests`는 이 폴더가 있으면 CSV와 `parts.json`을 대조하고, 없으면 건너뛴다).
 
 ## 3. 남은 개선 후보

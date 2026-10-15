@@ -23,6 +23,10 @@ public final class MessageInterpreter {
         다른 제품을 비교하거나 과거 사례를 인용한 것은 품목 변경이 아닙니다. TV 등 지원 밖 제품의 실제 상담은 OUT_OF_SCOPE입니다.
         선택한 품목과 달라도 건조기·세탁기·냉장고·식기세척기는 지원 품목입니다. OUT_OF_SCOPE로 분류하지 말고 mentionedCategory에 실제 품목을 반환하세요.
         mentionedCategory는 버튼의 category를 복사하지 말고 고객 문장에서 실제로 언급한 품목입니다. TV는 UNSUPPORTED로 반환하세요.
+        품목을 새로 언급하지 않은 후속 문의는 mentionedCategory=null입니다. 품목명이 없다는 이유로 UNSUPPORTED나 OUT_OF_SCOPE로 분류하지 마세요.
+        예: '배송지 지역의 A/S 센터와 공식 접수 방법, 상담 요약을 알려 주세요.' → intent=SERVICE, mentionedCategory=null, symptomCandidates=[].
+        오류 코드를 명시하면 ERROR_CODE로 분류하세요. 코드만으로 관련 없는 증상을 추가하지 마세요.
+        예: 'UE 표시가 나고 세탁물이 뭉쳐 있어요.' → intent=ERROR_CODE, mentionedCategory=WASHER, symptomCandidates=[]. 배수 불량을 말한 것이 아닙니다.
         예: WASHER 상담에서 '건조기 빨래가 안 말라요' → intent=SYMPTOM, mentionedCategory=DRYER, symptomCandidates=[].
         '설명서에 흔들림이 나올 수 있다고 써 있지만 지금 고장은 없어요' → intent=OTHER, symptomCandidates=[]. 인용된 흔들림은 현재 증상이 아닙니다.
         symptomCandidates는 제공된 현재 품목의 코드와 confidence(0~1) 후보 최대 3개입니다. 원인·부품은 추정하지 않습니다.
@@ -53,7 +57,7 @@ public final class MessageInterpreter {
         catch(Exception error){
             if(error instanceof InterruptedException)Thread.currentThread().interrupt();
             String source=error instanceof TimeoutException?"TIMEOUT_FALLBACK":"INVALID_OR_ERROR_FALLBACK";
-            return new Interpretation(fallbackIntent(input),null,List.of(),List.of(),null,source);
+            return explicitFallback(category,input,source);
         }finally{task.cancel(true);}
     }
     static Interpretation parse(ProductCategory category,String content,List<Map<String,Object>> approvedSteps){
@@ -83,5 +87,32 @@ public final class MessageInterpreter {
         if(input.matches("(?s).*(수리비|비용|얼마|견적).*"))return "COST";
         if(input.matches("(?is).*(A/?S|서비스|센터|접수).*"))return "SERVICE";
         return "OTHER";
+    }
+    /** Only plain, unambiguous reported symptoms survive a provider/schema failure.
+     * Negation, quotation, competing categories and instructions still require clarification. */
+    static Interpretation explicitFallback(ProductCategory category,String input,String source){
+        String intent=fallbackIntent(input);
+        if(input.matches("(?s).*(설명서|매뉴얼|문서|지시|규칙|없|않|아니|예전|과거|다른).*"))
+            return new Interpretation(intent,null,List.of(),List.of(),null,source);
+        if(input.matches("(?is).*(\\bTV\\b|텔레비전|전자레인지|청소기|공기청정기).*"))
+            return new Interpretation(intent,null,List.of(),List.of(),null,source);
+        for(var other:ProductCategory.values())if(other!=category&&input.contains(other.getLabel()))
+            return new Interpretation(intent,null,List.of(),List.of(),null,source);
+        var matched=new ArrayList<Candidate>();
+        for(var symptom:SymptomCatalog.forCategory(category)){
+            String pattern=switch(symptom.code()){
+                case "VIBRATION","NOISE"->"흔들[려리림]|진동이?\\s*심|덜덜|쿵쿵|소음이?\\s*심";
+                case "DRAIN"->"물[이을]?\\s*안\\s*빠|물이\\s*빠지지|배수[가이]?\\s*안";
+                case "FILL"->"물[이을]?\\s*안\\s*들어|물이\\s*들어오지|급수[가이]?\\s*안";
+                case "POWER"->"전원.{0,12}(안\\s*켜|켜지지)|표시창.{0,12}켜지지";
+                case "DOOR"->"문[이을]?\\s*안\\s*(열|닫)|문.{0,5}(열리지|닫히지)";
+                case "COOLING"->"시원하지|차갑지|냉장.{0,6}안\\s*돼|냉장칸.{0,8}미지근";
+                case "DRYING"->"마르지|건조[가이]?\\s*안";
+                default->"(?!)";
+            };
+            if(input.matches("(?s).*(?:"+pattern+").*"))matched.add(new Candidate(symptom.code(),.85));
+        }
+        if(matched.size()!=1)return new Interpretation(intent,null,List.of(),List.of(),null,source);
+        return new Interpretation("OTHER".equals(intent)?"SYMPTOM":intent,null,matched,List.of(),null,source+"_EXPLICIT_SYMPTOM");
     }
 }

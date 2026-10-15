@@ -10,6 +10,15 @@ import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.json.JsonMapper;
 
 class GroundedAnswerGeneratorTests {
+    @Test void safetyNoticeFallbackStillAnswersWithVerifiedSymptomsAndEvidenceBeforeTheServiceDetails(){
+        var context=new AnswerContext(List.of(new AnswerContext.Fact("SYMPTOM","CONFIRMED","전원이 켜지지 않는 증상입니다.",List.of(),true),
+                new AnswerContext.Fact("REFERENCE_1","REFERENCE","제조사 자료에서 설명한 전원 증상입니다.",List.of("POWER_DOC"),false)));
+        String fixed="안전 주의: 관련 안전 안내를 먼저 확인하세요.\n\n실행 승인 미확인입니다. 공식 점검으로 연결해 주세요.";
+        var result=GroundedAnswerGenerator.safetyFallback(context,fixed,"SAFETY_GUIDANCE_REQUIRED");
+        assertThat(result.reply()).startsWith("안전 주의:").contains("전원이 켜지지","제조사 자료","실행 승인 미확인");
+        assertThat(result.reply().indexOf("전원이 켜지지")).isLessThan(result.reply().indexOf("공식 점검"));
+        assertThat(result.mode()).isEqualTo("FIXED_FALLBACK");assertThat(result.evidenceIds()).containsExactly("POWER_DOC");
+    }
     static final JsonMapper JSON=JsonMapper.builder().build();
     AnswerContext context(){return new AnswerContext(List.of(new AnswerContext.Fact("SYMPTOM","CONFIRMED","탈수할 때 흔들린다고 확인했어요.",List.of(),true),
             new AnswerContext.Fact("REFERENCE_1","REFERENCE","제조사 자료의 수평 상태는 원인 후보이며 현재 확인되지 않았어요.",List.of("DOC-1"),false),

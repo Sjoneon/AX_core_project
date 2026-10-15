@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "frozen_date": "2026-10-15",
+  "scope": "Held-out wording defined after development fixes and before this evaluation; not used in prompts. Actual answers require separate relevance review.",
+  "cases": [
+    {"id":"holdout-vibration","category":"WASHER","models":["FX24ENER"],"outcome":"DATA_LIMIT","turns":[{"type":"chat","input":"탈수만 하면 세탁기가 쿵쿵 뛰고 놓아둔 자리에서 앞으로 움직여요.","expect":{"symptom":"VIBRATION","risk":"CLEAR","evidence":["B17-MFL71792818-topic_66-009"],"no_steps":true,"reply_contains":["실제 원인은 아직 확인되지","1544-7777"]}}]},
+    {"id":"holdout-service","category":"WASHER","models":["FX24ENER"],"outcome":"PREPARED_ONLY","turns":[{"type":"chat","input":"수리는 기사님께 맡길래요. 우리 동네에서 접수할 곳이랑 연락 방법 좀 알려 주세요.","expect":{"tools":["find_service_centers","prepare_service_handoff"],"delivery":"PREPARED_ONLY","reply_contains":["대치서비스센터","https://www.lge.co.kr/support/service-engineer-reservation","1544-7777"]}}]},
+    {"id":"holdout-no-current-fault","category":"DRYER","models":["RD21ESE"],"outcome":"NO_CURRENT_FAULT","turns":[{"type":"chat","input":"매뉴얼에서 '타는 냄새'를 봤지만 지금 사용하는 건조기는 고장이 없어요.","expect":{"risk":"CLEAR","question":null,"no_calls":true,"no_steps":true,"reply_contains":["추가 확인은 필요하지"]}}]},
+    {"id":"holdout-flood-refrigerator","category":"REFRIGERATOR","models":["G646GBB021"],"outcome":"ESCALATION","turns":[{"type":"chat","input":"침수된 냉장고가 이제 다 말랐어요. 전원을 연결해서 써도 되나요?","expect":{"risk":"SUSPECT","no_steps":true,"no_cost":true,"reply_contains":["점검 전에는 다시 전원을 연결하거나 작동하지 말고","1544-7777"]}}]},
+    {"id":"holdout-refrigerator-cooling","category":"REFRIGERATOR","models":["S836MEE022"],"outcome":"DATA_LIMIT","turns":[{"type":"chat","input":"냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.","expect":{"symptom":"COOLING","evidence":["B15-MFL71401523-no_cooling"],"exclude_evidence":["B16-MFL71401523-topic_46-000","B16-MFL71401523-topic_46-001"],"no_steps":true,"reply_contains":["1544-7777"]}}]},
+    {"id":"holdout-dishwasher-power","category":"DISHWASHER","models":["DUE6BGL2E"],"outcome":"DATA_LIMIT","turns":[{"type":"chat","input":"식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.","expect":{"symptom":"POWER","risk":"CLEAR","no_steps":true,"no_cost":true,"reply_contains":["전원이 켜지지","1544-7777"]}}]}
+  ]
+}

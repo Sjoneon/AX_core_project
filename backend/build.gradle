@@ -41,6 +41,7 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform {
 		excludeTags 'mysql-schema'
+		excludeTags 'real-agent'
 	}
 }
 
@@ -55,6 +56,7 @@ tasks.register('mysqlTest', Test) {
 	classpath = sourceSets.test.runtimeClasspath
 	useJUnitPlatform {
 		excludeTags 'mysql-schema'
+		excludeTags 'real-agent'
 	}
 	systemProperty 'test.datasource.url', 'jdbc:mysql://127.0.0.1:3307/backend_test'
 	systemProperty 'test.datasource.driver-class-name', 'com.mysql.cj.jdbc.Driver'
@@ -104,6 +106,16 @@ tasks.register('evaluateGroundedAnswer', JavaExec) {
     group = 'verification'
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.project.backend.mcp.agent.GroundedAnswerEvaluation'
+}
+
+tasks.register('evaluateConsultationAgent', Test) {
+    description = 'Runs frozen synthetic HTTP/JWT/FastMCP consultations with the configured real model in isolated H2.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags 'real-agent' }
+    outputs.upToDateWhen { false }
+    testLogging { events 'passed', 'failed'; showStandardStreams = true }
 }
 
 tasks.register('migrationTest', Test) {

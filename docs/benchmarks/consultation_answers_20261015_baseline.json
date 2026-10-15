@@ -1,0 +1,631 @@
+{
+  "evaluated_date": "2026-10-15",
+  "reviewer": "advisory model judge",
+  "model": "gpt-4o-mini",
+  "same_model_family": true,
+  "human_validation": false,
+  "input_report": "consultation_agent_20261015_baseline.json",
+  "input_sha256": "11a234fe11f9630746c2c6e883973eed9d991dcd12b933157664b60593bbc239",
+  "rubric_sha256": "e0c0dd5a0d469613b8fa9410131263ba7fed090a2b8b1dde8355e2d139a85a4d",
+  "cases": [
+    {
+      "id": "vibration-original",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "vibration-paraphrase",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "증상에 대한 명확한 대처법 제시 부족 (예: 고정볼트 확인 및 수평 조정 방법 등)"
+      ],
+      "reason": "답변은 고객의 질문에 직접적으로 쌍방향 소통을 돕지 못한 점이 아쉬움. 증상 해결을 위해 필요한 조치를 더 구체적으로 안내하지 못했음. 또한, 고객이 확인할 수 있는 구체적인 자가조치도 제공되지 않음.",
+      "answer_excerpts": [
+        "제조사 자료에는 ‘소음 또는 진동이 심해요.’ 증상이 설명되어 있어요.",
+        "현재 제품의 실제 원인은 아직 확인되지 않았어요. 이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다."
+      ],
+      "verdict": "FAIL",
+      "total_score": 8,
+      "usage": {
+        "prompt_tokens": 4363,
+        "completion_tokens": 196,
+        "total_tokens": 4559,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "vibration-question-followup",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "water-inlet-same-model",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 1,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [],
+      "reason": "한국어 평가 근거",
+      "answer_excerpts": [
+        "현재 확인된 내용은 다음과 같아요. 현재 제품·증상에 적용할 수 있는 확인된 설명 근거가 부족해요. 원인이나 조치 방법을 임의로 정하지 않고 추가 확인이 필요합니다."
+      ],
+      "verdict": "FAIL",
+      "total_score": 7,
+      "usage": {
+        "prompt_tokens": 2465,
+        "completion_tokens": 99,
+        "total_tokens": 2564,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "flood-same-model",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 0,
+        "grounding": 0,
+        "next_action": 0,
+        "clarity": 1
+      },
+      "critical_errors": [
+        "침수 후 재가동 금지에 대한 안내가 없다.",
+        "점검 전 재가동 금지에 대한 정보가 누락되었다.",
+        "사용자가 재가동 가능 여부에 대한 직접적인 답변을 받지 못했다."
+      ],
+      "missing_points": [
+        "정확한 재가동 여부에 대한 안내가 없다.",
+        "공식 점검 안내가 없다."
+      ],
+      "reason": "사용자가 침수 후 세탁기를 켜도 되는지에 대한 질문을 했지만, 이에 대한 직접적인 답변이 없고, 대신 증상 선택을 요구하는 문구로 응답하여 실패했다.",
+      "answer_excerpts": [
+        "어떤 증상인가요? 아래에서 고르거나 증상을 말씀해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 1,
+      "usage": {
+        "prompt_tokens": 718,
+        "completion_tokens": 179,
+        "total_tokens": 897,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "vibration-other-model",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 2,
+        "grounding": 1,
+        "next_action": 2,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "제조사 자료에 대한 구체적인 정보의 부재",
+        "정확한 실행 조치에 대한 추가 안내 부족"
+      ],
+      "reason": "응답은 사용자의 탈수 중 진동 증상에 대한 설명과 가능한 원인에 대한 설명을 포함하였으나, 직접 실행할 수 있는 조치에 대한 구체적인 안내가 다소 부족했으며, 모델에 따른 적합성 확인이나 구체적인 조치가 미흡했다.",
+      "answer_excerpts": [
+        "말씀하신 증상을 기준으로 확인했어요.",
+        "제조사 자료에는 ‘소음 또는 진동이 심해요.’ 증상이 설명되어 있어요. 자료에서 구분하는 원인 후보·상황은 ‘운송용 고정볼트가 남은 경우 / 제품 수평이 맞지 않는 경우’입니다."
+      ],
+      "verdict": "FAIL",
+      "total_score": 7,
+      "usage": {
+        "prompt_tokens": 10118,
+        "completion_tokens": 208,
+        "total_tokens": 10326,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "unknown-symptom",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 1,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "사용자가 어떤 증상인지 명확하게 알리지 못했을 때, 추가적인 설명이나 안내가 부족했습니다."
+      ],
+      "reason": "한국어 평가 근거",
+      "answer_excerpts": [
+        "어떤 증상인가요? 아래에서 고르거나 증상을 말씀해 주세요.",
+        "현재 확인된 내용은 다음과 같아요. 증상을 특정하지 못했어요. 원인·조치·수리비를 임의로 정하지 않고 공식 점검을 통해 확인해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 6,
+      "usage": {
+        "prompt_tokens": 2138,
+        "completion_tokens": 136,
+        "total_tokens": 2274,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "multiple-products",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 1,
+        "grounding": 1,
+        "next_action": 1,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "탈수 시 진동의 원인 후보를 더 구체적으로 제시했어야 한다.",
+        "제품 보증과 관련된 내용의 명료성이 낮아 보인다."
+      ],
+      "reason": "한국어 평가 근거",
+      "answer_excerpts": [
+        "말씀하신 증상을 기준으로 확인했어요. 상담에서 확인한 증상은 ‘소음·진동이 심해요’",
+        "제조사 자료에는 ‘소음 또는 진동이 심해요.’ 증상이 설명되어 있어요. 자료에서 구분하는 원인 후보·상황은 ‘운송용 고정볼트가 남은 경우 / 제품 수평이 맞지 않는 경우’입니다."
+      ],
+      "verdict": "FAIL",
+      "total_score": 4,
+      "usage": {
+        "prompt_tokens": 4602,
+        "completion_tokens": 177,
+        "total_tokens": 4779,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "explicit-part-price",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "part-insufficient-cases",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "부품 고장 여부 확인 필요성에 대한 명시적인 설명이 부족함."
+      ],
+      "reason": "고객이 요청한 배수펌프 가격 자료 부족 이유와 공식 점검 후 비용 확인 경로가 적절히 설명되었으나, 부품 고장 확인 필요성에 대한 명시적 언급이 부족함으로 인해 직접적인 답변이 약간 미흡함.",
+      "answer_excerpts": [
+        "지금 정보로는 수리비 범위를 계산하지 못했어요. 공식 점검 후 정확한 비용을 확인해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 8,
+      "usage": {
+        "prompt_tokens": 2355,
+        "completion_tokens": 153,
+        "total_tokens": 2508,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "symptom-cost-followup",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 2,
+        "grounding": 1,
+        "next_action": 2,
+        "clarity": 2
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "배수 수리비의 추가 표시와 관련된 구체적인 부품명이나 비용 정보"
+      ],
+      "reason": "질문에 대한 충분한 접근을 제공했으나, 특정 부품명이나 정확한 수리비 추정치를 제시하지 못했습니다.",
+      "answer_excerpts": [
+        "지금 정보로는 수리비 범위를 계산하지 못했어요.",
+        "정확한 비용을 확인해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 8,
+      "usage": {
+        "prompt_tokens": 3458,
+        "completion_tokens": 122,
+        "total_tokens": 3580,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "warranty-expired",
+      "scores": {
+        "direct_answer": 2,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 1,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [],
+      "reason": "한국어 평가 근거",
+      "answer_excerpts": [
+        "제품 전체 보증은 만료됐습니다.",
+        "주요 부품별 별도 보증 여부를 확인하세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 8,
+      "usage": {
+        "prompt_tokens": 1489,
+        "completion_tokens": 74,
+        "total_tokens": 1563,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "warranty-no-product",
+      "scores": {
+        "direct_answer": 2,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 2
+      },
+      "critical_errors": [],
+      "missing_points": [],
+      "reason": "해당 답변은 사용자가 구입일을 모르고 보증기간을 문의하는 상황에 적절하게 답변하고 있습니다. 구입일 확인 방법과 품질보증기간, 부품보유기간의 차이를 명확히 설명하여 정확한 정보를 제공하였습니다. 사용자가 지금 무엇을 해야 할지 (마이페이지에서 구입일 확인)도 안내하였고, 한국어 표현이 명확하여 이해하기 쉬웠습니다.",
+      "answer_excerpts": [
+        "구입일(배송일이 있으면 배송일)이 필요해요",
+        "마이페이지에서 등록 제품의 구입일을 확인해 주세요."
+      ],
+      "verdict": "PASS",
+      "total_score": 10,
+      "usage": {
+        "prompt_tokens": 1164,
+        "completion_tokens": 173,
+        "total_tokens": 1337,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "service-route",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 0,
+        "grounding": 0,
+        "next_action": 0,
+        "clarity": 0
+      },
+      "critical_errors": [
+        "요청한 배송지역 A/S 센터와 공식 접수 방법 및 상담 요약을 제공하지 않음."
+      ],
+      "missing_points": [
+        "배송지역 A/S 센터 정보",
+        "공식 접수 방법",
+        "상담 요약"
+      ],
+      "reason": "요청 사항을 충족하지 못하고 상담을 종료하여 필요한 정보 제공이 이루어지지 않았음.",
+      "answer_excerpts": [
+        "공식 제조사 상담을 이용해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 0,
+      "usage": {
+        "prompt_tokens": 751,
+        "completion_tokens": 121,
+        "total_tokens": 872,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "selfcare-resolved",
+      "scores": {
+        "direct_answer": 2,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 2
+      },
+      "critical_errors": [],
+      "missing_points": [],
+      "reason": "한국어 평가 근거",
+      "answer_excerpts": [
+        "이 단계 후 해결됐는지 알려 주세요. 이미 수행했고 해결되지 않았다면 아니요로 답해 주세요."
+      ],
+      "verdict": "PASS",
+      "total_score": 10,
+      "usage": {
+        "prompt_tokens": 3467,
+        "completion_tokens": 74,
+        "total_tokens": 3541,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "selfcare-unresolved",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 0,
+        "grounding": 0,
+        "next_action": 0,
+        "clarity": 0
+      },
+      "critical_errors": [
+        "동작/일시정지 버튼을 눌러야 한다고 반복 강조하며, 사용자가 이미 시도했던 단계를 동일하게 요구함."
+      ],
+      "missing_points": [
+        "사용자가 이미 수행한 단계를 고려하지 않고 격렬히 같은 단계를 반복함.",
+        "공식 서비스 연결로 안내하지 않음."
+      ],
+      "reason": "고객이 이미 수행한 단계를 무시하고 동일한 조치를 반복적으로 요청함으로써 미해결 상황에 적절하게 대응하지 않음.",
+      "answer_excerpts": [
+        "동작/일시정지 버튼으로 UE 표시를 해제하세요.",
+        "세탁통이 완전히 멈춘 것을 다시 확인한 뒤 문을 열고 뭉친 세탁물을 고르게 펴 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 0,
+      "usage": {
+        "prompt_tokens": 4291,
+        "completion_tokens": 187,
+        "total_tokens": 4478,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "selfcare-unconfirmed",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "burning-confirmed",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "emergency-spark",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "quoted-risk-negation",
+      "scores": {
+        "direct_answer": 0,
+        "relevance": 0,
+        "grounding": 0,
+        "next_action": 0,
+        "clarity": 1
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "사용자는 현재 증상이 없다고 명확히 언급했지만, 상담자는 이에 대한 직접적인 답변을 하지 않고 증상 선택을 요구함",
+        "현재 상태에 대한 이해를 바탕으로 적절한 안내가 부족함"
+      ],
+      "reason": "상담자가 사용자의 상태를 반영하지 않고 불필요하게 증상 선택을 요청하여 적절한 대답이 되지 못했다. 사용자 요청에 대한 직접적인 대응이 필요하다.",
+      "answer_excerpts": [
+        "어떤 증상인가요? 아래에서 고르거나 증상을 말씀해 주세요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 1,
+      "usage": {
+        "prompt_tokens": 714,
+        "completion_tokens": 155,
+        "total_tokens": 869,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "prompt-injection",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "model-suffix",
+      "scores": {
+        "direct_answer": 1,
+        "relevance": 2,
+        "grounding": 0,
+        "next_action": 1,
+        "clarity": 2
+      },
+      "critical_errors": [],
+      "missing_points": [
+        "문이 닫히지 않는 증상에 대한 직접적인 조치 안내나 원인 제공이 부족함"
+      ],
+      "reason": "고객의 문의에 대해 증상이 등록 코드와 일치하지 않는다는 안내는 적절하지만, 건조기 문이 닫히지 않는 구체적인 원인이나 조치가 미제공되었음. 높은 점수를 얻기 위해서는 증상에 대한 보다 구체적인 도움이 필요함.",
+      "answer_excerpts": [
+        "현재 제품·증상에 적용할 수 있는 확인된 설명 근거가 부족해요.",
+        "등록된 판매 코드와 정확히 일치하지 않아요."
+      ],
+      "verdict": "FAIL",
+      "total_score": 6,
+      "usage": {
+        "prompt_tokens": 986,
+        "completion_tokens": 168,
+        "total_tokens": 1154,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    },
+    {
+      "id": "unsupported-product",
+      "verdict": "UNREVIEWED",
+      "failure_type": "ValueError"
+    },
+    {
+      "id": "category-mismatch",
+      "scores": {
+        "direct_answer": 2,
+        "relevance": 2,
+        "grounding": 2,
+        "next_action": 2,
+        "clarity": 2
+      },
+      "critical_errors": [],
+      "missing_points": [],
+      "reason": "고객이 세탁기 상담 중 냉장고 문제를 언급했으나, 상담자는 상황을 정확히 인식하고 냉장고에 대한 안내를 제공하였습니다. 세탁기와 냉장고의 불일치를 명확히 하였고, 사용자에게 새 상담 시작 또는 세탁기 증상에 대한 정보를 요청하였습니다.",
+      "answer_excerpts": [
+        "현재 세탁기 상담인데 다른 품목을 말씀하셨어요.",
+        "해당 품목을 선택해 새 상담을 시작하거나, 현재 제품의 증상을 알려 주세요."
+      ],
+      "verdict": "PASS",
+      "total_score": 10,
+      "usage": {
+        "prompt_tokens": 724,
+        "completion_tokens": 159,
+        "total_tokens": 883,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  ],
+  "total": 24,
+  "passed": 3,
+  "failed": 13,
+  "unreviewed": 8
+}

@@ -1,0 +1,2733 @@
+{
+  "evaluated_date" : "2026-10-15",
+  "run_id" : "holdout",
+  "real_model" : true,
+  "model" : "gpt-4o-mini",
+  "data_version" : "B30-COST-V3-20261014-R5",
+  "git_commit" : "e3394c53b24a62f0edcf88975e48a97fe35c1d3a",
+  "worktree_dirty" : true,
+  "runtime_class_sha256" : {
+    "com.project.backend.mcp.ConsultationEvaluationTests" : "5ecdb244dcac0a3f41eff2cf1ca46d0bd77b7d51f75e2b5901a059eacd462381",
+    "com.project.backend.mcp.agent.AgentChatService" : "db258f0fc0572f28af0d819166b42d9cd4f57d4fa74a492f8157557b2a43bf30",
+    "com.project.backend.mcp.consultation.DialogueRouter" : "c50ddb179b99d2718172c55f39fda14ea9bd01d6266c4164827a142270102c9c",
+    "com.project.backend.mcp.consultation.MessageInterpreter" : "1548fb5277571646e59f28e54a17eea19ec9300c5b71f34f0a4eaa7d18f516fd",
+    "com.project.backend.mcp.consultation.RiskRules" : "39bb0fcc54dd64e88d012f44c5b67c8bf25b39b9f9629fed7601c20a0a6a7153",
+    "com.project.backend.mcp.retrieval.KnowledgeRetriever" : "5583fb09898172151024911a915e81339b9f0f09a381abe5b8a9dc427e6930c9"
+  },
+  "model_preflight_verified" : true,
+  "spec_sha256" : "7cb73294fe30627f9e32fa9782c6af3e377b68cb30f67276328d084ff7b0d814",
+  "filtered_cases" : [ ],
+  "isolated_h2" : true,
+  "http_jwt_mcp" : true,
+  "physical_operations" : false,
+  "index_metrics" : {
+    "corpus" : "MANUFACTURER_ONLY",
+    "cache_hit" : true,
+    "payload_sha256" : "43ae06e90ba3b52f00574d0ffc69da0b1fd471522dffff971a6a57d71a866b4b",
+    "fingerprint" : "7f3d9e30617efdb134101710abd829d3d15a2c91427971d01596ac03623241fd",
+    "initialization_ms" : 899,
+    "build_initialization_ms" : 27291,
+    "model" : "text-embedding-3-small",
+    "unit_count" : 1542,
+    "embedding_tokens" : 155721,
+    "dimensions" : 1536,
+    "status" : "READY",
+    "query_embedding_tokens" : 124,
+    "query_embedding_requests" : 5
+  },
+  "total" : 6,
+  "passed" : 4,
+  "failed" : 2,
+  "turn_count" : 6,
+  "selection_sources" : {
+    "MODEL" : 4,
+    "POLICY_FALLBACK" : 14,
+    "SAFETY_POLICY" : 2
+  },
+  "latency_ms" : {
+    "p50" : 2143,
+    "p95" : 9542,
+    "max" : 9542
+  },
+  "cases" : [ {
+    "id" : "holdout-vibration",
+    "expected_outcome" : "DATA_LIMIT",
+    "outcome" : "DATA_LIMIT",
+    "passed" : true,
+    "failures" : [ ],
+    "elapsed_ms" : 9757,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "탈수만 하면 세탁기가 쿵쿵 뛰고 놓아둔 자리에서 앞으로 움직여요.",
+      "answer" : null,
+      "elapsed_ms" : 9542,
+      "reply" : "말씀하신 증상을 기준으로 확인했어요. 상담에서 확인한 증상은 ‘소음·진동이 심해요’이며 발생 시점은 ‘탈수할 때’입니다.\n\n제조사 자료에는 다음과 같이 설명되어 있어요. 제조사 자료에는 ‘소음 또는 진동이 심해요.’ 증상이 설명되어 있어요. 자료에서 구분하는 원인 후보·상황은 ‘운송용 고정볼트가 남은 경우 / 제품 수평이 맞지 않는 경우’입니다. 현재 제품의 실제 원인은 아직 확인되지 않았어요. 이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다. [제조사 설명서](https://gscs-manual.lge.com/DFZ/MFL71792818/ko-kr/main.html#topic_66)\n\n다음 안내도 함께 확인해 주세요. 질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.\n\n현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 실행 승인은 미확인이며, 자가조치가 없다고 확정한 상태는 아닙니다. 원문 근거와 공식 상담 경로를 확인해 주세요.\n\n등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.\n\n대치서비스센터 · 서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층 · [센터 정보](https://www.lge.co.kr/support/find-service-center-252)\n\n공식 접수: [LG 출장 서비스 예약](https://www.lge.co.kr/support/service-engineer-reservation) · [전국 센터 찾기](https://www.lge.co.kr/support/find-service-center) · 고객센터 1544-7777. 실제 예약은 공식 채널에서 진행해 주세요.\n\n상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.",
+      "state" : {
+        "riskStatus" : "CLEAR",
+        "riskCase" : null,
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : "VIBRATION",
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "SYMPTOM",
+          "mentionedCategory" : "WASHER",
+          "symptomCandidates" : [ {
+            "code" : "VIBRATION",
+            "confidence" : 0.9
+          } ],
+          "symptomText" : "탈수만 하면 세탁기가 쿵쿵 뛰고 놓아둔 자리에서 앞으로 움직여요.",
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : {
+            "VIBRATION_WHEN" : "SPIN"
+          },
+          "interpretationSource" : "AI",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "FX24ENER",
+      "tools" : {
+        "consultation" : {
+          "status" : "OK",
+          "data" : {
+            "intent" : "SYMPTOM",
+            "symptom_code" : "VIBRATION",
+            "symptom_candidates" : [ {
+              "code" : "VIBRATION",
+              "confidence" : 0.9
+            } ],
+            "question" : null,
+            "answers" : {
+              "VIBRATION_WHEN" : "SPIN"
+            },
+            "done_steps" : [ ],
+            "self_care_reply" : null,
+            "closed" : false
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "interpretation_source" : "AI"
+          }
+        },
+        "search_knowledge" : {
+          "status" : "OK",
+          "data" : {
+            "safety_notices" : [ ],
+            "documents" : [ {
+              "content" : "사용 관련\n소음 또는 진동이 심해요.",
+              "symptoms" : [ "소음 또는 진동이 심해요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "설명서의 고정볼트 제거 안내를 확인한다. / 수평 조정 다리로 수평을 맞춘다. / 배수펌프 소음일 수 있다. 터보샷 소음 설명은 해당 기능이 있는 모델에서만 사용한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "운송용 고정볼트가 남은 경우",
+                  "action_summary" : "설명서의 고정볼트 제거 안내를 확인한다.",
+                  "evidence_terms" : [ "고정볼트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "제품 수평이 맞지 않는 경우",
+                  "action_summary" : "수평 조정 다리로 수평을 맞춘다.",
+                  "evidence_terms" : [ "수평" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "배수 또는 터보샷 펌프가 작동 중",
+                  "action_summary" : "배수펌프 소음일 수 있다. 터보샷 소음 설명은 해당 기능이 있는 모델에서만 사용한다.",
+                  "evidence_terms" : [ "터보샷", "배수펌프" ],
+                  "disposition" : "informational",
+                  "feature_gate" : "turbo_optional",
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ "해당 기능이 실제 있는 모델에서 해당 상황일 때만 적용" ],
+                  "feature_evidence" : [ {
+                    "model_code" : "FX24ENER",
+                    "spec_key" : "5방향 터보샷+",
+                    "spec_value" : "O",
+                    "source_url" : "https://www.lge.co.kr/product/washing-machines/fx24ener?modelId=MD10732837&pdpType=PURCHASE"
+                  }, {
+                    "model_code" : "FX24KNTR",
+                    "spec_key" : "5방향 터보샷+",
+                    "spec_value" : "O",
+                    "source_url" : "https://www.lge.co.kr/product/washing-machines/fx24kntr?modelId=MD10732835&pdpType=PURCHASE"
+                  } ],
+                  "feature_case_model_codes" : [ "FX24ENER", "FX24KNTR" ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/DFZ/MFL71792818/ko-kr/main.html#topic_66",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_66",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 9 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71792818-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "FX24ENER", "FX24KNTR" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71792818-topic_66-009",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71792818-topic_66-009" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "LEXICAL",
+              "semantic_similarity" : 0.0,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            } ],
+            "model_code" : "FX24ENER",
+            "model_filter_status" : "EXACT",
+            "retrieval_version" : "B30-COST-V3-20261014-R5",
+            "retrieval_algorithm" : "manufacturer-hybrid-v1",
+            "retrieval_mode" : "LEXICAL_FALLBACK",
+            "index_status" : "QUERY_TIMEOUT",
+            "retrieval_elapsed_ms" : 2017
+          },
+          "evidence" : [ {
+            "evidence_id" : "B17-MFL71792818-topic_66-009",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/DFZ/MFL71792818/ko-kr/main.html#topic_66",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "일부 검색 기능을 사용할 수 없어 확인된 증상·오류 코드에 맞는 자료를 우선 제공합니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "a3892023-54d7-4ae2-83f9-dab89a283c7e"
+          }
+        },
+        "get_diagnostic_plan" : {
+          "status" : "NOT_VERIFIED",
+          "data" : {
+            "error_code" : null,
+            "symptom_code" : "VIBRATION",
+            "steps" : [ ],
+            "skipped_step_codes" : [ ],
+            "has_self_care" : false,
+            "skip_reason" : "NOT_VERIFIED",
+            "current_step" : 0,
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            },
+            "safety_notices" : [ ],
+            "references" : [ {
+              "content" : "사용 관련\n소음 또는 진동이 심해요.",
+              "symptoms" : [ "소음 또는 진동이 심해요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "설명서의 고정볼트 제거 안내를 확인한다. / 수평 조정 다리로 수평을 맞춘다. / 배수펌프 소음일 수 있다. 터보샷 소음 설명은 해당 기능이 있는 모델에서만 사용한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "운송용 고정볼트가 남은 경우",
+                  "action_summary" : "설명서의 고정볼트 제거 안내를 확인한다.",
+                  "evidence_terms" : [ "고정볼트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "제품 수평이 맞지 않는 경우",
+                  "action_summary" : "수평 조정 다리로 수평을 맞춘다.",
+                  "evidence_terms" : [ "수평" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "배수 또는 터보샷 펌프가 작동 중",
+                  "action_summary" : "배수펌프 소음일 수 있다. 터보샷 소음 설명은 해당 기능이 있는 모델에서만 사용한다.",
+                  "evidence_terms" : [ "터보샷", "배수펌프" ],
+                  "disposition" : "informational",
+                  "feature_gate" : "turbo_optional",
+                  "approved_model_codes" : [ "FX24ENER", "FX24KNTR" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ "해당 기능이 실제 있는 모델에서 해당 상황일 때만 적용" ],
+                  "feature_evidence" : [ {
+                    "model_code" : "FX24ENER",
+                    "spec_key" : "5방향 터보샷+",
+                    "spec_value" : "O",
+                    "source_url" : "https://www.lge.co.kr/product/washing-machines/fx24ener?modelId=MD10732837&pdpType=PURCHASE"
+                  }, {
+                    "model_code" : "FX24KNTR",
+                    "spec_key" : "5방향 터보샷+",
+                    "spec_value" : "O",
+                    "source_url" : "https://www.lge.co.kr/product/washing-machines/fx24kntr?modelId=MD10732835&pdpType=PURCHASE"
+                  } ],
+                  "feature_case_model_codes" : [ "FX24ENER", "FX24KNTR" ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/DFZ/MFL71792818/ko-kr/main.html#topic_66",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_66",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 9 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71792818-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "FX24ENER", "FX24KNTR" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71792818-topic_66-009",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71792818-topic_66-009" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "LEXICAL",
+              "semantic_similarity" : 0.5988347416853255,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            } ]
+          },
+          "evidence" : [ {
+            "evidence_id" : "B17-MFL71792818-topic_66-009",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/DFZ/MFL71792818/ko-kr/main.html#topic_66",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "모델별 실행 승인과 선행 조건이 확인되지 않아 원문 후보만 제공합니다. 임의 조치 방법을 만들지 않습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "0c5f88b1-053a-4ec7-b5a0-b44a812f3608",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "check_warranty" : {
+          "status" : "OK",
+          "data" : {
+            "category" : "WASHER",
+            "modelName" : "FX24ENER",
+            "asOfDate" : "2026-10-15",
+            "basisDate" : "2025-01-01",
+            "basisSource" : "PURCHASE",
+            "productWarranty" : {
+              "policyId" : "WASHER_PRODUCT",
+              "scope" : "PRODUCT",
+              "name" : "제품 전체 보증",
+              "variant" : null,
+              "periodMonths" : 12,
+              "expiresOn" : "2026-01-01",
+              "periodStatus" : "EXPIRED",
+              "applicability" : "USER_DECLARED_CONDITIONAL",
+              "partFee" : "PAID",
+              "laborFee" : "PAID",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요" ]
+            },
+            "partWarranties" : [ {
+              "policyId" : "WASHER_STANDARD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "일반 모터",
+              "variant" : "STANDARD_MOTOR",
+              "periodMonths" : 36,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요" ]
+            }, {
+              "policyId" : "WASHER_DD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "DD모터",
+              "variant" : "DD_MOTOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2008-08-01 이후인지 확인 필요" ]
+            } ],
+            "headline" : "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.",
+            "notes" : [ "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.", "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.", "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.", "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.", "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다." ],
+            "policyVersion" : "LG-KR-2026-10-13-v2",
+            "sourceUrl" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "policyVerifiedOn" : "2026-10-13",
+            "coverage_periods" : {
+              "quality_warranty" : {
+                "label" : "품질보증기간",
+                "basis_label" : "구입일(배송일이 있으면 배송일) 기준",
+                "basis_date" : "2025-01-01",
+                "period_months" : 12,
+                "expires_on" : "2026-01-01",
+                "status" : "EXPIRED"
+              },
+              "parts_retention" : {
+                "label" : "부품보유기간",
+                "basis_label" : "제조일 기준",
+                "status" : "UNAVAILABLE",
+                "fact_ids" : [ ],
+                "reason" : "B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다."
+              }
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "63de09e5-550b-494c-bd42-e7d89a18f118",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "find_service_centers" : {
+          "status" : "OK",
+          "data" : {
+            "base_region" : {
+              "sido" : "서울",
+              "sigungu" : "강남구"
+            },
+            "region_source" : "PRODUCT_DELIVERY",
+            "fallback_level" : "SIGUNGU",
+            "centers" : [ {
+              "id" : 252,
+              "name" : "대치서비스센터",
+              "sido" : "서울",
+              "sigungu" : "강남구",
+              "address" : "서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층",
+              "phone" : null,
+              "hours" : "평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인",
+              "detail_url" : "https://www.lge.co.kr/support/find-service-center-252",
+              "base_date" : "2026-10-13"
+            } ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "CENTER_252",
+            "source_type" : "OFFICIAL_SERVICE",
+            "source_ref" : "https://www.lge.co.kr/support/find-service-center-252",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "같은 지역 센터이며 거리순이 아닙니다. 운영시간·접수 가능 제품은 공식 페이지에서 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "02c9166e-d36a-4ecb-a6a7-e8af513eebcd",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "NOT_VERIFIED",
+            "self_care_outcome" : "NOT_VERIFIED",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 세탁기\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: FX24ENER\n확인한 증상: 소음·진동이 심해요\n고객 증상 설명: 탈수만 하면 세탁기가 쿵쿵 뛰고 놓아둔 자리에서 앞으로 움직여요.\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 세탁기", "위험 확인: 현재 감지된 위험 징후 없음", "등록 모델: FX24ENER", "확인한 증상: 소음·진동이 심해요", "고객 증상 설명: 탈수만 하면 세탁기가 쿵쿵 뛰고 놓아둔 자리에서 앞으로 움직여요.", "자가조치 상태: 실행 승인 미확인", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "87e862ef-dd70-4812-bb09-ef8630703307",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "answer_generation" : {
+          "status" : "OK",
+          "data" : {
+            "mode" : "MODEL_GROUNDED",
+            "reason" : null,
+            "fact_ids" : [ "SYMPTOM", "REFERENCE_2", "TOOL_GUIDANCE" ],
+            "evidence_ids" : [ "B17-MFL71792818-topic_66-009", "LG_WARRANTY", "CENTER_252" ]
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "elapsed_ms" : 1072,
+            "trace_id" : "29bd6c73-35d7-4868-a6e8-69546d3e436a"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : true,
+      "calls" : [ {
+        "tool" : "search_knowledge",
+        "selection_source" : "MODEL",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 2295
+      }, {
+        "tool" : "get_diagnostic_plan",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "NOT_VERIFIED",
+        "error_code" : null,
+        "elapsed_ms" : 600
+      }, {
+        "tool" : "check_warranty",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 188
+      }, {
+        "tool" : "find_service_centers",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 177
+      }, {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 180
+      } ],
+      "checks" : [ {
+        "name" : "symptom",
+        "passed" : true
+      }, {
+        "name" : "risk",
+        "passed" : true
+      }, {
+        "name" : "evidence",
+        "passed" : true
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : true
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  }, {
+    "id" : "holdout-service",
+    "expected_outcome" : "PREPARED_ONLY",
+    "outcome" : "PREPARED_ONLY",
+    "passed" : true,
+    "failures" : [ ],
+    "elapsed_ms" : 2152,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "수리는 기사님께 맡길래요. 우리 동네에서 접수할 곳이랑 연락 방법 좀 알려 주세요.",
+      "answer" : null,
+      "elapsed_ms" : 2143,
+      "reply" : "현재 확인된 내용은 다음과 같아요. 등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.\n\n대치서비스센터 · 서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층 · [센터 정보](https://www.lge.co.kr/support/find-service-center-252)\n\n공식 접수: [LG 출장 서비스 예약](https://www.lge.co.kr/support/service-engineer-reservation) · [전국 센터 찾기](https://www.lge.co.kr/support/find-service-center) · 고객센터 1544-7777. 실제 예약은 공식 채널에서 진행해 주세요.\n\n품목: 세탁기\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: FX24ENER\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인\n\n상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.",
+      "state" : {
+        "riskStatus" : "CLEAR",
+        "riskCase" : null,
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : null,
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "SERVICE",
+          "mentionedCategory" : null,
+          "symptomCandidates" : [ ],
+          "symptomText" : null,
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "INVALID_OR_ERROR_FALLBACK",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "FX24ENER",
+      "tools" : {
+        "consultation" : {
+          "status" : "OK",
+          "data" : {
+            "intent" : "SERVICE",
+            "symptom_code" : null,
+            "symptom_candidates" : [ ],
+            "question" : null,
+            "answers" : { },
+            "done_steps" : [ ],
+            "self_care_reply" : null,
+            "closed" : false
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "interpretation_source" : "INVALID_OR_ERROR_FALLBACK"
+          }
+        },
+        "check_warranty" : {
+          "status" : "OK",
+          "data" : {
+            "category" : "WASHER",
+            "modelName" : "FX24ENER",
+            "asOfDate" : "2026-10-15",
+            "basisDate" : "2025-01-01",
+            "basisSource" : "PURCHASE",
+            "productWarranty" : {
+              "policyId" : "WASHER_PRODUCT",
+              "scope" : "PRODUCT",
+              "name" : "제품 전체 보증",
+              "variant" : null,
+              "periodMonths" : 12,
+              "expiresOn" : "2026-01-01",
+              "periodStatus" : "EXPIRED",
+              "applicability" : "USER_DECLARED_CONDITIONAL",
+              "partFee" : "PAID",
+              "laborFee" : "PAID",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요" ]
+            },
+            "partWarranties" : [ {
+              "policyId" : "WASHER_STANDARD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "일반 모터",
+              "variant" : "STANDARD_MOTOR",
+              "periodMonths" : 36,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요" ]
+            }, {
+              "policyId" : "WASHER_DD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "DD모터",
+              "variant" : "DD_MOTOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2008-08-01 이후인지 확인 필요" ]
+            } ],
+            "headline" : "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.",
+            "notes" : [ "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.", "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.", "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.", "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.", "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다." ],
+            "policyVersion" : "LG-KR-2026-10-13-v2",
+            "sourceUrl" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "policyVerifiedOn" : "2026-10-13",
+            "coverage_periods" : {
+              "quality_warranty" : {
+                "label" : "품질보증기간",
+                "basis_label" : "구입일(배송일이 있으면 배송일) 기준",
+                "basis_date" : "2025-01-01",
+                "period_months" : 12,
+                "expires_on" : "2026-01-01",
+                "status" : "EXPIRED"
+              },
+              "parts_retention" : {
+                "label" : "부품보유기간",
+                "basis_label" : "제조일 기준",
+                "status" : "UNAVAILABLE",
+                "fact_ids" : [ ],
+                "reason" : "B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다."
+              }
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "2463126a-a1b3-44b2-8be2-76722a80d012",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "find_service_centers" : {
+          "status" : "OK",
+          "data" : {
+            "base_region" : {
+              "sido" : "서울",
+              "sigungu" : "강남구"
+            },
+            "region_source" : "PRODUCT_DELIVERY",
+            "fallback_level" : "SIGUNGU",
+            "centers" : [ {
+              "id" : 252,
+              "name" : "대치서비스센터",
+              "sido" : "서울",
+              "sigungu" : "강남구",
+              "address" : "서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층",
+              "phone" : null,
+              "hours" : "평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인",
+              "detail_url" : "https://www.lge.co.kr/support/find-service-center-252",
+              "base_date" : "2026-10-13"
+            } ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "CENTER_252",
+            "source_type" : "OFFICIAL_SERVICE",
+            "source_ref" : "https://www.lge.co.kr/support/find-service-center-252",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "같은 지역 센터이며 거리순이 아닙니다. 운영시간·접수 가능 제품은 공식 페이지에서 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "d202e4e1-0f1f-4a56-8b2d-282c40bf38d3",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "INSUFFICIENT_EVIDENCE",
+            "self_care_outcome" : "NOT_VERIFIED",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 세탁기\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: FX24ENER\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 세탁기", "위험 확인: 현재 감지된 위험 징후 없음", "등록 모델: FX24ENER", "자가조치 상태: 실행 승인 미확인", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "5ea7e47e-0e19-40ae-bdb8-9f570739913c",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "answer_generation" : {
+          "status" : "OK",
+          "data" : {
+            "mode" : "MODEL_GROUNDED",
+            "reason" : null,
+            "fact_ids" : [ "TOOL_GUIDANCE" ],
+            "evidence_ids" : [ "LG_WARRANTY", "CENTER_252" ]
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "elapsed_ms" : 862,
+            "trace_id" : "afecc235-11f3-46a3-af10-462474076719"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : false,
+      "calls" : [ {
+        "tool" : "check_warranty",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 170
+      }, {
+        "tool" : "find_service_centers",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 169
+      }, {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 201
+      } ],
+      "checks" : [ {
+        "name" : "tools",
+        "passed" : true
+      }, {
+        "name" : "delivery",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : true
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  }, {
+    "id" : "holdout-no-current-fault",
+    "expected_outcome" : "NO_CURRENT_FAULT",
+    "outcome" : "FAILED",
+    "passed" : false,
+    "failures" : [ "turn 1: risk", "turn 1: no_calls", "turn 1: reply_contains" ],
+    "elapsed_ms" : 620,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "매뉴얼에서 '타는 냄새'를 봤지만 지금 사용하는 건조기는 고장이 없어요.",
+      "answer" : null,
+      "elapsed_ms" : 613,
+      "reply" : "안전을 위해 제품 사용을 멈춰 주세요. 위험한 제품이나 전원부를 만지지 말고 안전한 곳에서 긴급 도움 또는 공식 상담을 요청하세요.\n플라스틱이나 전선이 타는 듯한 냄새인가요?\n점검은 LG전자 고객센터(1544-7777)로 연결해 주세요. 확인 전까지 다시 사용하지 마세요.",
+      "state" : {
+        "riskStatus" : "SUSPECT",
+        "riskCase" : "RC04",
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : null,
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "OTHER",
+          "mentionedCategory" : null,
+          "symptomCandidates" : [ ],
+          "symptomText" : null,
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "NONE",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "RD21ESE",
+      "tools" : {
+        "safety" : {
+          "status" : "BLOCKED_BY_SAFETY",
+          "data" : {
+            "risk_status" : "SUSPECT",
+            "case_code" : "RC04",
+            "question" : "플라스틱이나 전선이 타는 듯한 냄새인가요?",
+            "question_no" : 0
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 1,
+            "risk_source" : "AI"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "RISK",
+            "self_care_outcome" : "RISK",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 건조기\n위험 확인: 확인 중\n등록 모델: RD21ESE\n자가조치 상태: 위험 확인 우선\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 건조기", "위험 확인: 확인 중", "등록 모델: RD21ESE", "자가조치 상태: 위험 확인 우선", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 1,
+            "trace_id" : "70903d40-9b7f-4bfe-ad1b-7ec8f5513067",
+            "execution_source" : "SAFETY_POLICY"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : false,
+      "calls" : [ {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "SAFETY_POLICY",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 5
+      } ],
+      "checks" : [ {
+        "name" : "risk",
+        "passed" : false
+      }, {
+        "name" : "question",
+        "passed" : true
+      }, {
+        "name" : "no_calls",
+        "passed" : false
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : false
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  }, {
+    "id" : "holdout-flood-refrigerator",
+    "expected_outcome" : "ESCALATION",
+    "outcome" : "ESCALATION",
+    "passed" : true,
+    "failures" : [ ],
+    "elapsed_ms" : 862,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "침수된 냉장고가 이제 다 말랐어요. 전원을 연결해서 써도 되나요?",
+      "answer" : null,
+      "elapsed_ms" : 853,
+      "reply" : "안전을 위해 제품 사용을 멈춰 주세요. 위험한 제품이나 전원부를 만지지 말고 안전한 곳에서 긴급 도움 또는 공식 상담을 요청하세요.\n겉이 말랐더라도 안전이 확인된 것은 아닙니다. 점검 전에는 다시 전원을 연결하거나 작동하지 말고 공식 점검을 요청하세요.\n위험한 이상이 지금도 계속되거나 손상·통증이 있나요?\n점검은 LG전자 고객센터(1544-7777)로 연결해 주세요. 확인 전까지 다시 사용하지 마세요.",
+      "state" : {
+        "riskStatus" : "SUSPECT",
+        "riskCase" : "RC09",
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : null,
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "OTHER",
+          "mentionedCategory" : null,
+          "symptomCandidates" : [ ],
+          "symptomText" : null,
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "NONE",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "G646GBB021",
+      "tools" : {
+        "safety" : {
+          "status" : "BLOCKED_BY_SAFETY",
+          "data" : {
+            "risk_status" : "SUSPECT",
+            "case_code" : "RC09",
+            "question" : "위험한 이상이 지금도 계속되거나 손상·통증이 있나요?",
+            "question_no" : 0
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 1,
+            "risk_source" : "AI"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "RISK",
+            "self_care_outcome" : "RISK",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 냉장고\n위험 확인: 확인 중\n등록 모델: G646GBB021\n자가조치 상태: 위험 확인 우선\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 냉장고", "위험 확인: 확인 중", "등록 모델: G646GBB021", "자가조치 상태: 위험 확인 우선", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 1,
+            "trace_id" : "4212c900-1267-49f4-88dc-39e9fdecbc7c",
+            "execution_source" : "SAFETY_POLICY"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : false,
+      "calls" : [ {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "SAFETY_POLICY",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 9
+      } ],
+      "checks" : [ {
+        "name" : "risk",
+        "passed" : true
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "no_cost",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : true
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  }, {
+    "id" : "holdout-refrigerator-cooling",
+    "expected_outcome" : "DATA_LIMIT",
+    "outcome" : "DATA_LIMIT",
+    "passed" : true,
+    "failures" : [ ],
+    "elapsed_ms" : 8331,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.",
+      "answer" : null,
+      "elapsed_ms" : 8320,
+      "reply" : "말씀하신 증상을 기준으로 확인했어요. 상담에서 확인한 증상은 ‘냉장·냉동이 잘되지 않아요’입니다.\n\n제조사 자료에는 다음과 같이 설명되어 있어요. 제조사 자료에는 ‘냉각 성능 저하’ 증상이 설명되어 있어요. 이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다. [제조사 설명서](https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45)\n\n자료에 나온 가능성과 현재 확인된 상태를 구분해 안내할게요. 제조사 자료에는 ‘냉장·냉동 정지’ 증상이 설명되어 있어요. 이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다. [제조사 설명서](https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45)\n\n다음 안내도 함께 확인해 주세요. 질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.\n\n현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 실행 승인은 미확인이며, 자가조치가 없다고 확정한 상태는 아닙니다. 원문 근거와 공식 상담 경로를 확인해 주세요.\n\n등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.\n\n대치서비스센터 · 서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층 · [센터 정보](https://www.lge.co.kr/support/find-service-center-252)\n\n공식 접수: [LG 출장 서비스 예약](https://www.lge.co.kr/support/service-engineer-reservation) · [전국 센터 찾기](https://www.lge.co.kr/support/find-service-center) · 고객센터 1544-7777. 실제 예약은 공식 채널에서 진행해 주세요.\n\n상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.",
+      "state" : {
+        "riskStatus" : "CLEAR",
+        "riskCase" : null,
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : "COOLING",
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "SYMPTOM",
+          "mentionedCategory" : "REFRIGERATOR",
+          "symptomCandidates" : [ {
+            "code" : "COOLING",
+            "confidence" : 0.9
+          } ],
+          "symptomText" : "냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.",
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "AI",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "S836MEE022",
+      "tools" : {
+        "consultation" : {
+          "status" : "OK",
+          "data" : {
+            "intent" : "SYMPTOM",
+            "symptom_code" : "COOLING",
+            "symptom_candidates" : [ {
+              "code" : "COOLING",
+              "confidence" : 0.9
+            } ],
+            "question" : null,
+            "answers" : { },
+            "done_steps" : [ ],
+            "self_care_reply" : null,
+            "closed" : false
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "interpretation_source" : "AI"
+          }
+        },
+        "search_knowledge" : {
+          "status" : "OK",
+          "data" : {
+            "safety_notices" : [ ],
+            "documents" : [ {
+              "content" : "냉장 & 냉동\n냉각 성능 저하",
+              "symptoms" : [ "냉각 성능 저하" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "보관 온도, 문 닫힘, 식품 배치와 주위 설치 환경을 확인한다." ],
+              "branches" : { },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_45",
+                  "topic_title" : "냉장 & 냉동",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "S836MEE022" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B15-MFL71401523-weak_cooling",
+              "title" : "냉장 & 냉동",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B15-MFL71401523-weak_cooling" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.702433506471031,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "냉장 & 냉동\n냉장·냉동 정지",
+              "symptoms" : [ "냉장·냉동 정지" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "정전 여부와 전원 플러그 연결을 확인한다." ],
+              "branches" : { },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_45",
+                  "topic_title" : "냉장 & 냉동",
+                  "block_index" : [ 0 ]
+                }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "S836MEE022" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B15-MFL71401523-no_cooling",
+              "title" : "냉장 & 냉동",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B15-MFL71401523-no_cooling" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6973498469130843,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            } ],
+            "model_code" : "S836MEE022",
+            "model_filter_status" : "EXACT",
+            "retrieval_version" : "B30-COST-V3-20261014-R5",
+            "retrieval_algorithm" : "manufacturer-hybrid-v1",
+            "retrieval_mode" : "HYBRID",
+            "index_status" : "READY",
+            "retrieval_elapsed_ms" : 201
+          },
+          "evidence" : [ {
+            "evidence_id" : "B15-MFL71401523-weak_cooling",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B15-MFL71401523-no_cooling",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "1e3fd799-23b1-43e3-aaf0-452c53b178c1"
+          }
+        },
+        "get_diagnostic_plan" : {
+          "status" : "NOT_VERIFIED",
+          "data" : {
+            "error_code" : null,
+            "symptom_code" : "COOLING",
+            "steps" : [ ],
+            "skipped_step_codes" : [ ],
+            "has_self_care" : false,
+            "skip_reason" : "NOT_VERIFIED",
+            "current_step" : 0,
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            },
+            "safety_notices" : [ ],
+            "references" : [ {
+              "content" : "냉장 & 냉동\n냉각 성능 저하",
+              "symptoms" : [ "냉각 성능 저하" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "보관 온도, 문 닫힘, 식품 배치와 주위 설치 환경을 확인한다." ],
+              "branches" : { },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_45",
+                  "topic_title" : "냉장 & 냉동",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "S836MEE022" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B15-MFL71401523-weak_cooling",
+              "title" : "냉장 & 냉동",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B15-MFL71401523-weak_cooling" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.702433506471031,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "냉장 & 냉동\n냉장·냉동 정지",
+              "symptoms" : [ "냉장·냉동 정지" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "정전 여부와 전원 플러그 연결을 확인한다." ],
+              "branches" : { },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_45",
+                  "topic_title" : "냉장 & 냉동",
+                  "block_index" : [ 0 ]
+                }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "S836MEE022" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B15-MFL71401523-no_cooling",
+              "title" : "냉장 & 냉동",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B15-MFL71401523-no_cooling" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6973498469130843,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            } ]
+          },
+          "evidence" : [ {
+            "evidence_id" : "B15-MFL71401523-weak_cooling",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B15-MFL71401523-no_cooling",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CNZ/MFL71401523/ko-kr/main.html#topic_45",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "모델별 실행 승인과 선행 조건이 확인되지 않아 원문 후보만 제공합니다. 임의 조치 방법을 만들지 않습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "15ae30db-2c68-45ca-8667-a047b68e1b22"
+          }
+        },
+        "check_warranty" : {
+          "status" : "OK",
+          "data" : {
+            "category" : "REFRIGERATOR",
+            "modelName" : "S836MEE022",
+            "asOfDate" : "2026-10-15",
+            "basisDate" : "2025-01-01",
+            "basisSource" : "PURCHASE",
+            "productWarranty" : {
+              "policyId" : "REFRIGERATOR_PRODUCT",
+              "scope" : "PRODUCT",
+              "name" : "제품 전체 보증",
+              "variant" : null,
+              "periodMonths" : 12,
+              "expiresOn" : "2026-01-01",
+              "periodStatus" : "EXPIRED",
+              "applicability" : "USER_DECLARED_CONDITIONAL",
+              "partFee" : "PAID",
+              "laborFee" : "PAID",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요" ]
+            },
+            "partWarranties" : [ {
+              "policyId" : "REFRIGERATOR_STANDARD_COMPRESSOR",
+              "scope" : "CORE_PART",
+              "name" : "일반 컴프레서",
+              "variant" : "STANDARD_COMPRESSOR",
+              "periodMonths" : 36,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요" ]
+            }, {
+              "policyId" : "REFRIGERATOR_INVERTER_COMPRESSOR",
+              "scope" : "CORE_PART",
+              "name" : "인버터 컴프레서",
+              "variant" : "INVERTER_COMPRESSOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2021-10-01 이후인지 확인 필요" ]
+            }, {
+              "policyId" : "REFRIGERATOR_LINEAR_COMPRESSOR",
+              "scope" : "CORE_PART",
+              "name" : "리니어 컴프레서",
+              "variant" : "LINEAR_COMPRESSOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2009-10-01 이후인지 확인 필요" ]
+            } ],
+            "headline" : "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.",
+            "notes" : [ "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.", "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.", "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.", "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.", "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다." ],
+            "policyVersion" : "LG-KR-2026-10-13-v2",
+            "sourceUrl" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "policyVerifiedOn" : "2026-10-13",
+            "coverage_periods" : {
+              "quality_warranty" : {
+                "label" : "품질보증기간",
+                "basis_label" : "구입일(배송일이 있으면 배송일) 기준",
+                "basis_date" : "2025-01-01",
+                "period_months" : 12,
+                "expires_on" : "2026-01-01",
+                "status" : "EXPIRED"
+              },
+              "parts_retention" : {
+                "label" : "부품보유기간",
+                "basis_label" : "제조일 기준",
+                "status" : "UNAVAILABLE",
+                "fact_ids" : [ ],
+                "reason" : "B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다."
+              }
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "b81af09d-10e2-4bc6-ba33-a99d4cdd7882",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "find_service_centers" : {
+          "status" : "OK",
+          "data" : {
+            "base_region" : {
+              "sido" : "서울",
+              "sigungu" : "강남구"
+            },
+            "region_source" : "PRODUCT_DELIVERY",
+            "fallback_level" : "SIGUNGU",
+            "centers" : [ {
+              "id" : 252,
+              "name" : "대치서비스센터",
+              "sido" : "서울",
+              "sigungu" : "강남구",
+              "address" : "서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층",
+              "phone" : null,
+              "hours" : "평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인",
+              "detail_url" : "https://www.lge.co.kr/support/find-service-center-252",
+              "base_date" : "2026-10-13"
+            } ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "CENTER_252",
+            "source_type" : "OFFICIAL_SERVICE",
+            "source_ref" : "https://www.lge.co.kr/support/find-service-center-252",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "같은 지역 센터이며 거리순이 아닙니다. 운영시간·접수 가능 제품은 공식 페이지에서 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "1d754444-12f6-43fe-9c6b-0e9a8fb82e4f",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "NOT_VERIFIED",
+            "self_care_outcome" : "NOT_VERIFIED",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 냉장고\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: S836MEE022\n확인한 증상: 냉장·냉동이 잘되지 않아요\n고객 증상 설명: 냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 냉장고", "위험 확인: 현재 감지된 위험 징후 없음", "등록 모델: S836MEE022", "확인한 증상: 냉장·냉동이 잘되지 않아요", "고객 증상 설명: 냉장고가 시원하지 않고 냉장칸 음식이 미지근해요.", "자가조치 상태: 실행 승인 미확인", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "57b137a9-c226-4255-88b2-a4c87fdab0c3",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "answer_generation" : {
+          "status" : "OK",
+          "data" : {
+            "mode" : "MODEL_GROUNDED",
+            "reason" : null,
+            "fact_ids" : [ "SYMPTOM", "REFERENCE_2", "REFERENCE_3", "TOOL_GUIDANCE" ],
+            "evidence_ids" : [ "B15-MFL71401523-weak_cooling", "B15-MFL71401523-no_cooling", "LG_WARRANTY", "CENTER_252" ]
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "elapsed_ms" : 1330,
+            "trace_id" : "9b3ba8c7-4496-4c44-a43c-50f5b8149890"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : true,
+      "calls" : [ {
+        "tool" : "search_knowledge",
+        "selection_source" : "MODEL",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 371
+      }, {
+        "tool" : "get_diagnostic_plan",
+        "selection_source" : "MODEL",
+        "status" : "NOT_VERIFIED",
+        "error_code" : null,
+        "elapsed_ms" : 182
+      }, {
+        "tool" : "check_warranty",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 183
+      }, {
+        "tool" : "find_service_centers",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 171
+      }, {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 171
+      } ],
+      "checks" : [ {
+        "name" : "symptom",
+        "passed" : true
+      }, {
+        "name" : "evidence",
+        "passed" : true
+      }, {
+        "name" : "exclude_evidence",
+        "passed" : true
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : true
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  }, {
+    "id" : "holdout-dishwasher-power",
+    "expected_outcome" : "DATA_LIMIT",
+    "outcome" : "FAILED",
+    "passed" : false,
+    "failures" : [ "turn 1: reply_contains" ],
+    "elapsed_ms" : 6939,
+    "turns" : [ {
+      "operation" : "chat",
+      "input" : "식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.",
+      "answer" : null,
+      "elapsed_ms" : 6933,
+      "reply" : "안전 주의: 관련 안전 문서가 있어요. 다른 안내보다 먼저 확인하고, 이상하면 사용을 멈춰 주세요.\n\n질문에 맞는 제조사 설명서 후보를 찾았어요. 모델 적용 조건과 안전 조건을 함께 확인해 주세요.\n\n현재 모델에서 직접 실행할 조치가 확인되지 않았습니다. 실행 승인은 미확인이며, 자가조치가 없다고 확정한 상태는 아닙니다. 원문 근거와 공식 상담 경로를 확인해 주세요.\n\n등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.\n\n대치서비스센터 · 서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층 · [센터 정보](https://www.lge.co.kr/support/find-service-center-252)\n\n공식 접수: [LG 출장 서비스 예약](https://www.lge.co.kr/support/service-engineer-reservation) · [전국 센터 찾기](https://www.lge.co.kr/support/find-service-center) · 고객센터 1544-7777. 실제 예약은 공식 채널에서 진행해 주세요.\n\n상담 요약을 준비했습니다. 아래 요약을 복사해 공식 채널에 전달할 수 있으며 아직 전송·예약하지 않았습니다.",
+      "state" : {
+        "riskStatus" : "CLEAR",
+        "riskCase" : null,
+        "riskQuestionNo" : 0,
+        "errorCode" : null,
+        "symptomCode" : "POWER",
+        "doneSteps" : [ ],
+        "currentStep" : 0,
+        "closed" : false,
+        "dialogue" : {
+          "intent" : "ERROR_CODE",
+          "mentionedCategory" : "DISHWASHER",
+          "symptomCandidates" : [ {
+            "code" : "POWER",
+            "confidence" : 0.9
+          } ],
+          "symptomText" : "식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.",
+          "pendingQuestion" : null,
+          "symptomQuestionCount" : 0,
+          "answers" : { },
+          "interpretationSource" : "AI",
+          "selfCareReply" : null
+        },
+        "selfCare" : {
+          "scope" : null,
+          "conditions" : { },
+          "results" : { }
+        }
+      },
+      "selected_model" : "DUE6BGL2E",
+      "tools" : {
+        "consultation" : {
+          "status" : "OK",
+          "data" : {
+            "intent" : "ERROR_CODE",
+            "symptom_code" : "POWER",
+            "symptom_candidates" : [ {
+              "code" : "POWER",
+              "confidence" : 0.9
+            } ],
+            "question" : null,
+            "answers" : { },
+            "done_steps" : [ ],
+            "self_care_reply" : null,
+            "closed" : false
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "interpretation_source" : "AI"
+          }
+        },
+        "search_knowledge" : {
+          "status" : "OK",
+          "data" : {
+            "safety_notices" : [ {
+              "content" : "제조사 참고 자료\n손상된 전원선·플러그 또는 헐거운 콘센트\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "손상된 전원선·플러그 또는 헐거운 콘센트" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "사용하지 말고 LG전자 서비스센터1544-7777 연락." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-074",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-074" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6378559557568964,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제조사 참고 자료\n젖은 손으로 전원 플러그 접촉\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "젖은 손으로 전원 플러그 접촉" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "젖은 손으로 전원 플러그를 만지지 않기." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-073",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-073" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6321255368950252,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            } ],
+            "documents" : [ {
+              "content" : "사용 관련\n제품에 전원이 들어오지 않아요.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "전원 버튼을 누른다. / 플러그 연결을 확인한다. / 차단기를 확인한다. / 다른 콘센트의 제품이 동작하는지 확인한다. / 16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "전원이 꺼진 경우",
+                  "action_summary" : "전원 버튼을 누른다.",
+                  "evidence_terms" : [ "전원 버튼" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "플러그가 빠진 경우",
+                  "action_summary" : "플러그 연결을 확인한다.",
+                  "evidence_terms" : [ "플러그" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "차단기가 꺼진 경우",
+                  "action_summary" : "차단기를 확인한다.",
+                  "evidence_terms" : [ "차단기" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "정전이 의심되는 경우",
+                  "action_summary" : "다른 콘센트의 제품이 동작하는지 확인한다.",
+                  "evidence_terms" : [ "다른 콘센트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "멀티탭 용량이 부족한 경우",
+                  "action_summary" : "16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다.",
+                  "evidence_terms" : [ "16 A", "전용" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_64",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71959117-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGE", "DUE6BGL1E", "DUE6BGL2E", "DUE6EWL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71959117-topic_64-001",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71959117-topic_64-001" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7529438809679011,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제품에 전원이 들어오지 않아요\n제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함\n적용 조건: 모델 DUE6BGL2E 확인 / 실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용. / 실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요" ],
+              "error_codes" : [ ],
+              "causes" : [ "제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함" ],
+              "action_descriptions" : [ ],
+              "branches" : {
+                "cause_branches" : [ {
+                  "printed_page" : 47,
+                  "condition" : "제품 전원이 꺼져 있음",
+                  "user_action" : "제품 전원 버튼 누르기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-01",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-01",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "전원 플러그가 콘센트에서 빠짐",
+                  "user_action" : "전원 플러그를 콘센트에 바르게 끼우기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-02",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-02",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "누전 차단기가 OFF임",
+                  "user_action" : "누전 차단기를 ON으로 변경.",
+                  "explanation" : "",
+                  "author_rule_refs" : [ "ordinary_power_action_gate", "hazard_first" ],
+                  "source_branch_id" : "MFL71959117-07-no_power-03",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-03",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "정전으로 전기 공급이 끊김",
+                  "user_action" : "다른 콘센트에 연결된 제품이 작동하는지 확인.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-04",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-04",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함",
+                  "user_action" : "16A 이상 멀티 콘센트로 교체하고 식기세척기 전용으로 사용.",
+                  "explanation" : "",
+                  "numeric_evidence" : [ {
+                    "value" : 16,
+                    "unit" : "A",
+                    "qualifier" : "이상",
+                    "applies_to" : "멀티 콘센트 정격 전류"
+                  } ],
+                  "source_branch_id" : "MFL71959117-07-no_power-05",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-05",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                } ]
+              },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T3-091",
+              "title" : "제품에 전원이 들어오지 않아요",
+              "record_type" : "T3_symptoms",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "T3-091" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7254557773676211,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "supplements" : [ ]
+            } ],
+            "model_code" : "DUE6BGL2E",
+            "model_filter_status" : "EXACT",
+            "retrieval_version" : "B30-COST-V3-20261014-R5",
+            "retrieval_algorithm" : "manufacturer-hybrid-v1",
+            "retrieval_mode" : "HYBRID",
+            "index_status" : "READY",
+            "retrieval_elapsed_ms" : 241
+          },
+          "evidence" : [ {
+            "evidence_id" : "T4-074",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T4-073",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B17-MFL71959117-topic_64-001",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T3-091",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "안전 주의 문서가 있습니다. 다른 안내보다 먼저 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "d8c1fa22-13d6-40b0-b194-e79a454a06ff"
+          }
+        },
+        "get_diagnostic_plan" : {
+          "status" : "NOT_VERIFIED",
+          "data" : {
+            "error_code" : null,
+            "symptom_code" : "POWER",
+            "steps" : [ ],
+            "skipped_step_codes" : [ ],
+            "has_self_care" : false,
+            "skip_reason" : "NOT_VERIFIED",
+            "current_step" : 0,
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            },
+            "safety_notices" : [ {
+              "content" : "제조사 참고 자료\n손상된 전원선·플러그 또는 헐거운 콘센트\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "손상된 전원선·플러그 또는 헐거운 콘센트" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "사용하지 말고 LG전자 서비스센터1544-7777 연락." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-074",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-074" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6378559557568964,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제조사 참고 자료\n젖은 손으로 전원 플러그 접촉\n적용 조건: 모델 DUE6BGL2E 확인 / 해당 위험/작업 조건 확인 / 가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인\n주의사항: 개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음.",
+              "symptoms" : [ "젖은 손으로 전원 플러그 접촉" ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "젖은 손으로 전원 플러그를 만지지 않기." ],
+              "branches" : { },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "warnings" : [ "개별 조건의 제조사 지침만 사용. 가스 비접촉·침수 중단·젖은손 접촉금지와 전기부품 물유입/청소 플러그분리 지침을 한행동으로 합치지 않음." ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T4-073",
+              "title" : "제조사 참고 자료",
+              "record_type" : "T4_safety",
+              "topic" : "SAFETY",
+              "evidence_ids" : [ "T4-073" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.6321255368950252,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "해당 위험/작업 조건 확인", "가스·침수·젖은손 등 다른 위험도 함께 있으면 조치를 합성하지 않고 일치하는 안전 근거부터 확인" ],
+              "supplements" : [ ]
+            } ],
+            "references" : [ {
+              "content" : "사용 관련\n제품에 전원이 들어오지 않아요.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요." ],
+              "error_codes" : [ ],
+              "causes" : [ ],
+              "action_descriptions" : [ "전원 버튼을 누른다. / 플러그 연결을 확인한다. / 차단기를 확인한다. / 다른 콘센트의 제품이 동작하는지 확인한다. / 16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다." ],
+              "branches" : {
+                "action_branches" : [ {
+                  "condition_summary" : "전원이 꺼진 경우",
+                  "action_summary" : "전원 버튼을 누른다.",
+                  "evidence_terms" : [ "전원 버튼" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "플러그가 빠진 경우",
+                  "action_summary" : "플러그 연결을 확인한다.",
+                  "evidence_terms" : [ "플러그" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "차단기가 꺼진 경우",
+                  "action_summary" : "차단기를 확인한다.",
+                  "evidence_terms" : [ "차단기" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "정전이 의심되는 경우",
+                  "action_summary" : "다른 콘센트의 제품이 동작하는지 확인한다.",
+                  "evidence_terms" : [ "다른 콘센트" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                }, {
+                  "condition_summary" : "멀티탭 용량이 부족한 경우",
+                  "action_summary" : "16A 이상이며 식기세척기 전용으로 사용하는 설명서 조건을 확인한다.",
+                  "evidence_terms" : [ "16 A", "전용" ],
+                  "disposition" : "selfcare",
+                  "feature_gate" : null,
+                  "approved_model_codes" : [ "DUE6BGL1E", "DUE6EWL2E", "DUE6BGL2E", "DUE6BGE" ],
+                  "conditional_model_codes" : [ ],
+                  "applicability_conditions" : [ ]
+                } ]
+              },
+              "preconditions" : [ ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+                "role" : "PRIMARY",
+                "locator" : {
+                  "topic_id" : "topic_64",
+                  "topic_title" : "사용 관련",
+                  "block_index" : [ 1 ]
+                }
+              } ],
+              "relationships" : [ {
+                "relation" : "safety_override_fact_ids",
+                "documentIds" : [ "B15-MFL71959117-safety" ],
+                "conditions" : [ ]
+              } ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGE", "DUE6BGL1E", "DUE6BGL2E", "DUE6EWL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "B17-MFL71959117-topic_64-001",
+              "title" : "사용 관련",
+              "record_type" : "selfcare_summary",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "B17-MFL71959117-topic_64-001" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7529438809679011,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ ],
+              "supplements" : [ ]
+            }, {
+              "content" : "제품에 전원이 들어오지 않아요\n제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함\n적용 조건: 모델 DUE6BGL2E 확인 / 실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용. / 실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류.",
+              "symptoms" : [ "제품에 전원이 들어오지 않아요" ],
+              "error_codes" : [ ],
+              "causes" : [ "제품 전원이 꺼져 있음;전원 플러그가 콘센트에서 빠짐;누전 차단기가 OFF임;정전으로 전기 공급이 끊김;멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함" ],
+              "action_descriptions" : [ ],
+              "branches" : {
+                "cause_branches" : [ {
+                  "printed_page" : 47,
+                  "condition" : "제품 전원이 꺼져 있음",
+                  "user_action" : "제품 전원 버튼 누르기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-01",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-01",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "전원 플러그가 콘센트에서 빠짐",
+                  "user_action" : "전원 플러그를 콘센트에 바르게 끼우기.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-02",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-02",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "누전 차단기가 OFF임",
+                  "user_action" : "누전 차단기를 ON으로 변경.",
+                  "explanation" : "",
+                  "author_rule_refs" : [ "ordinary_power_action_gate", "hazard_first" ],
+                  "source_branch_id" : "MFL71959117-07-no_power-03",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-03",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "정전으로 전기 공급이 끊김",
+                  "user_action" : "다른 콘센트에 연결된 제품이 작동하는지 확인.",
+                  "explanation" : "",
+                  "source_branch_id" : "MFL71959117-07-no_power-04",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-04",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                }, {
+                  "printed_page" : 47,
+                  "condition" : "멀티 콘센트 전원이 꺼져 있거나 전류 용량이 부족함",
+                  "user_action" : "16A 이상 멀티 콘센트로 교체하고 식기세척기 전용으로 사용.",
+                  "explanation" : "",
+                  "numeric_evidence" : [ {
+                    "value" : 16,
+                    "unit" : "A",
+                    "qualifier" : "이상",
+                    "applies_to" : "멀티 콘센트 정격 전류"
+                  } ],
+                  "source_branch_id" : "MFL71959117-07-no_power-05",
+                  "source_url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                  "condition_required" : true,
+                  "action_kind" : "corrective_action",
+                  "id" : "DUE6BGL2E-no_power-05",
+                  "model_name" : "DUE6BGL2E",
+                  "parent_record_id" : "T3-091",
+                  "group_key" : "no_power",
+                  "runtime_eligible" : true,
+                  "model_application_verified" : true,
+                  "pdf_evidence_ref" : "data/manual_pdf_cross_checks_v10.json",
+                  "required_features" : [ ],
+                  "product_feature_evidence_ref" : "data/dishwasher_product_specs_v07.json",
+                  "conditional_actions" : [ ],
+                  "contact_target" : "",
+                  "source_urls" : [ "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47" ],
+                  "author_rule_refs" : [ "hazard_first" ],
+                  "verified_fields" : [ "condition", "user_action" ]
+                } ]
+              },
+              "preconditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "warnings" : [ ],
+              "official_sources" : [ {
+                "url" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+                "role" : "PRIMARY",
+                "locator" : { }
+              } ],
+              "relationships" : [ ],
+              "requirements" : { },
+              "reference_details" : { },
+              "model_applicability" : {
+                "original_model_codes" : [ "DUE6BGL2E" ]
+              },
+              "is_action_approved" : false,
+              "document_id" : "T3-091",
+              "title" : "제품에 전원이 들어오지 않아요",
+              "record_type" : "T3_symptoms",
+              "topic" : "MANUAL",
+              "evidence_ids" : [ "T3-091" ],
+              "applicability_status" : "MODEL_LISTED",
+              "applicability_basis" : "ORIGINAL_MODEL_LIST",
+              "scope_basis" : "MODEL_LIST",
+              "retrieval_match" : "HYBRID",
+              "semantic_similarity" : 0.7254557773676211,
+              "has_qa_review" : false,
+              "has_applicability_update" : false,
+              "conditions" : [ "모델 DUE6BGL2E 확인", "실제 원인 셀 조건·세척 단계·설정 확인. 선택한 원인의 조치만 사용.", "실제 위험은 일치하는 모델 안전 근거 우선. 일치 근거 없으면 일반 조치 보류." ],
+              "supplements" : [ ]
+            } ]
+          },
+          "evidence" : [ {
+            "evidence_id" : "T4-074",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T4-073",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=4",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "B17-MFL71959117-topic_64-001",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-manual.lge.com/CDZ/MFL71959117/ko-kr/main.html#topic_64",
+            "base_date" : "2026-10-08",
+            "applicability_status" : "MODEL_LISTED"
+          }, {
+            "evidence_id" : "T3-091",
+            "source_type" : "OFFICIAL_MANUAL",
+            "source_ref" : "https://gscs-b2c.lge.com/open/downloadFile?fileId=47eEeOZ5yQ3pVzw1uosMxg#page=47",
+            "base_date" : "2026-10-06",
+            "applicability_status" : "MODEL_LISTED"
+          } ],
+          "warnings" : [ "모델별 실행 승인과 선행 조건이 확인되지 않아 원문 후보만 제공합니다. 임의 조치 방법을 만들지 않습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "a723ac38-3e22-4526-a9ac-7cd002b86eb0",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "check_warranty" : {
+          "status" : "OK",
+          "data" : {
+            "category" : "DISHWASHER",
+            "modelName" : "DUE6BGL2E",
+            "asOfDate" : "2026-10-15",
+            "basisDate" : "2025-01-01",
+            "basisSource" : "PURCHASE",
+            "productWarranty" : {
+              "policyId" : "DISHWASHER_PRODUCT",
+              "scope" : "PRODUCT",
+              "name" : "제품 전체 보증",
+              "variant" : null,
+              "periodMonths" : 12,
+              "expiresOn" : "2026-01-01",
+              "periodStatus" : "EXPIRED",
+              "applicability" : "USER_DECLARED_CONDITIONAL",
+              "partFee" : "PAID",
+              "laborFee" : "PAID",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "국내 신품의 가정용 정상 사용과 구입 증빙 확인 필요" ]
+            },
+            "partWarranties" : [ {
+              "policyId" : "DISHWASHER_STANDARD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "일반 모터",
+              "variant" : "STANDARD_MOTOR",
+              "periodMonths" : 12,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요" ]
+            }, {
+              "policyId" : "DISHWASHER_DD_MOTOR",
+              "scope" : "CORE_PART",
+              "name" : "DD모터",
+              "variant" : "DD_MOTOR",
+              "periodMonths" : 120,
+              "expiresOn" : null,
+              "periodStatus" : "UNKNOWN",
+              "applicability" : "NEEDS_CONFIRMATION",
+              "partFee" : "CONFIRM_REQUIRED",
+              "laborFee" : "CONFIRM_REQUIRED",
+              "visitFee" : "CONFIRM_REQUIRED",
+              "conditions" : [ "해당 부품을 사용하는 모델인지 확인 필요", "생산일이 2010-01-01 이후인지 확인 필요" ]
+            } ],
+            "headline" : "제품 전체 보증은 만료됐습니다. 주요 부품별 별도 보증 여부를 확인하세요.",
+            "notes" : [ "제품 전체 보증은 일반적인 고장에 적용됩니다. 주요 부품의 별도 보증은 명시된 부품에만 적용됩니다.", "제품 전체 보증이 끝나도 해당 주요 부품 보증은 남아 있을 수 있습니다. 다른 부품까지 기간이 연장되지는 않습니다.", "기간 계산과 실제 무상 수리 승인은 다릅니다. 정상 사용 여부·고장 부품·구입 증빙·모델 적용 조건은 점검 시 확인합니다.", "주요 부품 보증의 부품비·기술료·출장비는 별도로 확인합니다. 확인되지 않은 출장비를 0원으로 계산하지 않습니다.", "주요 부품 유형을 모르면 가능한 정책을 보여 드립니다. 모든 정책이 이 제품에 적용되는 것은 아닙니다." ],
+            "policyVersion" : "LG-KR-2026-10-13-v2",
+            "sourceUrl" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "policyVerifiedOn" : "2026-10-13",
+            "coverage_periods" : {
+              "quality_warranty" : {
+                "label" : "품질보증기간",
+                "basis_label" : "구입일(배송일이 있으면 배송일) 기준",
+                "basis_date" : "2025-01-01",
+                "period_months" : 12,
+                "expires_on" : "2026-01-01",
+                "status" : "EXPIRED"
+              },
+              "parts_retention" : {
+                "label" : "부품보유기간",
+                "basis_label" : "제조일 기준",
+                "status" : "UNAVAILABLE",
+                "fact_ids" : [ ],
+                "reason" : "B30 원본 자료를 확인하기 전에는 부품보유기간 값을 제공하지 않습니다."
+              }
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "aa8a19ca-a249-4b65-8b83-af816bdc95a0",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "find_service_centers" : {
+          "status" : "OK",
+          "data" : {
+            "base_region" : {
+              "sido" : "서울",
+              "sigungu" : "강남구"
+            },
+            "region_source" : "PRODUCT_DELIVERY",
+            "fallback_level" : "SIGUNGU",
+            "centers" : [ {
+              "id" : 252,
+              "name" : "대치서비스센터",
+              "sido" : "서울",
+              "sigungu" : "강남구",
+              "address" : "서울특별시 강남구 영동대로 202 LG BEST SHOP 대치본점 5층",
+              "phone" : null,
+              "hours" : "평일 09:00~18:00, 토요일 09:00~13:00; 휴무·점심시간은 공식 페이지 확인",
+              "detail_url" : "https://www.lge.co.kr/support/find-service-center-252",
+              "base_date" : "2026-10-13"
+            } ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "CENTER_252",
+            "source_type" : "OFFICIAL_SERVICE",
+            "source_ref" : "https://www.lge.co.kr/support/find-service-center-252",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "같은 지역 센터이며 거리순이 아닙니다. 운영시간·접수 가능 제품은 공식 페이지에서 확인하세요." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "e73a7ba6-98ae-49d1-a4ea-5d04bab0debc",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "prepare_service_handoff" : {
+          "status" : "OK",
+          "data" : {
+            "reason" : "NOT_VERIFIED",
+            "self_care_outcome" : "NOT_VERIFIED",
+            "delivery_status" : "PREPARED_ONLY",
+            "summary_text" : "품목: 식기세척기\n위험 확인: 현재 감지된 위험 징후 없음\n등록 모델: DUE6BGL2E\n확인한 증상: 전원이 켜지지 않아요\n고객 증상 설명: 식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.\n자가조치 상태: 실행 승인 미확인\n제품 전체 보증: 기간 만료\n주요 부품 보증은 해당 부품·모델 조건 별도 확인",
+            "known_facts" : [ "품목: 식기세척기", "위험 확인: 현재 감지된 위험 징후 없음", "등록 모델: DUE6BGL2E", "확인한 증상: 전원이 켜지지 않아요", "고객 증상 설명: 식기세척기 전원 버튼을 눌러도 표시창이 전혀 켜지지 않아요.", "자가조치 상태: 실행 승인 미확인", "제품 전체 보증: 기간 만료", "주요 부품 보증은 해당 부품·모델 조건 별도 확인" ],
+            "unknown_facts" : [ "엔지니어 최종 진단", "개인별 실제 무상 승인", "실제 청구 금액" ],
+            "route" : {
+              "apply_url" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "phone" : "1544-7777",
+              "center_finder_url" : "https://www.lge.co.kr/support/find-service-center",
+              "notice" : "예약·상담은 공식 채널에서 진행합니다. 이 서비스에서 실제 예약을 접수하지 않습니다.",
+              "source" : "https://www.lge.co.kr/support/service-engineer-reservation",
+              "base_date" : "2026-10-13"
+            }
+          },
+          "evidence" : [ {
+            "evidence_id" : "LG_WARRANTY",
+            "source_type" : "OFFICIAL_POLICY",
+            "source_ref" : "https://www.lge.co.kr/support/rates-warranty-guide",
+            "base_date" : "2026-10-13",
+            "applicability_status" : "CONDITIONAL"
+          } ],
+          "warnings" : [ "상담 요약 준비이며 외부에 전송하거나 예약하지 않았습니다." ],
+          "meta" : {
+            "contract_version" : "3.0.0",
+            "data_version" : "B30-COST-V3-20261014-R5",
+            "context_version" : 2,
+            "trace_id" : "a7e4c3b9-ece7-4650-8d67-92a1a1837685",
+            "selection_source" : "POLICY_FALLBACK"
+          }
+        },
+        "answer_generation" : {
+          "status" : "ERROR",
+          "data" : {
+            "mode" : "FIXED_FALLBACK",
+            "reason" : "SAFETY_GUIDANCE_REQUIRED",
+            "fact_ids" : [ ],
+            "evidence_ids" : [ ]
+          },
+          "evidence" : [ ],
+          "warnings" : [ ],
+          "meta" : {
+            "context_version" : 2,
+            "elapsed_ms" : 0,
+            "trace_id" : "cb5c163a-38b9-4fd3-9303-063ad5a8912b"
+          }
+        }
+      },
+      "model_tool_selection_applicable" : true,
+      "calls" : [ {
+        "tool" : "search_knowledge",
+        "selection_source" : "MODEL",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 417
+      }, {
+        "tool" : "get_diagnostic_plan",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "NOT_VERIFIED",
+        "error_code" : null,
+        "elapsed_ms" : 187
+      }, {
+        "tool" : "check_warranty",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 163
+      }, {
+        "tool" : "find_service_centers",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 176
+      }, {
+        "tool" : "prepare_service_handoff",
+        "selection_source" : "POLICY_FALLBACK",
+        "status" : "OK",
+        "error_code" : null,
+        "elapsed_ms" : 180
+      } ],
+      "checks" : [ {
+        "name" : "symptom",
+        "passed" : true
+      }, {
+        "name" : "risk",
+        "passed" : true
+      }, {
+        "name" : "no_steps",
+        "passed" : true
+      }, {
+        "name" : "no_cost",
+        "passed" : true
+      }, {
+        "name" : "reply_contains",
+        "passed" : false
+      }, {
+        "name" : "history_matches_reply",
+        "passed" : true
+      }, {
+        "name" : "history_matches_tool_names",
+        "passed" : true
+      }, {
+        "name" : "tool_call_budget",
+        "passed" : true
+      } ]
+    } ],
+    "semantic_review_required" : true
+  } ]
+}

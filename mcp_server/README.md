@@ -8,6 +8,8 @@
 
 6단계는 [원인 후보·비용·보증·공식 서비스 연결](../docs/mcp/repair_followup.md)에 정리했습니다. 비용 입력은 후보 묶음·연결 근거·확신도·국내 사례 수를 확인하고 자료 부족은 NO_DATA로 반환합니다. 새 연결 사유 NOT_VERIFIED·NO_SELF_CARE·PRECONDITION_UNCONFIRMED를 보존하며 실제 예약·전송을 수행하지 않습니다.
 
+8단계의 [실제 상담·답변 검증](../docs/mcp/consultation_validation.md)은 별도 포트의 실제 FastMCP·Spring HTTP/JWT와 격리 H2를 사용합니다. 모델은 Spring에서만 호출하며 이 서버에 키를 전달하지 않습니다. 분류·호출 성공과 실제 질문에 대한 설명·다음 행동을 구분해 평가하고, 현재 도구 9개의 입력/출력 계약은 유지합니다.
+
 ## 폴더 구조
 
 ```text
