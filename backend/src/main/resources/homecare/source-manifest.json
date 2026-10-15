@@ -114,7 +114,8 @@
     "homecare/repair-cases.json": "a5338d955b09046ec0b16f3a9625b7955c763aae07dc722e474e6078745f932f",
     "warranty/policies.json": "64e0ddd365f5e363256714ef9664857ed08bb13f7f386f733dae26e11151bf3f",
     "homecare/knowledge-structured.json": "f9dcb55361e54724f870b24c794714f7a713567b2ef77337c1ddefa759523c2e",
-    "homecare/symptom-parts.json": "4bc3cc65ce24f87150d120ede8fd32468b2948ca9f87e2e3ea220cf655e1bbc9"
+    "homecare/symptom-parts.json": "f6fc3bc6d23bc91bc7f1903a0da9c00efe90fe538bedb07e585226ce87d0f134",
+    "homecare/error-guides.json": "37a916d7dd018f7d755e51b4d8bcc17c95b20a5285479a2043d83d5a4e1141c2"
   },
   "structuredKnowledgeCount": 1542,
   "knowledgeProjection": {
@@ -175,9 +176,20 @@
     "bulkModelApprovalAllowed": false
   },
   "symptomParts": {
-    "version": "SYMPTOM-PARTS-V1-20261015",
+    "version": "SYMPTOM-PARTS-V3-20261015",
     "evidenceFile": "수리비_정규화_과정/증상_부품_근거_v1.csv",
-    "evidenceSha256": "1717af20a61bfabebe82686648cd645e077b4128dd395ace9bf5d85382d3d1dc",
-    "links": 45
+    "evidenceSha256": "10d488f7f16530d336e20229e6d8f5b6525ebee8a664a7914a3f478afd36b9e4",
+    "observationFile": "수리비_정규화_과정/관찰_부품_근거_v1.csv",
+    "observationSha256": "033913e298e3ec56a3ab56ff320b47227807ed61dc6e0da59aeca7a1835f6d31",
+    "guideTable": "수리비_정규화_과정/오류코드_공식안내_v1.csv",
+    "guideTableSha256": "d704dfa92eadfe5eb6dec4d2c266626fe2153b069013492d259ddad74382a724",
+    "links": 71
+  },
+  "errorGuides": {
+    "version": "ERROR-GUIDES-V1-20261015",
+    "table": "수리비_정규화_과정/오류코드_공식안내_v1.csv",
+    "tableSha256": "d704dfa92eadfe5eb6dec4d2c266626fe2153b069013492d259ddad74382a724",
+    "entries": 178,
+    "items": 339
   }
 }
