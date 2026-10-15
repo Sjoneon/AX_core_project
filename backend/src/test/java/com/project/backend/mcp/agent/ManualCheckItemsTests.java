@@ -23,12 +23,19 @@ class ManualCheckItemsTests {
     @Test void stepsAreWholeSentencesForChecksAndCustomerVisibleSituations(){
         var cooling=ManualCheckItems.sentences(List.of(catalog.structuredKnowledgeById.get("B15-MFL71401523-no_cooling"),catalog.structuredKnowledgeById.get("B15-MFL71401523-weak_cooling")));
         assertThat(cooling).containsExactly("정전 여부와 전원 플러그 연결을 확인해 주세요.","보관 온도를 확인해 주세요.","문 닫힘을 확인해 주세요.","식품 배치를 확인해 주세요.","주위 설치 환경을 확인해 주세요.");
+        // A customer cannot know what a transport bolt is, so only the level check is asked.
         assertThat(ManualCheckItems.sentences(List.of(catalog.structuredKnowledgeById.get("B17-MFL71792818-topic_66-009"))))
-                .containsExactly("운송용 고정볼트가 남은 경우에 해당하는지 확인해 주세요.","제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요.");
+                .containsExactly("제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요.");
         assertThat(ManualCheckItems.conditions(catalog.structuredKnowledgeById.get("B16-MFL71401523-topic_46-000"))).containsExactly("냄새가 강한 식품을 넣은 경우","채소가 상한 경우");
         var all=new ArrayList<String>();
         for(var source:catalog.knowledge)if("MANUAL".equals(text(source,"topic")))all.addAll(ManualCheckItems.conditions(catalog.structuredKnowledgeById.get(text(source,"id"))));
         assertThat(all).isNotEmpty().allSatisfy(c->assertThat(c).endsWith("경우").doesNotContainPattern("분해|교체|부품|센서|모터|공유기"));
+    }
+    @Test void noStepUsesWordsACustomerWouldNotKnow(){
+        var all=new ArrayList<String>();
+        for(var source:catalog.knowledge)if("MANUAL".equals(text(source,"topic")))all.addAll(ManualCheckItems.sentences(List.of(catalog.structuredKnowledgeById.get(text(source,"id")))));
+        assertThat(all).isNotEmpty().contains("급수압이 낮은 경우에 해당하는지 확인해 주세요.","급수구 거름망과 수압을 확인해 주세요.")
+                .noneMatch(step->step.matches(".*(고정볼트|경도|연수).*"));
     }
     @Test void refrigeratorCoolingFactsKeepChecksAndDropOperatingSteps(){
         assertThat(ManualCheckItems.of(catalog.structuredKnowledgeById.get("B15-MFL71401523-weak_cooling"))).containsExactly("보관 온도, 문 닫힘, 식품 배치와 주위 설치 환경");
