@@ -391,6 +391,7 @@ class McpIntegrationTests {
         assertThat(steps.get("data").get("type").asText()).isEqualTo("SELF_CHECK");
         assertThat(JSON.convertValue(steps.get("data").get("steps"),List.class)).hasSize(5).first().isEqualTo("정전 여부와 전원 플러그 연결을 확인해 주세요.");
         assertThat(steps.toString()).doesNotContain("제조사 자료","승인","제조사 설명서");
+        assertThat(steps.get("data").get("questions").findValuesAsString("id")).containsExactly("DISPLAY","SOUND","FROST");
         long version=steps.get("meta").get("context_version").asLong();
         // The browser walks the steps; one request outside the chat rate limit carries only the outcome.
         Function<Map<String,Object>,java.net.http.HttpResponse<String>> outcome=body->{
@@ -401,7 +402,8 @@ class McpIntegrationTests {
             }catch(Exception error){throw new IllegalStateException(error);}
         };
         assertThat(outcome.apply(map("result","NOT_RESOLVED","step",2,"context_version",version)).statusCode()).isEqualTo(400);
-        var finished=outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version));
+        assertThat(outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version,"observations",map("SOUND","MAYBE"))).statusCode()).isEqualTo(400);
+        var finished=outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version,"observations",map("DISPLAY","NORMAL","SOUND","NO","FROST","NONE")));
         assertThat(finished.statusCode()).isEqualTo(200);
         assertThat(outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version)).statusCode()).isEqualTo(409);
         var response=JSON.readTree(finished.body());
@@ -410,8 +412,16 @@ class McpIntegrationTests {
         assertThat(card.get("type").asText()).isEqualTo("SUMMARY");
         assertThat(card.get("estimate").get("base").get("min").asInt()).isEqualTo(48195);
         assertThat(card.get("estimate").get("separate").get(0).get("name").asText()).isEqualTo("컴프레서");
+        // No running sound narrows the range to the board and the compressor; the whole range stays.
+        var narrowed=card.get("estimate").get("narrowed");
+        assertThat(narrowed.get("base").get("min").asInt()).isEqualTo(99615);
+        assertThat(JSON.convertValue(narrowed.get("base").get("parts"),List.class)).containsExactly("메인 PCB");
+        assertThat(card.get("estimate").get("overall").get("max").asInt()).isEqualTo(427509);
+        assertThat(JSON.convertValue(card.get("observations"),List.class)).containsExactly("표시창: 평소처럼 켜져 있어요","작동 소리: 소리가 안 나요","냉동실 성에: 없어요");
+        assertThat(card.get("error_code_seen").asBoolean()).isFalse();
         assertThat(card.get("warranty").get("status").asText()).isEqualTo("IN_WARRANTY");
-        assertThat(response.get("tools").get("prepare_service_handoff").get("data").get("summary_text").asText()).contains("냉장·냉동 모두 전혀 차갑지 않음");
+        assertThat(response.get("tools").get("prepare_service_handoff").get("data").get("summary_text").asText()).contains("냉장·냉동 모두 전혀 차갑지 않음")
+                .contains("고객이 확인한 관찰: 표시창: 평소처럼 켜져 있어요, 작동 소리: 소리가 안 나요, 냉동실 성에: 없어요");
         var checked=response.get("warranty");
         assertThat(checked.get("basisSource").asText()).isEqualTo("PURCHASE");
         assertThat(checked.get("basisDate").asText()).isEqualTo("2026-05-05");
@@ -779,6 +789,56 @@ class McpIntegrationTests {
         assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("skip_reason","RESOLVED");
         assertThat(modelCalls.get()).isZero();
     }
+    @SuppressWarnings("unchecked") static Map<String,Object> stringMap(Object value){return (Map<String,Object>)value;}
+    @Test void aDisplayedErrorFollowsLgGuidanceAndTheSummaryKeepsItsCauseAndContactLine(){
+        String email="error-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        var fridge=new WarrantyModels.Request(ProductCategory.REFRIGERATOR,"S836MEE022",LocalDate.of(2026,5,5),null,null,null,null,true,true);
+        products.create(email,new UserProductService.Create("오류 검증 냉장고",fridge,"서울","강남구"));
+        interpretations.add(decision("ERROR_CODE",null,List.of(),List.of(),null));
+        var first=agent.chat(new ChatRequest("ER FF 표시가 떠요",null,ProductCategory.REFRIGERATOR,null,null),email,token(email));
+        assertThat(first.reply()).isEqualTo("‘ER FF’(냉동실 팬 이상) 표시로 확인했어요. LG 안내에 따라 하나씩 확인해 주세요.");
+        var card=first.tools().get("card");
+        assertThat(card.data()).containsEntry("source","LG_ERROR_GUIDE").containsEntry("questions",List.of());
+        assertThat((List<?>)card.data().get("steps")).hasSize(3);
+        long version=((Number)card.meta().get("context_version")).longValue();
+        var summary=agent.answerSelfCheck(first.conversationId(),email,"NOT_RESOLVED",3,version,null);
+        assertThat(summary.reply()).startsWith("안내한 항목을 모두 확인했지만 해결되지 않았어요.");
+        var data=summary.tools().get("card").data();
+        assertThat(stringMap(data.get("official"))).containsEntry("meaning","냉동실 팬 이상").containsEntry("cause","팬 주변 결빙 또는 팬 모터 이상 가능")
+                .containsEntry("contact",List.of("지속되면 LG 문의하세요."));
+        assertThat(((Map<?,?>)((Map<?,?>)data.get("estimate")).get("base")).get("parts")).isEqualTo(List.of("증발기(냉동실) 팬모터"));
+        // A washer showing a text message reaches the same canonical code; a contact-only message goes straight to the summary.
+        String owner2="error-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(owner2,"unused","USER"));
+        var washer=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
+        products.create(owner2,new UserProductService.Create("오류 검증 세탁기",washer,"서울","강남구"));
+        interpretations.add(decision("ERROR_CODE",null,List.of(),List.of(),null));
+        var level=agent.chat(new ChatRequest("물높이 감지 안됨이라고 떠요",null,ProductCategory.WASHER,null,null),owner2,token(owner2));
+        assertThat(consultations.snapshot(owner2,level.conversationId()).state().errorCode()).isEqualTo("PE");
+        assertThat(level.reply()).startsWith("‘물높이 감지 안됨’ 표시는 LG 안내에 따라 서비스 점검이 필요해요.");
+        var levelCard=level.tools().get("card").data();
+        assertThat(stringMap(levelCard.get("official"))).containsEntry("contact",List.of("전원 플러그를 뺀 후 LG전자 서비스 센터(1544-7777)에 문의하세요."));
+        assertThat(((Map<?,?>)((Map<?,?>)levelCard.get("estimate")).get("base")).get("parts")).isEqualTo(List.of("수위센서"));
+        assertThat(modelCalls.get()).isZero();
+    }
+    @Test void withoutSelfCheckStepsTheQuestionsAloneNarrowTheSummary(){
+        String email="observe-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
+        var input=new WarrantyModels.Request(ProductCategory.REFRIGERATOR,"S836MEE022",LocalDate.of(2026,5,5),null,null,null,null,true,true);
+        long registered=products.create(email,new UserProductService.Create("관찰 검증 냉장고",input,"서울","강남구")).id();
+        var begun=consultations.begin(email,null,ProductCategory.REFRIGERATOR,"냉장고가 시원하지 않아요",registered);
+        // The card of a model without manual steps carries only the questions.
+        var dialogue=new DialogueState("SYMPTOM",null,List.of(),"냉장고가 시원하지 않아요",DialogueRouter.checkQuestion(),0,Map.of("CHECK_ITEMS","","CHECK_INDEX","0"),"AI",null);
+        var s=consultations.applyDialogue(email,begun.id(),begun.version(),new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false,dialogue));
+        assertThatThrownBy(()->agent.answerSelfCheck(s.id(),email,"SOLVED",0,s.version(),null)).hasMessageContaining("자가점검 결과를 확인");
+        assertThatThrownBy(()->agent.answerSelfCheck(s.id(),email,"NOT_RESOLVED",0,s.version(),Map.of("SMELL","YES"))).hasMessageContaining("확인 질문의 답");
+        var response=agent.answerSelfCheck(s.id(),email,"NOT_RESOLVED",0,s.version(),Map.of("DISPLAY","UNKNOWN","FROST","DOOR"));
+        assertThat(response.reply()).startsWith("이 증상은 직접 해 볼 수 있는 점검 방법이 없어요.");
+        var card=response.tools().get("card").data();
+        var narrowed=(Map<?,?>)((Map<?,?>)card.get("estimate")).get("narrowed");
+        assertThat(((Map<?,?>)narrowed.get("base")).get("parts")).isEqualTo(List.of("도어 가스켓"));
+        assertThat(card.get("observations")).isEqualTo(List.of("냉동실 성에: 문 주변에 있어요"));
+        assertThat(history.detail(s.id(),email).messages().get(0).content()).isEqualTo("확인 질문에 답했어요");
+        assertThat(modelCalls.get()).isZero();
+    }
     @Test void manualConditionsBecomeSelfCheckStepsAndOneOutcomeClosesThem(){
         String email="answer-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
         var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
@@ -786,20 +846,22 @@ class McpIntegrationTests {
         var first=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
         assertThat(first.reply()).isEqualTo("‘소음·진동이 심해요’ 증상으로 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.");
         var card=first.tools().get("card");
-        assertThat(card.data()).containsEntry("type","SELF_CHECK").containsEntry("steps",
-                List.of("운송용 고정볼트가 남은 경우에 해당하는지 확인해 주세요.","제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요."));
-        assertThat(JSON.writeValueAsString(card.data())).doesNotContain("제조사 자료","승인","제조사 설명서","{{");
+        // The manual's transport-bolt condition is not asked: a customer would not know what it is.
+        assertThat(card.data()).containsEntry("type","SELF_CHECK").containsEntry("questions",List.of()).containsEntry("steps",
+                List.of("제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요."));
+        assertThat(JSON.writeValueAsString(card.data())).doesNotContain("제조사 자료","승인","제조사 설명서","{{","고정볼트");
         assertThat(((DialogueState.Question)first.tools().get("consultation").data().get("question")).id()).isEqualTo("SELF_CHECK");
         long version=((Number)card.meta().get("context_version")).longValue();
         Long id=first.conversationId();
-        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"NOT_RESOLVED",1,version)).hasMessageContaining("자가점검 결과를 확인");
-        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",1,version-1)).hasMessageContaining("변경됐습니다");
-        var solved=agent.answerSelfCheck(id,email,"SOLVED",2,version);
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"NOT_RESOLVED",0,version,null)).hasMessageContaining("자가점검 결과를 확인");
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",2,version,null)).hasMessageContaining("자가점검 결과를 확인");
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",1,version-1,null)).hasMessageContaining("변경됐습니다");
+        var solved=agent.answerSelfCheck(id,email,"SOLVED",1,version,null);
         assertThat(solved.reply()).isEqualTo(DialogueRouter.RESOLVED_REPLY);assertThat(solved.tools()).doesNotContainKey("card");
         var saved=consultations.snapshot(email,id).state();
-        assertThat(saved.closed()).isTrue();assertThat(saved.dialogue().answers()).containsEntry("CHECK_DONE","SOLVED").containsEntry("CHECK_INDEX","1");
-        assertThat(history.detail(id,email).messages().get(2).content()).isEqualTo("2단계에서 해결됐어요");
-        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",2,version)).hasMessageContaining("변경됐습니다");
+        assertThat(saved.closed()).isTrue();assertThat(saved.dialogue().answers()).containsEntry("CHECK_DONE","SOLVED").containsEntry("CHECK_INDEX","0");
+        assertThat(history.detail(id,email).messages().get(2).content()).isEqualTo("1단계에서 해결됐어요");
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",1,version,null)).hasMessageContaining("변경됐습니다");
         assertThat(answerRequests).isEmpty();assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(id,email)).isEmpty();
     }
     @Test void ungroundedFinalPriceFallsBackToVerifiedToolSentences(CapturedOutput output){
