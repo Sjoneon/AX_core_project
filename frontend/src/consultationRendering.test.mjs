@@ -163,11 +163,21 @@ test('summary response shows one card with warranty, cost and A/S instead of sep
   assert.doesNotMatch(html, /제품 전체 보증<\/h3>|상담원 전달 요약|A\/S 연결 <small>/)
 })
 
-test('a self-check step shows the step and its two answers without extra cards', () => {
-  const question = { id: 'SELF_CHECK', text: '확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 다음 단계'] }
-  const html = render({ content: '1/5단계: 정전 여부와 전원 플러그 연결을 확인해 주세요.\n\n확인한 뒤 해결됐나요?', tools: { consultation: envelope({ question }) } })
-  assert.match(html, /1\/5단계/)
+test('the self-check card starts at its first step and sends no chat options of its own question', () => {
+  const question = { id: 'SELF_CHECK', text: '안내한 항목을 확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 해결되지 않았어요'] }
+  const steps = ['정전 여부와 전원 플러그 연결을 확인해 주세요.', '보관 온도를 확인해 주세요.', '문 닫힘 상태를 확인해 주세요.']
+  const message = { content: '‘냉장·냉동이 잘되지 않아요’ 증상으로 확인했어요.', tools: { consultation: envelope({ question }), card: envelope({ type: 'SELF_CHECK', steps }) } }
+  const html = render(message)
+  assert.equal((html.match(/class="tool-result/g) || []).length, 1)
+  assert.match(html, /직접 확인해 보세요 · 1\/3단계/)
+  assert.ok(html.includes(steps[0]))
+  assert.ok(!html.includes(steps[1]))
   assert.match(html, />해결됐어요<\/button>/)
   assert.match(html, />아니요, 다음 단계<\/button>/)
-  assert.doesNotMatch(html, /class="tool-result|제조사 근거/)
+  assert.doesNotMatch(html, /안내한 항목을 확인한 뒤|해결되지 않았어요<\/button>|제조사 근거/)
+  // History shows the whole list without answers; a single step answers "not solved" at once.
+  const saved = render(message, false)
+  for (const step of steps) assert.ok(saved.includes(step), step)
+  assert.doesNotMatch(saved, /<button/)
+  assert.match(render({ ...message, tools: { ...message.tools, card: envelope({ type: 'SELF_CHECK', steps: [steps[0]] }) } }), />아니요, 해결되지 않았어요<\/button>/)
 })

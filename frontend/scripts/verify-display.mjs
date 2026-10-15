@@ -40,12 +40,14 @@ function App() {
     : phase === 2 ? final
     : phase === 3 ? {content: '어떤 증상인가요?', tools: {consultation: wrap({question: {text: '어떤 증상인가요?', options: ['흔들림', '배수 불량']}})}}
     : phase === 4 ? {content: '위험 상황을 확인해 주세요.', tools: {safety: wrap({risk_status: 'SUSPECT', question: '현재 위험 상황인가요?'})}}
+    : phase === 7 ? {content: '증상으로 확인했어요.', tools: {consultation: wrap({question: {id: 'SELF_CHECK', text: '안내한 항목을 확인한 뒤 해결됐나요?', options: ['해결됐어요', '아니요, 해결되지 않았어요']}}),
+        card: wrap({type: 'SELF_CHECK', steps: ['첫째 항목을 확인해 주세요.', '둘째 항목을 확인해 주세요.', '셋째 항목을 확인해 주세요.']})}}
     : phase === 5 ? {...warrantyVerification.response, content: warrantyVerification.response.reply}
     : warrantyVerification.savedAnswer
   window.setPhase = setPhase
   return <><main id="customer" style={{maxWidth: 800, margin: 'auto', padding: 16}}>
     <h1>상담 표시 검증</h1><div className="message-content"><Message message={history} active={false} />
-    <Message message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} /></div>
+    <Message message={current} active onAnswerSelfCare={async (kind, payload) => {window.calls.push({kind, payload}); setPhase((value) => value + 1)}} onSelectSymptom={(event, option) => {event.preventDefault(); window.calls.push({kind: 'symptom', option})}} onAnswerRisk={(answer, version) => window.calls.push({kind: 'risk', answer, version})} onSelfCheck={(result, step, version, label) => window.calls.push({kind: 'selfCheck', result, step, version, label})} /></div>
   </main><aside id="dev"><Trace request={async () => []} conversationId={77} message={history} /></aside></>
 }
 createRoot(document.getElementById('root')).render(<App />)
@@ -153,6 +155,21 @@ try {
   await until('document.querySelector("#customer").textContent.includes("위험 상황")')
   await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "모르겠어요").click()')
   assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'risk', answer: 'UNSURE', version: 7 })
+  // Self-check steps advance in the browser; only the final answer is sent.
+  await evaluate('window.setPhase(7)')
+  await until('document.querySelector("#customer").textContent.includes("1/3단계")')
+  const sentBefore = await evaluate('window.calls.length')
+  for (const shown of ['2/3단계', '3/3단계']) {
+    await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "아니요, 다음 단계").click()')
+    await until(`document.querySelector("#customer").textContent.includes("${shown}")`)
+  }
+  assert.equal(await evaluate('window.calls.length'), sentBefore)
+  assert.equal(await evaluate('document.querySelectorAll("#customer .self-check-steps li.checked").length'), 2)
+  await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "아니요, 해결되지 않았어요").click()')
+  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'NOT_RESOLVED', step: 3, version: 7, label: '3단계까지 모두 확인했지만 해결되지 않았어요' })
+  await evaluate('Array.from(document.querySelectorAll("#customer button")).find(button => button.textContent === "해결됐어요").click()')
+  assert.deepEqual(await evaluate('window.calls.at(-1)'), { kind: 'selfCheck', result: 'SOLVED', step: 3, version: 7, label: '3단계에서 해결됐어요' })
+  assert.equal(await evaluate('window.calls.length'), sentBefore + 2)
   if (warrantyVerification) {
     for (const phase of [5, 6]) {
       await evaluate(`window.setPhase(${phase})`)
@@ -176,7 +193,7 @@ try {
       report.push({ width, purchaseWarranty: true, overflow: false, screenshot })
     }
   }
-  console.log(JSON.stringify({ passed: true, scope: warrantyVerification ? 'local fixtures plus captured authenticated backend/MCP and history responses; no real model' : 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer'], purchaseWarrantyChecks, viewports: report }, null, 2))
+  console.log(JSON.stringify({ passed: true, scope: warrantyVerification ? 'local fixtures plus captured authenticated backend/MCP and history responses; no real model' : 'local component fixtures; no backend or real model', checks: ['stored JSON', 'DEV originals', 'precondition payload', 'step payload', 'cost/warranty/service', 'clipboard success/failure', 'symptom answer', 'risk answer', 'self-check local steps'], purchaseWarrantyChecks, viewports: report }, null, 2))
 } finally {
   socket?.close()
   for (const call of pending.values()) clearTimeout(call.timer)

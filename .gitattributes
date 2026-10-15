@@ -10,3 +10,4 @@ ops/**/*.sh text eol=lf
 
 # Preserve the original cost CSV bytes used by the source-manifest checksum.
 수리비_정규화_과정/한국기준_예상수리비_표_v3.csv -text
+수리비_정규화_과정/증상_부품_근거_v1.csv -text

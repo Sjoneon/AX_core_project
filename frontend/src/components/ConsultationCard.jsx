@@ -25,9 +25,35 @@ function Estimate({ estimate, inWarranty }) {
   </>
 }
 
-// One summary card: warranty, reference repair cost and official A/S routes in a single view.
-export default function ConsultationCard({ card }) {
+// Steps advance in the browser; only "solved" or "not solved after the last step" goes to the server.
+function SelfCheck({ card, version, active, disabled, onSelfCheck }) {
+  const [index, setIndex] = useState(0)
+  const steps = list(card.steps).map(text).filter(Boolean)
+  if (steps.length === 0) return null
+  if (!active) return <section className="tool-result consultation-card" aria-label="자가점검">
+    <h3>직접 확인해 볼 항목</h3>
+    <ol className="self-check-steps">{steps.map((step, i) => <li key={i}>{step}</li>)}</ol>
+  </section>
+  const last = index === steps.length - 1
+  const solved = () => onSelfCheck('SOLVED', index + 1, version, `${index + 1}단계에서 해결됐어요`)
+  const next = () => last
+    ? onSelfCheck('NOT_RESOLVED', steps.length, version, `${steps.length}단계까지 모두 확인했지만 해결되지 않았어요`)
+    : setIndex(index + 1)
+  return <section className="tool-result consultation-card" aria-label="자가점검">
+    <h3>직접 확인해 보세요 · {index + 1}/{steps.length}단계</h3>
+    <ol className="self-check-steps">{steps.slice(0, index + 1).map((step, i) => <li key={i} className={i < index ? 'checked' : undefined}>{step}</li>)}</ol>
+    <p>확인한 뒤 해결됐나요?</p>
+    <div className="tool-actions">
+      <button type="button" disabled={disabled} onClick={solved}>해결됐어요</button>
+      <button type="button" disabled={disabled} onClick={next}>{last ? '아니요, 해결되지 않았어요' : '아니요, 다음 단계'}</button>
+    </div>
+  </section>
+}
+
+// One card per reply: the self-check steps, or the summary with warranty, reference repair cost and official A/S routes.
+export default function ConsultationCard({ card, version, active, disabled, onSelfCheck }) {
   const [copyStatus, setCopyStatus] = useState('')
+  if (card?.type === 'SELF_CHECK') return <SelfCheck card={card} version={version} active={active} disabled={disabled} onSelfCheck={onSelfCheck} />
   if (card?.type !== 'SUMMARY') return null
   const estimate = card.estimate || {}
   const inWarranty = card.warranty?.status === 'IN_WARRANTY'

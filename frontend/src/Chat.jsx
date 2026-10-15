@@ -254,6 +254,31 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     }
   }
 
+  // The self-check card advances locally, so one request carries the outcome instead of one per step.
+  async function answerSelfCheck(result, step, contextVersion, label) {
+    if (isBusy || sendingRef.current || !conversationId) return
+    sendingRef.current = true
+    setIsSending(true)
+    setError('')
+    stickToBottomRef.current = true
+    try {
+      const data = await request(`/api/conversations/${conversationId}/self-check`, {
+        method: 'POST', body: JSON.stringify({ result, step, context_version: contextVersion }),
+      })
+      if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('점검 결과를 전달하지 못했습니다.')
+      setMessages((previous) => [...previous,
+        { id: crypto.randomUUID(), role: 'user', content: label },
+        { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [], warranty: data.warranty || null, tools: data.tools || {} },
+      ])
+      await loadHistory()
+    } catch (exception) {
+      setError(exception instanceof TypeError ? '서버에 연결하지 못했습니다.' : exception.message)
+    } finally {
+      sendingRef.current = false
+      setIsSending(false)
+    }
+  }
+
   async function answerSelfCare(kind, payload, label) {
     if (isBusy || sendingRef.current || !conversationId) return
     sendingRef.current = true
@@ -327,7 +352,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                     <div className="message-content">
                       <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
                       {message.role === 'assistant'
-                        ? <ConsultationMessage message={message} active={message === messages.at(-1)} disabled={isBusy || retired} onAnswerRisk={answerRisk} onSelectSymptom={sendMessage} onAnswerSelfCare={answerSelfCare} />
+                        ? <ConsultationMessage message={message} active={message === messages.at(-1)} disabled={isBusy || retired} onAnswerRisk={answerRisk} onSelectSymptom={sendMessage} onAnswerSelfCare={answerSelfCare} onSelfCheck={answerSelfCheck} />
                         : <p className="message-bubble">{message.content}</p>}
                     </div>
                   </article>

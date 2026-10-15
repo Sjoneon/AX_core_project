@@ -52,20 +52,19 @@ class DialogueRouterTests {
         assertThat(fridge(first.state(),"출장 접수할게요",interpretation("SERVICE",null,0)).state().dialogue().pendingQuestion()).isNull();
         assertThat(route(ConsultationState.start(),"세탁기 물이 안 빠져요",interpretation("SYMPTOM","DRAIN",.95)).state().dialogue().pendingQuestion()).isNull();
     }
-    @Test void selfCheckStepsAdvanceOneAtATimeAndEndResolvedOrForTheSummary(){
+    @Test void aTypedSelfCheckAnswerClosesGoesToTheSummaryOrLeavesTheStepsForTheCard(){
         var answers=Map.of("CHECK_ITEMS",String.join("\n","A를 확인해 주세요.","B를 확인해 주세요."),"CHECK_INDEX","0");
-        var dialogue=new DialogueState("SYMPTOM",null,List.of(),"냉장고가 시원하지 않아요",DialogueRouter.stepQuestion(List.of("A","B"),0),0,answers,"AI",null);
+        var dialogue=new DialogueState("SYMPTOM",null,List.of(),"냉장고가 시원하지 않아요",DialogueRouter.checkQuestion(),0,answers,"AI",null);
         var state=new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false,dialogue);
-        var next=fridge(state,"아니요, 다음 단계",interpretation("PRODUCT_REPLY",null,0));
-        assertThat(next.reply()).startsWith("2/2단계: B를 확인해 주세요.");
-        assertThat(next.state().dialogue().answers()).containsEntry("CHECK_INDEX","1");
-        assertThat(next.state().dialogue().pendingQuestion().options()).containsExactly("해결됐어요","아니요, 해결되지 않았어요");
-        var done=fridge(next.state(),"아니요, 해결되지 않았어요",interpretation("OTHER",null,0));
+        // The card advances steps in the browser; a typed "not solved" is the final outcome.
+        var done=fridge(state,"아니요, 해결되지 않았어요",interpretation("PRODUCT_REPLY",null,0));
         assertThat(done.reply()).isNull();assertThat(done.state().dialogue().pendingQuestion()).isNull();
         assertThat(done.state().dialogue().answers()).containsEntry("CHECK_DONE","NOT_RESOLVED");
         var solved=fridge(state,"해결됐어요",interpretation("SELF_CARE_REPLY",null,0));
-        assertThat(solved.state().closed()).isTrue();assertThat(solved.reply()).contains("해결되었습니다");
-        assertThat(fridge(state,"잘 모르겠어요",interpretation("OTHER",null,0)).reply()).startsWith("1/2단계: A를 확인해 주세요.");
+        assertThat(solved.state().closed()).isTrue();assertThat(solved.reply()).isEqualTo(DialogueRouter.RESOLVED_REPLY);
+        // Anything else keeps the steps without an outcome, so the same card is shown again.
+        var unclear=fridge(state,"잘 모르겠어요",interpretation("OTHER",null,0));
+        assertThat(unclear.reply()).isNull();assertThat(unclear.state().dialogue().answers()).containsKey("CHECK_ITEMS").doesNotContainKey("CHECK_DONE");
         assertThat(fridge(state,"수리비가 궁금해요",interpretation("COST",null,0)).state().dialogue().pendingQuestion()).isNull();
     }
     @Test void vibrationWithoutErrorPersistsAndAsksWhenItOccurs(){

@@ -247,3 +247,7 @@
 .consultation-card dt { font-weight: 700; margin-bottom: 4px; }
 .consultation-card dd p { margin: 4px 0; }
 .consultation-card .card-note { font-size: 14px; color: #5b6b78; }
+.self-check-steps { margin: 6px 0 8px; padding-left: 22px; }
+.self-check-steps li { margin: 6px 0; }
+.self-check-steps li.checked { color: #5b6b78; }
+.self-check-steps li.checked::after { content: " · 확인함"; font-size: 14px; }

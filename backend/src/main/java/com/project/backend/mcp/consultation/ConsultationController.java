@@ -23,4 +23,7 @@ public class ConsultationController {
     @PostMapping("/api/conversations/{id}/risk-answer") public com.project.backend.chat.dto.ChatResponse risk(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal){
         return agent.answerRisk(id,principal.getName(),body.get("answer") instanceof String answer?answer:null,ToolSupport.number(body,"context_version"));
     }
+    @PostMapping("/api/conversations/{id}/self-check") public com.project.backend.chat.dto.ChatResponse selfCheck(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal){
+        return agent.answerSelfCheck(id,principal.getName(),body.get("result") instanceof String result?result:null,body.get("step"),body.get("context_version"));
+    }
 }

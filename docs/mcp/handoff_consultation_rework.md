@@ -82,16 +82,18 @@
 
 1. 정보가 부족하면 질문과 선택지만 보여 준다. 냉장고 냉각은 `COOLING_STATE` 질문 하나, 도구 호출 없음.
 2. 설명서 확인 항목(`ManualCheckItems.of` → "…을/를 확인해 주세요.")과 고객이 볼 수 있는 상황(`conditions` → "…경우에 해당하는지 확인해 주세요.")을 최대 6단계로 만든다.
-   - 한 번에 한 단계씩 "확인한 뒤 해결됐나요?"를 묻는다. 선택지는 [해결됐어요] / [아니요, 다음 단계]이다.
-   - 상태는 dialogue `answers`의 `CHECK_ITEMS`·`CHECK_INDEX`·`CHECK_DONE`에 저장한다.
-   - 단계 응답은 해석기 분류보다 답 내용을 먼저 읽는다. "아니요, 다음 단계"가 PRODUCT_REPLY로 분류돼도 처리된다.
+   - 단계 전체를 한 응답의 카드(`tools.card`, type `SELF_CHECK`, `steps`)로 보낸다. 화면이 한 단계씩 "확인한 뒤 해결됐나요?"를 묻는다.
+   - [아니요, 다음 단계]는 브라우저 안에서만 넘어가고 서버 요청을 보내지 않는다. 단계마다 `/api/chat`을 보내면 채팅 요청 제한(연속 3회, 분당 5회)에 걸리고 AI 해석이 매번 돌았기 때문이다.
+   - 서버에는 결과 한 번만 보낸다: `POST /api/conversations/{id}/self-check` `{result: SOLVED|NOT_RESOLVED, step, context_version}`. 채팅 요청 제한 밖이며 AI 호출이 없다(`AgentChatService.answerSelfCheck`). NOT_RESOLVED는 마지막 단계에서만 받는다. 고객 말풍선은 "N단계에서 해결됐어요" / "N단계까지 모두 확인했지만 해결되지 않았어요"로 저장된다.
+   - 상태는 dialogue `answers`의 `CHECK_ITEMS`·`CHECK_INDEX`(해결·종료 단계)·`CHECK_DONE`에 저장한다.
+   - 버튼 대신 직접 입력하면 `DialogueRouter`가 답 내용을 먼저 읽는다: 해결 → 종료, 안 됨 → 요약 카드, 그 밖의 말 → 같은 단계 카드를 다시 보여 준다.
 3. 해결되면 상담을 종료한다. 마지막 단계도 안 되거나 단계가 없으면 요약 카드를 만든다(`tools.card`, type `SUMMARY`).
    - 담는 내용: 보증 한 줄, `SymptomRepairEstimate` 수리비, 지역, 공식 경로, 상담 요약.
    - 보증·센터·요약 도구는 `POLICY_FALLBACK` 정책 호출이다.
 4. 프론트 `ConsultationCard`: 카드가 있는 응답은 이 카드 하나만 그린다. 보증·A/S·요약 카드를 따로 띄우지 않는다.
 
-- 코드 위치: `AgentChatService.guided/guidedReply/checkSteps/summary`, `DialogueRouter`(SELF_CHECK 처리·`stepReply`), `ManualCheckItems.sentences/conditions`, `frontend/src/components/ConsultationCard.jsx`
-- 검증: 백엔드 320개 중 318개 통과(MySQL 2개 건너뜀), 프론트 29개·lint·build 통과
+- 코드 위치: `AgentChatService.guided/guidedReply/answerSelfCheck/checkSteps/summary`, `ConsultationController`(`/self-check`), `DialogueRouter`(SELF_CHECK 직접 입력 처리·`checkQuestion`), `ManualCheckItems.sentences/conditions`, `frontend/src/components/ConsultationCard.jsx`(`SelfCheck`), `Chat.jsx`(`answerSelfCheck`)
+- 검증: 백엔드 320개 중 318개 통과(MySQL 2개 건너뜀, 통합 테스트는 `HOMECARE_TEST_PYTHON=mcp_server/.venv/Scripts/python.exe` 필요), 프론트 29개·lint·build·브라우저 표시 검증(`npm run test:display:browser`, 단계 넘김 무전송 확인) 통과
 - 남은 부분: 4.1 센터 자료, 위험 흐름 카드(4.2의 2번), 제품 확인 질문(4.2의 3번), 위험 확정 후 요약 카드 연결. 요약 카드의 센터 목록은 4.1 전까지 비어 있고, 공식 센터 찾기 링크로 대신한다.
 
 ### 수리비 계산 예 (냉장고 냉각 불량)

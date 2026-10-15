@@ -49,17 +49,14 @@ public final class DialogueRouter {
                 if(pending!=null&&pending.id().equals("SYMPTOM"))pending=null;
             }
             if(pending!=null&&pending.id().equals(SELF_CHECK)){
-                var items=checkItems(answers);int index=Integer.parseInt(answers.getOrDefault(CHECK_INDEX,"0"));
-                // The step answer is read first: an interpreter may label "아니요, 다음 단계" as a product reply.
-                switch(checkResult(input)){
-                    case "SOLVED"->{pending=null;answers.put(CHECK_DONE,"SOLVED");checkSolved=true;}
-                    case "NOT_SOLVED"->{
-                        index++;answers.put(CHECK_INDEX,String.valueOf(index));
-                        if(index<items.size()){pending=stepQuestion(items,index);reply=stepReply(items,index,null);}
-                        else{pending=null;answers.put(CHECK_DONE,"NOT_RESOLVED");}
-                    }
-                    // A service/cost request leaves the self-check; anything else repeats the current step.
-                    default->{if(inquiry)pending=null;else reply=stepReply(items,index,null);}
+                // The browser steps through the card and posts only the outcome; this handles a typed answer instead.
+                // It is read first: an interpreter may label "아니요" as a product reply.
+                pending=null;
+                if(answers.containsKey(CHECK_ITEMS))switch(checkResult(input)){
+                    case "SOLVED"->{answers.put(CHECK_DONE,"SOLVED");checkSolved=true;}
+                    case "NOT_SOLVED"->answers.put(CHECK_DONE,"NOT_RESOLVED");
+                    // Anything else leaves the steps pending, so the consultation shows the card again.
+                    default->{ }
                 }
             }
             if(pending!=null&&pending.id().equals(COOLING_STATE)){
@@ -123,7 +120,7 @@ public final class DialogueRouter {
             }
         }
         if(checkSolved){closed=true;selfCare="RESOLVED";}
-        if(closed){pending=null;reply="해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요.";}
+        if(closed){pending=null;reply=RESOLVED_REPLY;}
         var dialogue=new DialogueState(intent,interpretation.mentionedCategory(),interpretation.symptomCandidates(),symptomText,pending,questions,answers,interpretation.source(),selfCare);
         return new Transition(copy(previous,symptom,done,current,closed,dialogue),reply);
     }
@@ -134,20 +131,14 @@ public final class DialogueRouter {
         return new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),symptom,same?done:List.of(),same?current:0,closed,dialogue,selfCare);
     }
     private static String normalize(String text){return text.replaceAll("[\\s\\p{Punct}]","");}
-    // Manual self-check steps (observation items), one per turn: "해결됐나요?" then the next step or the summary.
+    public static final String RESOLVED_REPLY="해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요.";
+    // Manual self-check steps (observation items): the card shows one at a time and posts only the outcome.
     public static final String SELF_CHECK="SELF_CHECK",CHECK_ITEMS="CHECK_ITEMS",CHECK_INDEX="CHECK_INDEX",CHECK_DONE="CHECK_DONE";
-    private static final List<String> NEXT_OPTIONS=List.of("해결됐어요","아니요, 다음 단계"),LAST_OPTIONS=List.of("해결됐어요","아니요, 해결되지 않았어요");
     public static List<String> checkItems(Map<String,String> answers){
         String value=answers.get(CHECK_ITEMS);return value==null||value.isBlank()?List.of():List.of(value.split("\n"));
     }
-    public static DialogueState.Question stepQuestion(List<String> items,int index){
-        return new DialogueState.Question(SELF_CHECK,"확인한 뒤 해결됐나요?",index+1<items.size()?NEXT_OPTIONS:LAST_OPTIONS);
-    }
-    public static String stepReply(List<String> items,int index,String intro){
-        var lines=new ArrayList<String>();if(intro!=null)lines.add(intro);
-        lines.add((index+1)+"/"+items.size()+"단계: "+items.get(index));
-        lines.add(stepQuestion(items,index).text());
-        return String.join("\n\n",lines);
+    public static DialogueState.Question checkQuestion(){
+        return new DialogueState.Question(SELF_CHECK,"안내한 항목을 확인한 뒤 해결됐나요?",List.of("해결됐어요","아니요, 해결되지 않았어요"));
     }
     static String checkResult(String input){
         String text=input.strip();

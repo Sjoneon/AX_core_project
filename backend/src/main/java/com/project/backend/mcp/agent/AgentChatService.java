@@ -191,21 +191,46 @@ public class AgentChatService {
             if(items.isEmpty())answers.put(DialogueRouter.CHECK_DONE,"NONE");
         }
         boolean stepping=!items.isEmpty()&&!answers.containsKey(DialogueRouter.CHECK_DONE);
-        int index=Integer.parseInt(answers.getOrDefault(DialogueRouter.CHECK_INDEX,"0"));
-        var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),stepping?DialogueRouter.stepQuestion(items,index):null,
+        var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),stepping?DialogueRouter.checkQuestion():null,
                 d.symptomQuestionCount(),answers,d.interpretationSource(),d.selfCareReply());
         var state=s.state();
         s=consultations.applyDialogue(email,s.id(),s.version(),new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),
                 state.symptomCode(),state.doneSteps(),state.currentStep(),state.closed(),next,state.selfCare()));
         outputs.put("consultation",dialogueResult(s));
-        if(stepping)return DialogueRouter.stepReply(items,index,index==0?intro(s):null);
-        return summary(email,s,outputs,calls);
+        if(!stepping)return summary(email,s,outputs,calls);
+        // All steps go out at once; the browser walks through them and posts only the outcome (answerSelfCheck).
+        outputs.put("card",ToolEnvelope.policy("OK",map("type","SELF_CHECK","steps",items),map("context_version",s.version()),List.of()));
+        return intro(s);
     }
     private static String intro(ConsultationService.Snapshot s){
         String label=SymptomCatalog.label(s.category(),s.state().symptomCode());
         String cooling=DialogueRouter.coolingLabel(s.state().dialogue().answers().get(DialogueRouter.COOLING_STATE));
         String subject=label.isBlank()?"‘"+s.state().errorCode()+"’ 표시로":"‘"+label+"’"+(cooling==null?"":"("+cooling+")")+" 증상으로";
-        return subject+" 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 안내할게요.";
+        return subject+" 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.";
+    }
+    /** Outcome of the self-check card: solved at a step, or not solved after the last one. No model call. */
+    public ChatResponse answerSelfCheck(Long id,String email,String result,Object step,Object contextVersion){
+        var s=consultations.snapshot(email,id);var d=s.state().dialogue();
+        if(d.pendingQuestion()==null||!DialogueRouter.SELF_CHECK.equals(d.pendingQuestion().id())||!(contextVersion instanceof Number version)||version.longValue()!=s.version())
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"자가점검 안내가 변경됐습니다. 최신 안내에서 다시 선택해 주세요.");
+        var items=DialogueRouter.checkItems(d.answers());boolean solved="SOLVED".equals(result);
+        int at=step instanceof Number n?n.intValue():0;
+        if(!solved&&!"NOT_RESOLVED".equals(result)||at<1||at>items.size()||!solved&&at!=items.size())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"자가점검 결과를 확인해 주세요.");
+        var answers=new LinkedHashMap<>(d.answers());
+        answers.put(DialogueRouter.CHECK_INDEX,String.valueOf(at-1));answers.put(DialogueRouter.CHECK_DONE,solved?"SOLVED":"NOT_RESOLVED");
+        var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),null,d.symptomQuestionCount(),answers,
+                d.interpretationSource(),solved?"RESOLVED":d.selfCareReply());
+        var state=s.state();
+        s=consultations.applyDialogue(email,id,s.version(),new ConsultationState(state.riskStatus(),state.riskCase(),state.riskQuestionNo(),state.errorCode(),
+                state.symptomCode(),state.doneSteps(),state.currentStep(),solved||state.closed(),next,state.selfCare()));
+        var outputs=new LinkedHashMap<String,ToolEnvelope>();var calls=new ArrayList<ToolCallRecord>();
+        outputs.put("consultation",dialogueResult(s));
+        String reply=solved?DialogueRouter.RESOLVED_REPLY:summary(email,s,outputs,calls);
+        String label=solved?at+"단계에서 해결됐어요":items.size()+"단계까지 모두 확인했지만 해결되지 않았어요";
+        var warrantyResult=warrantyOf(outputs.get("check_warranty"));
+        history.saveExchange(s.id(),email,label,reply,s.category(),List.of(),warrantyResult,outputs,calls);
+        return new ChatResponse(reply,s.id(),List.of(),warrantyResult,outputs);
     }
     /** Observation items of the manuals that apply to this model and symptom, split into one step each. */
     private List<String> checkSteps(String email,ConsultationService.Snapshot s){

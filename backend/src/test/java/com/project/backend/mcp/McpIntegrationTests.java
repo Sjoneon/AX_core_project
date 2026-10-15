@@ -383,16 +383,28 @@ class McpIntegrationTests {
         assertThat(first.get("reply").asText()).isEqualTo("냉장실과 냉동실이 모두 전혀 차갑지 않나요, 아니면 차갑긴 하지만 약한가요?");
         assertThat(first.get("tools").has("check_warranty")).isFalse();
         assertThat(first.get("tools").get("consultation").get("data").get("question").get("id").asText()).isEqualTo("COOLING_STATE");
-        // The manual's checks come one step at a time, without disclaimers or manual links.
+        // The manual's checks arrive at once in one card, without disclaimers or manual links.
         var step=send.apply("모두 전혀 차갑지 않아요");
-        assertThat(step.get("reply").asText()).contains("‘냉장·냉동이 잘되지 않아요’(냉장·냉동 모두 전혀 차갑지 않음) 증상으로 확인했어요",
-                "1/5단계: 정전 여부와 전원 플러그 연결을 확인해 주세요.","확인한 뒤 해결됐나요?").doesNotContain("제조사 자료","승인","제조사 설명서");
+        assertThat(step.get("reply").asText()).isEqualTo("‘냉장·냉동이 잘되지 않아요’(냉장·냉동 모두 전혀 차갑지 않음) 증상으로 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.");
         assertThat(step.get("tools").get("consultation").get("data").get("question").get("id").asText()).isEqualTo("SELF_CHECK");
-        // The per-user chat rate limit applies to HTTP; the remaining step answers go to the same service directly.
-        java.util.function.Function<String,tools.jackson.databind.JsonNode> direct=message->JSON.valueToTree(agent.chat(new ChatRequest(message,conversation[0],null,null,null),owner,token(owner)));
-        assertThat(direct.apply("아니요, 다음 단계").get("reply").asText()).startsWith("2/5단계: 보관 온도를 확인해 주세요.");
-        for(int i=0;i<3;i++)direct.apply("아니요, 다음 단계");
-        var response=direct.apply("아니요, 해결되지 않았어요");
+        var steps=step.get("tools").get("card");
+        assertThat(steps.get("data").get("type").asText()).isEqualTo("SELF_CHECK");
+        assertThat(JSON.convertValue(steps.get("data").get("steps"),List.class)).hasSize(5).first().isEqualTo("정전 여부와 전원 플러그 연결을 확인해 주세요.");
+        assertThat(steps.toString()).doesNotContain("제조사 자료","승인","제조사 설명서");
+        long version=steps.get("meta").get("context_version").asLong();
+        // The browser walks the steps; one request outside the chat rate limit carries only the outcome.
+        Function<Map<String,Object>,java.net.http.HttpResponse<String>> outcome=body->{
+            try{
+                var post=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/conversations/"+conversation[0]+"/self-check")).header("Authorization",token(owner)).header("Content-Type","application/json")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build();
+                return client.send(post,java.net.http.HttpResponse.BodyHandlers.ofString());
+            }catch(Exception error){throw new IllegalStateException(error);}
+        };
+        assertThat(outcome.apply(map("result","NOT_RESOLVED","step",2,"context_version",version)).statusCode()).isEqualTo(400);
+        var finished=outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version));
+        assertThat(finished.statusCode()).isEqualTo(200);
+        assertThat(outcome.apply(map("result","NOT_RESOLVED","step",5,"context_version",version)).statusCode()).isEqualTo(409);
+        var response=JSON.readTree(finished.body());
         assertThat(response.get("reply").asText()).startsWith("안내한 항목을 모두 확인했지만 해결되지 않았어요.");
         var card=response.get("tools").get("card").get("data");
         assertThat(card.get("type").asText()).isEqualTo("SUMMARY");
@@ -416,6 +428,8 @@ class McpIntegrationTests {
         assertThat(saved.statusCode()).isEqualTo(200);
         var messages=JSON.readTree(saved.body()).get("messages");
         var savedAnswer=messages.get(messages.size()-1);
+        assertThat(messages).hasSize(6);
+        assertThat(messages.get(messages.size()-2).get("content").asText()).isEqualTo("5단계까지 모두 확인했지만 해결되지 않았어요");
         assertThat(savedAnswer.get("warranty")).isEqualTo(checked);
         assertThat(savedAnswer.get("tools").get("check_warranty").get("data").get("productWarranty")).isEqualTo(product);
         String output=System.getenv("HOMECARE_WARRANTY_VERIFICATION_OUTPUT");
@@ -765,21 +779,28 @@ class McpIntegrationTests {
         assertThat(response.reply()).contains("해결되었습니다");assertThat(response.tools().get("get_diagnostic_plan").data()).containsEntry("skip_reason","RESOLVED");
         assertThat(modelCalls.get()).isZero();
     }
-    @Test void manualConditionsBecomeOneSelfCheckStepAtATime(){
+    @Test void manualConditionsBecomeSelfCheckStepsAndOneOutcomeClosesThem(){
         String email="answer-"+UUID.randomUUID()+"@example.com";users.save(new AppUser(email,"unused","USER"));
         var input=new WarrantyModels.Request(ProductCategory.WASHER,"FX24ENER",LocalDate.of(2026,1,1),null,null,"STANDARD_MOTOR","GENERAL",true,true);
         products.create(email,new UserProductService.Create("설명 검증 세탁기",input,"서울","강남구"));
         var first=agent.chat(new ChatRequest("탈수할 때 많이 흔들려요",null,ProductCategory.WASHER,null,null),email,token(email));
-        assertThat(first.reply()).contains("‘소음·진동이 심해요’ 증상으로 확인했어요","1/2단계: 운송용 고정볼트가 남은 경우에 해당하는지 확인해 주세요.","확인한 뒤 해결됐나요?")
-                .doesNotContain("제조사 자료","승인","제조사 설명서","{{");
-        var question=(DialogueState.Question)first.tools().get("consultation").data().get("question");
-        assertThat(question.id()).isEqualTo("SELF_CHECK");assertThat(question.options()).containsExactly("해결됐어요","아니요, 다음 단계");
-        var second=agent.chat(new ChatRequest("아니요, 다음 단계",first.conversationId(),null,null,null),email,token(email));
-        assertThat(second.reply()).startsWith("2/2단계: 제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요.");
-        assertThat(((DialogueState.Question)second.tools().get("consultation").data().get("question")).options()).containsExactly("해결됐어요","아니요, 해결되지 않았어요");
-        var solved=agent.chat(new ChatRequest("해결됐어요",first.conversationId(),null,null,null),email,token(email));
-        assertThat(solved.reply()).contains("해결되었습니다");assertThat(consultations.snapshot(email,first.conversationId()).state().closed()).isTrue();
-        assertThat(answerRequests).isEmpty();assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(first.conversationId(),email)).isEmpty();
+        assertThat(first.reply()).isEqualTo("‘소음·진동이 심해요’ 증상으로 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.");
+        var card=first.tools().get("card");
+        assertThat(card.data()).containsEntry("type","SELF_CHECK").containsEntry("steps",
+                List.of("운송용 고정볼트가 남은 경우에 해당하는지 확인해 주세요.","제품 수평이 맞지 않는 경우에 해당하는지 확인해 주세요."));
+        assertThat(JSON.writeValueAsString(card.data())).doesNotContain("제조사 자료","승인","제조사 설명서","{{");
+        assertThat(((DialogueState.Question)first.tools().get("consultation").data().get("question")).id()).isEqualTo("SELF_CHECK");
+        long version=((Number)card.meta().get("context_version")).longValue();
+        Long id=first.conversationId();
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"NOT_RESOLVED",1,version)).hasMessageContaining("자가점검 결과를 확인");
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",1,version-1)).hasMessageContaining("변경됐습니다");
+        var solved=agent.answerSelfCheck(id,email,"SOLVED",2,version);
+        assertThat(solved.reply()).isEqualTo(DialogueRouter.RESOLVED_REPLY);assertThat(solved.tools()).doesNotContainKey("card");
+        var saved=consultations.snapshot(email,id).state();
+        assertThat(saved.closed()).isTrue();assertThat(saved.dialogue().answers()).containsEntry("CHECK_DONE","SOLVED").containsEntry("CHECK_INDEX","1");
+        assertThat(history.detail(id,email).messages().get(2).content()).isEqualTo("2단계에서 해결됐어요");
+        assertThatThrownBy(()->agent.answerSelfCheck(id,email,"SOLVED",2,version)).hasMessageContaining("변경됐습니다");
+        assertThat(answerRequests).isEmpty();assertThat(modelCalls.get()).isZero();assertThat(history.toolCalls(id,email)).isEmpty();
     }
     @Test void ungroundedFinalPriceFallsBackToVerifiedToolSentences(CapturedOutput output){
         script.add(call("get_repair_candidates",Map.of()));script.add(estimate(map("candidate_ids",List.of("W01"),"confidence",0.8)));
