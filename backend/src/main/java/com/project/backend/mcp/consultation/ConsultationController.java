@@ -19,6 +19,10 @@ public class ConsultationController {
     @PostMapping("/api/conversations/{id}/precondition-answer") public com.project.backend.chat.dto.ChatResponse condition(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal){
         return selfCare.answer(id,principal.getName(),body,true);
     }
+    @PostMapping("/api/conversations/{id}/product-choice") public com.project.backend.chat.dto.ChatResponse productChoice(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal,
+            @RequestHeader("Authorization") String authorization){
+        return agent.chooseProduct(id,principal.getName(),authorization,body.get("product_id"),body.get("context_version"));
+    }
     @PostMapping("/api/conversations/{id}/product") public ConsultationService.Snapshot confirm(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal){return consultations.confirmProduct(principal.getName(),id,ToolSupport.number(body,"product_id"));}
     @PostMapping("/api/conversations/{id}/risk-answer") public com.project.backend.chat.dto.ChatResponse risk(@PathVariable Long id,@RequestBody Map<String,Object> body,Principal principal){
         return agent.answerRisk(id,principal.getName(),body.get("answer") instanceof String answer?answer:null,ToolSupport.number(body,"context_version"));
