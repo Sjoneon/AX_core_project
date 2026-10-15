@@ -82,6 +82,7 @@
 
 1. 정보가 부족하면 질문과 선택지만 보여 준다. 냉장고 냉각은 `COOLING_STATE` 질문 하나, 도구 호출 없음.
 2. 설명서 확인 항목(`ManualCheckItems.of` → "…을/를 확인해 주세요.")과 고객이 볼 수 있는 상황(`conditions` → "…경우에 해당하는지 확인해 주세요.")을 최대 6단계로 만든다.
+   - 일반 사용자가 뜻을 모를 말(운송용 고정볼트, 물 경도, 연수용 소금)이 든 항목은 단계로 묻지 않는다(`ManualCheckItems.UNFAMILIAR`, 카드 단계에만 적용). 카드에는 "무슨 뜻인지 모르거나 확인하기 어려운 항목은 ‘아니요’를 눌러 넘어가 주세요." 안내가 함께 나온다.
    - 단계 전체를 한 응답의 카드(`tools.card`, type `SELF_CHECK`, `steps`)로 보낸다. 화면이 한 단계씩 "확인한 뒤 해결됐나요?"를 묻는다.
    - [아니요, 다음 단계]는 브라우저 안에서만 넘어가고 서버 요청을 보내지 않는다. 단계마다 `/api/chat`을 보내면 채팅 요청 제한(연속 3회, 분당 5회)에 걸리고 AI 해석이 매번 돌았기 때문이다.
    - 서버에는 결과 한 번만 보낸다: `POST /api/conversations/{id}/self-check` `{result: SOLVED|NOT_RESOLVED, step, context_version}`. 채팅 요청 제한 밖이며 AI 호출이 없다(`AgentChatService.answerSelfCheck`). NOT_RESOLVED는 마지막 단계에서만 받는다. 고객 말풍선은 "N단계에서 해결됐어요" / "N단계까지 모두 확인했지만 해결되지 않았어요"로 저장된다.
@@ -95,6 +96,45 @@
 - 코드 위치: `AgentChatService.guided/guidedReply/answerSelfCheck/checkSteps/summary`, `ConsultationController`(`/self-check`), `DialogueRouter`(SELF_CHECK 직접 입력 처리·`checkQuestion`), `ManualCheckItems.sentences/conditions`, `frontend/src/components/ConsultationCard.jsx`(`SelfCheck`), `Chat.jsx`(`answerSelfCheck`)
 - 검증: 백엔드 320개 중 318개 통과(MySQL 2개 건너뜀, 통합 테스트는 `HOMECARE_TEST_PYTHON=mcp_server/.venv/Scripts/python.exe` 필요), 프론트 29개·lint·build·브라우저 표시 검증(`npm run test:display:browser`, 단계 넘김 무전송 확인) 통과
 - 남은 부분: 4.1 센터 자료, 위험 흐름 카드(4.2의 2번), 제품 확인 질문(4.2의 3번), 위험 확정 후 요약 카드 연결. 요약 카드의 센터 목록은 4.1 전까지 비어 있고, 공식 센터 찾기 링크로 대신한다.
+
+### 같은 날 추가 구현 (커밋 전): 원인을 좁히는 관찰 질문
+
+- 냉장고 냉각 불량에 질문 3개를 둔다(`ObservationQuestions`): 표시창 상태, 작동 소리('웅'), 냉동실 성에. 분해 없이 보거나 들어서 답할 수 있는 것만 묻고, 성에는 직접 녹이거나 떼지 말라고 안내한다.
+- 자가점검 마지막 단계에서 해결되지 않으면 같은 카드에서 질문으로 넘어간다. 자가점검 단계가 없으면 질문부터 보여 준다. 답은 `/self-check` 요청 한 번에 `observations`로 함께 보낸다.
+- 근거 표: `수리비_정규화_과정/관찰_부품_근거_v1.csv` (13행 → 연결 9건). `build_symptom_parts.py`가 `symptom-parts.json`에 `kind: OBSERVATION` 연결로 넣는다(버전 `SYMPTOM-PARTS-V2-20261015`).
+  - 표시창 꺼짐 → 메인 PCB(가이드 GUIDE-02, 사례 SR06)
+  - 표시창 깜빡임 → 메인 PCB(사례 R14), 제상 센서(사례 SR15)
+  - 작동 소리 없음 → 컴프레서·메인 PCB(GUIDE-02, 사례 SR07·R22)
+  - 뒷벽 두꺼운 성에 → 제상 히터(GUIDE-03), 제상 센서·히터·메인 PCB(LG 공식 F dH)
+  - 문 주변 성에 → 도어 가스켓(GUIDE-03)
+- GUIDE-02/03은 EasyBear 수리 기술자 글이다. 원문을 내려받아 인용 문장 7개가 실제로 있는지 확인했고, 크기·해시를 로컬 출처 등록 파일(`collected_sources.json`, git 제외)에 기록했다.
+- 수리비: 답이 가리키는 부품만으로 "답하신 내용 기준" 범위를 만들고 전체 범위는 함께 보여 준다. 답끼리 서로 다른 부품을 가리키면 모두 남긴다(빼지 않음). 정상·모르겠어요 답만 있으면 좁히지 않는다. 오류 코드가 있으면 질문을 하지 않는다.
+- "오류 코드가 보여요"를 고르면 카드에 "오류 코드를 채팅에 입력해 주세요"를 보여 준다. 코드를 입력하면 상담이 그 코드 기준으로 다시 시작된다(`ConsultationService.begin`).
+- 상담원 요약에 "고객이 확인한 관찰: …"을 넣는다.
+
+### 같은 날 추가 구현 (커밋 전): 오류 코드는 LG 공식 안내대로
+
+- 안전 규칙 변경: 실행 지시(전원 분리·해동 등)는 **LG 공식 오류 안내에 있는 것만** 자가점검 단계로 안내한다. 설명서 일반 문구에서 뽑는 `ManualCheckItems`의 규칙은 그대로다.
+- 수집: `backend/scripts/collect_error_guides.py`
+  - 등록 모델 52개의 설명서 25개 중 세탁기·건조기·식기세척기 16개의 "에러 메시지" 항목을 설명서 검색 색인(`res/js/indexer.js`, 항목 전문 포함)에서 가져온다.
+  - 냉장고는 설명서에 코드표가 없어 LG 지원 페이지 2개(Er CH/CL, 27개 코드)와 기존 공식 사실(T2-030~033, 045~050)을 쓴다.
+  - 원문은 `.homecare-cache/`(git 제외)에, 출처와 해시는 `collected_sources.json`(git 제외)에 남는다.
+- 검토 표: `수리비_정규화_과정/오류코드_공식안내_v1.csv` (339행). `build_error_guides.py`가 검증해 `homecare/error-guides.json`(178개 항목, 매니페스트 해시 검증)을 만든다.
+  - 항목은 설명서의 "확인? 조치" 쌍을 원문대로 둔다. 서비스 문의만 하라는 항목은 단계가 아니라 마지막 연락 문구(contact)가 된다.
+- 연동:
+  - 설명서 코드표는 그 설명서를 쓰는 모든 모델에 적용된다(예: F21VDSKR ← F24WDWPR 설명서). 색상 모델은 `models.json`의 대표 모델(`representative_model_code`)로 연결된다.
+  - 같은 안내 문구를 쓰는 표시 문구와 코드는 대표 코드 하나로 묶는다(세탁기 "배수 안됨"=OE, "물높이 감지 안됨"=PE, 건조기 "컴프레서 이상"=LE2 등). 7세그먼트 표기(dEz=dE2, tEs=tE5, [L=CL)도 정규화한다.
+- 인식(`ErrorCodeParser`): 새로 추가된 코드와 한글 표시 문구는 "표시/떠요/화면/에러" 같은 말이 있을 때만 인식한다. 인식한 값은 대표 코드로 저장한다.
+- 흐름: 오류 코드가 있으면 자가점검 카드 단계가 LG 공식 안내 단계가 된다(카드 머리말 "LG 안내대로 확인해 보세요"). 단계가 없으면(서비스 문의 전용) 바로 요약 카드로 간다. 요약 카드 맨 위 "LG 안내" 줄에 의미·원인·연락 문구를 보여 준다.
+- 부품 연결(`증상_부품_근거_v1.csv`, 근거 종류 `OFFICIAL_GUIDE` 추가, 71개 연결):
+  - 세탁기: FE→급수밸브, PE→수위센서, dE4·dL→도어락 스위치, OE→배수펌프, tE→히터
+  - 건조기: 드럼 모터 이상→드럼 모터
+  - 냉장고: ER rF→팬모터, Er dH·d1·d2·d·H1·H2→제상 센서·제상 히터(LG 지원 페이지 + GUIDE-03)
+  - 공식 원인이 부품을 지목하지 않는 코드(예: Er CO, 탁도 감지, 진동 센서, 건조기 컴프레서·펌프처럼 수리비 표에 없는 부품)는 금액을 만들지 않는다.
+
+남은 결정·한계
+- **냉장고 공식 안내 충돌:** 냉장고 설명서 9개의 "고장 감지 기능"은 "에러 코드가 나타나면 전원을 끄지 말고 바로 서비스 센터에 연락"하라고 한다. 코드별 LG 지원 페이지는 "전원 플러그를 뽑고 5분 후 다시 꽂기", "전원 분리 후 해동"을 안내한다. 지금은 코드별 지원 페이지를 따른다.
+- 냉장고 27개 코드는 LG가 코드별 의미를 따로 공개하지 않아 "내부 시스템 이상"으로 함께 안내한다.
 
 ### 수리비 계산 예 (냉장고 냉각 불량)
 
@@ -166,7 +206,7 @@
   - 로컬 `main`에 커밋한다.
   - 원격 `mcp_feature_integration`은 `main`과 이력이 갈라져 있다(공통 조상 `65248f9`). 그래서 `origin/mcp_feature_integration` 기준 임시 worktree에 새 커밋만 cherry-pick해서 fast-forward로 푸시한다. 강제 푸시는 하지 않는다.
   - 로컬 브랜치 `mcp_feature_integration`(`b256ac1`)은 codex worktree에 체크아웃되어 있으니 건드리지 않는다.
-- **커밋 메시지:** `feat: …` 한국어 한 줄 + 본문.
+- **커밋 메시지:** `feat: …` 한국어 한 줄 + 본문. 공동 작성자(`Co-Authored-By`)나 생성 도구 표시 줄은 넣지 않는다.
 - **줄바꿈:** 저장소 파일은 LF다. Windows에서 Python `write_text`를 쓰면 CRLF가 되니 `write_bytes`나 `newline='\n'`을 쓴다.
 - **Python `-I`:** 스크립트 폴더가 import 경로에서 빠지고 `PYTHONIOENCODING`도 무시된다. 스크립트 안에서 `sys.path`를 지정한다.
 - **임시 worktree 삭제:** "Filename too long"이 나면 PowerShell `Remove-Item -LiteralPath '\\?\C:\…' -Recurse -Force`로 지운다.
