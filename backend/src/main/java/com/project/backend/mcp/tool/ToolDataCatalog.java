@@ -15,6 +15,8 @@ public class ToolDataCatalog {
     public final List<Map<String,Object>> knowledge,parts,repairCases,approvedPlans,centers;
     /** Reviewed symptom/error → cost-group links with their evidence (built by backend/scripts/build_symptom_parts.py). */
     public final List<Map<String,Object>> symptomParts;
+    /** LG's official error-message guidance per manual or category (built by backend/scripts/build_error_guides.py). */
+    public final List<Map<String,Object>> errorGuides;
     public final Map<String,Object> models,route;
     /** Cost table origin: basis, surcharge rule and the 20-case validation summary. */
     public final Map<String,Object> costSource;
@@ -37,6 +39,9 @@ public class ToolDataCatalog {
         var partIds=parts.stream().map(p->text(p,"id")).collect(Collectors.toSet());
         for(var link:symptomParts)if(!partIds.contains(text(link,"partId"))||!(link.get("evidence") instanceof List<?> evidence)||evidence.isEmpty())
             throw new IllegalStateException("증상·부품 연결의 부품 또는 근거가 없습니다.");
+        errorGuides=readList(manifest,"error-guides.json");
+        if(!(manifest.section("errorGuides").get("entries") instanceof Number guides)||guides.intValue()!=errorGuides.size())
+            throw new IllegalStateException("오류 코드 안내 건수가 매니페스트와 다릅니다.");
         knowledgeById=index(knowledge);overlays=overlays(knowledge,models);
         var structured=readList(manifest,"knowledge-structured.json");
         if(!Objects.equals(manifest.section("knowledgeProjection").get("sourceSha256"),manifest.section("files").get("homecare/knowledge.json")))
@@ -74,7 +79,7 @@ public class ToolDataCatalog {
             Map<String,Object> models,Map<String,Object> route) {
         this.knowledge=List.copyOf(knowledge);this.parts=List.copyOf(parts);this.repairCases=List.copyOf(cases);
         this.approvedPlans=List.copyOf(plans);this.centers=List.copyOf(centers);this.models=Map.copyOf(models);this.route=Map.copyOf(route);
-        this.symptomParts=List.of();
+        this.symptomParts=List.of();this.errorGuides=List.of();
         this.version="TEST_DATA";this.costSource=Map.of();knowledgeById=index(this.knowledge);overlays=overlays(this.knowledge,this.models);
         structuredKnowledgeById=this.knowledge.stream().collect(Collectors.toUnmodifiableMap(d->text(d,"id"),KnowledgeDocument::plain));
     }
