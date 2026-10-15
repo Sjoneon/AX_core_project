@@ -251,3 +251,4 @@
 .self-check-steps li { margin: 6px 0; }
 .self-check-steps li.checked { color: #5b6b78; }
 .self-check-steps li.checked::after { content: " · 확인함"; font-size: 14px; }
+.consultation-card .card-label { font-weight: 700; margin: 8px 0 2px; }
