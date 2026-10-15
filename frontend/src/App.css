@@ -252,3 +252,14 @@
 .self-check-steps li.checked { color: #5b6b78; }
 .self-check-steps li.checked::after { content: " · 확인함"; font-size: 14px; }
 .consultation-card .card-label { font-weight: 700; margin: 8px 0 2px; }
+.product-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 10px; }
+.consultation-card .product-choice { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 84px; padding: 14px 16px; border: 1px solid #c9d6e1; border-radius: 12px; background: white; text-align: left; color: inherit; transition: background 0.15s, border-color 0.15s; }
+.consultation-card .product-choice:hover:not(:disabled) { background: var(--soft); border-color: var(--primary); }
+.consultation-card .product-choice:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.consultation-card .product-choice:disabled { cursor: default; opacity: 0.6; }
+.product-choice > svg { flex-shrink: 0; color: #8a8f99; }
+.product-choice-icon { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: var(--soft); color: var(--primary); }
+.product-choice-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; line-height: 1.35; }
+.product-choice-text small { font-size: 13px; color: #5b6b78; }
+.product-choice-text strong { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.product-choice-text span { font-size: 15px; color: #3f4b56; overflow-wrap: anywhere; }
