@@ -185,12 +185,16 @@ public class AgentChatService {
     private String guidedReply(String email,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
         var d=s.state().dialogue();var answers=new LinkedHashMap<>(d.answers());
         var items=DialogueRouter.checkItems(answers);
+        // Observation questions narrow the symptom's parts; a displayed error already decides them.
+        var questions=s.state().errorCode()==null?ObservationQuestions.of(s.category(),s.state().symptomCode()):List.<ObservationQuestions.Question>of();
+        var official=officialGuide(email,s);
         if(!answers.containsKey(DialogueRouter.CHECK_ITEMS)){
-            items=checkSteps(email,s);
+            // A displayed error follows LG's official guidance for it; manual check items cover the rest.
+            items=official!=null?ToolDataCatalog.strings(official,"steps"):checkSteps(email,s);
             answers.put(DialogueRouter.CHECK_ITEMS,String.join("\n",items));answers.put(DialogueRouter.CHECK_INDEX,"0");
-            if(items.isEmpty())answers.put(DialogueRouter.CHECK_DONE,"NONE");
+            if(items.isEmpty()&&questions.isEmpty())answers.put(DialogueRouter.CHECK_DONE,"NONE");
         }
-        boolean stepping=!items.isEmpty()&&!answers.containsKey(DialogueRouter.CHECK_DONE);
+        boolean stepping=(!items.isEmpty()||!questions.isEmpty())&&!answers.containsKey(DialogueRouter.CHECK_DONE);
         var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),stepping?DialogueRouter.checkQuestion():null,
                 d.symptomQuestionCount(),answers,d.interpretationSource(),d.selfCareReply());
         var state=s.state();
@@ -198,27 +202,38 @@ public class AgentChatService {
                 state.symptomCode(),state.doneSteps(),state.currentStep(),state.closed(),next,state.selfCare()));
         outputs.put("consultation",dialogueResult(s));
         if(!stepping)return summary(email,s,outputs,calls);
-        // All steps go out at once; the browser walks through them and posts only the outcome (answerSelfCheck).
-        outputs.put("card",ToolEnvelope.policy("OK",map("type","SELF_CHECK","steps",items),map("context_version",s.version()),List.of()));
-        return intro(s);
+        // Steps and questions go out at once; the browser walks through them and posts only the outcome (answerSelfCheck).
+        outputs.put("card",ToolEnvelope.policy("OK",map("type","SELF_CHECK","steps",items,"questions",questions,"source",official==null?null:"LG_ERROR_GUIDE"),
+                map("context_version",s.version()),List.of()));
+        if(official!=null)return subject(s,official)+" 확인했어요. LG 안내에 따라 하나씩 확인해 주세요.";
+        return items.isEmpty()?subject(s,null)+" 확인했어요. 직접 해 볼 수 있는 점검 방법은 없어요. 수리비 범위를 좁히기 위해 눈으로 보거나 들어서 알 수 있는 것만 여쭤볼게요."
+                :subject(s,null)+" 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.";
     }
-    private static String intro(ConsultationService.Snapshot s){
+    private static String subject(ConsultationService.Snapshot s,Map<String,Object> official){
+        if(official!=null)return "‘"+official.get("shown")+"’("+official.get("meaning")+") 표시로";
         String label=SymptomCatalog.label(s.category(),s.state().symptomCode());
         String cooling=DialogueRouter.coolingLabel(s.state().dialogue().answers().get(DialogueRouter.COOLING_STATE));
-        String subject=label.isBlank()?"‘"+s.state().errorCode()+"’ 표시로":"‘"+label+"’"+(cooling==null?"":"("+cooling+")")+" 증상으로";
-        return subject+" 확인했어요. 직접 확인해 볼 수 있는 항목을 하나씩 확인해 주세요.";
+        return label.isBlank()?"‘"+s.state().errorCode()+"’ 표시로":"‘"+label+"’"+(cooling==null?"":"("+cooling+")")+" 증상으로";
     }
-    /** Outcome of the self-check card: solved at a step, or not solved after the last one. No model call. */
-    public ChatResponse answerSelfCheck(Long id,String email,String result,Object step,Object contextVersion){
+    /** LG's official guidance for the displayed error on the registered model; null without an error or an applicable entry. */
+    private Map<String,Object> officialGuide(String email,ConsultationService.Snapshot s){
+        return s.state().errorCode()==null?null:ErrorGuides.guide(catalog,s.category(),consultations.selectedModel(email,s),s.state().errorCode());
+    }
+    /** Outcome of the self-check card: solved at a step, or not solved after the last one with the observation answers. No model call. */
+    public ChatResponse answerSelfCheck(Long id,String email,String result,Object step,Object contextVersion,Object observations){
         var s=consultations.snapshot(email,id);var d=s.state().dialogue();
         if(d.pendingQuestion()==null||!DialogueRouter.SELF_CHECK.equals(d.pendingQuestion().id())||!(contextVersion instanceof Number version)||version.longValue()!=s.version())
             throw new ResponseStatusException(HttpStatus.CONFLICT,"자가점검 안내가 변경됐습니다. 최신 안내에서 다시 선택해 주세요.");
         var items=DialogueRouter.checkItems(d.answers());boolean solved="SOLVED".equals(result);
-        int at=step instanceof Number n?n.intValue():0;
-        if(!solved&&!"NOT_RESOLVED".equals(result)||at<1||at>items.size()||!solved&&at!=items.size())
+        int at=step instanceof Number n?n.intValue():-1;
+        if(!solved&&!"NOT_RESOLVED".equals(result)||(solved?at<1||at>items.size():at!=items.size()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"자가점검 결과를 확인해 주세요.");
+        Map<String,String> observed;
+        try{observed=solved?Map.of():ObservationQuestions.validate(s.category(),s.state().errorCode()==null?s.state().symptomCode():null,observations);}
+        catch(IllegalArgumentException invalid){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"확인 질문의 답을 확인해 주세요.");}
         var answers=new LinkedHashMap<>(d.answers());
-        answers.put(DialogueRouter.CHECK_INDEX,String.valueOf(at-1));answers.put(DialogueRouter.CHECK_DONE,solved?"SOLVED":"NOT_RESOLVED");
+        answers.put(DialogueRouter.CHECK_INDEX,String.valueOf(Math.max(at-1,0)));answers.put(DialogueRouter.CHECK_DONE,solved?"SOLVED":"NOT_RESOLVED");
+        observed.forEach((question,answer)->answers.put(ObservationQuestions.PREFIX+question,answer));
         var next=new DialogueState(d.intent(),d.mentionedCategory(),d.symptomCandidates(),d.symptomText(),null,d.symptomQuestionCount(),answers,
                 d.interpretationSource(),solved?"RESOLVED":d.selfCareReply());
         var state=s.state();
@@ -227,7 +242,7 @@ public class AgentChatService {
         var outputs=new LinkedHashMap<String,ToolEnvelope>();var calls=new ArrayList<ToolCallRecord>();
         outputs.put("consultation",dialogueResult(s));
         String reply=solved?DialogueRouter.RESOLVED_REPLY:summary(email,s,outputs,calls);
-        String label=solved?at+"단계에서 해결됐어요":items.size()+"단계까지 모두 확인했지만 해결되지 않았어요";
+        String label=solved?at+"단계에서 해결됐어요":items.isEmpty()?"확인 질문에 답했어요":items.size()+"단계까지 모두 확인했지만 해결되지 않았어요";
         var warrantyResult=warrantyOf(outputs.get("check_warranty"));
         history.saveExchange(s.id(),email,label,reply,s.category(),List.of(),warrantyResult,outputs,calls);
         return new ChatResponse(reply,s.id(),List.of(),warrantyResult,outputs);
@@ -240,8 +255,12 @@ public class AgentChatService {
     }
     /** One card: warranty line, reference repair cost, region and official routes; tools are policy calls (no model). */
     private String summary(String email,ConsultationService.Snapshot s,Map<String,ToolEnvelope> outputs,List<ToolCallRecord> calls){
-        boolean tried="NOT_RESOLVED".equals(s.state().dialogue().answers().get(DialogueRouter.CHECK_DONE));
-        String lead=tried?"안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.":"이 증상은 직접 해 볼 수 있는 점검 방법이 없어요. 점검이 필요해요.";
+        var answers=s.state().dialogue().answers();var observed=ObservationQuestions.stored(answers);
+        boolean tried="NOT_RESOLVED".equals(answers.get(DialogueRouter.CHECK_DONE))&&!DialogueRouter.checkItems(answers).isEmpty();
+        var official=officialGuide(email,s);
+        String lead=tried?"안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요."
+                :official!=null?"‘"+official.get("shown")+"’ 표시는 LG 안내에 따라 서비스 점검이 필요해요."
+                :"이 증상은 직접 해 볼 수 있는 점검 방법이 없어요. 점검이 필요해요.";
         var args=map("conversation_id",s.id());
         var checked=policy("check_warranty",email,s,args,calls,"POLICY_FALLBACK");outputs.put("check_warranty",checked);
         var centers=policy("find_service_centers",email,s,args,calls,"POLICY_FALLBACK");outputs.put("find_service_centers",centers);
@@ -249,8 +268,10 @@ public class AgentChatService {
         try{handoff=policy("prepare_service_handoff",email,s,map("conversation_id",s.id(),"reason","NOT_VERIFIED"),calls,"POLICY_FALLBACK");outputs.put("prepare_service_handoff",handoff);}
         catch(ResponseStatusException unavailable){LOG.info("homecare_summary_handoff_skipped status={}",unavailable.getStatusCode().value());}
         var coverage=warrantyOf(checked);var place=centers.data()==null?Map.<String,Object>of():centers.data();
-        outputs.put("card",ToolEnvelope.policy("OK",map("type","SUMMARY","lead",lead,"warranty",warrantyLine(coverage),
-                "estimate",SymptomRepairEstimate.of(catalog,s.category(),s.state().symptomCode(),s.state().errorCode()),
+        outputs.put("card",ToolEnvelope.policy("OK",map("type","SUMMARY","lead",lead,"official",official==null?null:map("shown",official.get("shown"),
+                "meaning",official.get("meaning"),"cause",official.get("cause"),"contact",official.get("contact"),"source_url",official.get("source_url")),"warranty",warrantyLine(coverage),
+                "estimate",SymptomRepairEstimate.of(catalog,s.category(),s.state().symptomCode(),s.state().errorCode(),observed),
+                "observations",ObservationQuestions.lines(s.category(),s.state().symptomCode(),observed),"error_code_seen","CODE".equals(observed.get("DISPLAY")),
                 "region",place.get("base_region"),"region_status",place.get("region_status"),"centers",place.getOrDefault("centers",List.of()),
                 "route",catalog.route,"handoff_summary",handoff==null||handoff.data()==null?null:handoff.data().get("summary_text")),
                 map("context_version",s.version()),List.of()));
