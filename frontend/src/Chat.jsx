@@ -279,6 +279,32 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
     }
   }
 
+  // The chosen registered product; the server answers the message that asked for the choice.
+  async function chooseProduct(productId, contextVersion, label) {
+    if (isBusy || sendingRef.current || !conversationId) return
+    sendingRef.current = true
+    setIsSending(true)
+    setError('')
+    stickToBottomRef.current = true
+    setMessages((previous) => [...previous, { id: crypto.randomUUID(), role: 'user', content: label }])
+    try {
+      const data = await request(`/api/conversations/${conversationId}/product-choice`, {
+        method: 'POST', body: JSON.stringify({ product_id: productId, context_version: contextVersion }),
+      })
+      if (typeof data?.reply !== 'string' || !data.reply.trim()) throw new Error('선택한 제품으로 상담을 이어가지 못했습니다.')
+      setMessages((previous) => [...previous,
+        { id: crypto.randomUUID(), role: 'assistant', content: data.reply, sources: data.sources || [], warranty: data.warranty || null, tools: data.tools || {} },
+      ])
+      await loadHistory()
+    } catch (exception) {
+      setMessages((previous) => previous.slice(0, -1))
+      setError(exception instanceof TypeError ? '서버에 연결하지 못했습니다.' : exception.message)
+    } finally {
+      sendingRef.current = false
+      setIsSending(false)
+    }
+  }
+
   async function answerSelfCare(kind, payload, label) {
     if (isBusy || sendingRef.current || !conversationId) return
     sendingRef.current = true
@@ -352,7 +378,7 @@ export default function Chat({ session, onLogout, isActive, onMyPage }) {
                     <div className="message-content">
                       <span className="message-author">{message.role === 'user' ? '나' : 'HomeCare AI'}</span>
                       {message.role === 'assistant'
-                        ? <ConsultationMessage message={message} active={message === messages.at(-1)} disabled={isBusy || retired} onAnswerRisk={answerRisk} onSelectSymptom={sendMessage} onAnswerSelfCare={answerSelfCare} onSelfCheck={answerSelfCheck} />
+                        ? <ConsultationMessage message={message} active={message === messages.at(-1)} disabled={isBusy || retired} onAnswerRisk={answerRisk} onSelectSymptom={sendMessage} onAnswerSelfCare={answerSelfCare} onSelfCheck={answerSelfCheck} onChooseProduct={chooseProduct} />
                         : <p className="message-bubble">{message.content}</p>}
                     </div>
                   </article>
