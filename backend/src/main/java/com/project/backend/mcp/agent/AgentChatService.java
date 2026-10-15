@@ -72,6 +72,24 @@ public class AgentChatService {
         this.checkRetriever=com.project.backend.mcp.retrieval.KnowledgeRetriever.lexical(catalog);
     }
     public ChatResponse chat(ChatRequest request,String email,String authorization){
+        return respond(request,email,authorization,request.message());
+    }
+    /** The product picked on the choice card; the message that asked for the choice is then answered for that product. */
+    public ChatResponse chooseProduct(Long id,String email,String authorization,Object productId,Object contextVersion){
+        var s=consultations.snapshot(email,id);var choices=consultations.productChoices(email,s);
+        if(!(contextVersion instanceof Number version)||version.longValue()!=s.version()||choices.isEmpty()||s.state().closed()||List.of("SUSPECT","CONFIRMED").contains(s.state().riskStatus()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT,"제품 선택 안내가 변경됐습니다. 최신 안내에서 다시 선택해 주세요.");
+        var chosen=choices.stream().filter(p->productId instanceof Number n&&p.id()==n.longValue()).findFirst()
+                .orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"선택할 수 있는 제품이 아닙니다."));
+        return respond(new ChatRequest(s.input(),id,null,null,chosen.id()),email,authorization,productLabel(s.category(),chosen));
+    }
+    /** "냉장고 2 · S834MEE111": the nickname (category name when blank) and the model, as the choice card shows them. */
+    static String productLabel(ProductCategory category,com.project.backend.product.UserProductService.View product){
+        String name=product.displayName()==null||product.displayName().isBlank()?category.getLabel():product.displayName().strip();
+        String model=product.warranty().modelName();
+        return model==null||model.isBlank()?name:name+" · "+model.strip();
+    }
+    private ChatResponse respond(ChatRequest request,String email,String authorization,String label){
         if(request.category()==null&&request.conversationId()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"품목을 선택해 주세요.");
         if(request.warranty()!=null)warranty.check(request.warranty());
         var previous=request.conversationId()==null?null:consultations.snapshot(email,request.conversationId());
@@ -94,8 +112,9 @@ public class AgentChatService {
         if(request.warranty()!=null)s=consultations.manualWarranty(email,s.id(),request.warranty());
         var outputs=new LinkedHashMap<String,ToolEnvelope>();var calls=new ArrayList<ToolCallRecord>();
         try{
-            String reply;
+            String reply;var choices=consultations.productChoices(email,s);
             if(List.of("SUSPECT","CONFIRMED").contains(s.state().riskStatus()))reply=safety(email,s,outputs,calls);
+            else if(!choices.isEmpty())reply=productChoice(s,choices,outputs);
             else{
                 var recent=history.dialogueHistory(s.id(),email);
                 var approved=approvedSteps(email,s);
@@ -114,7 +133,7 @@ public class AgentChatService {
             var warrantyResult=warrantyOf(outputs.get("check_warranty"));
             if(reply==null)reply=format(outputs,warrantyResult);
             var sources=sources(outputs.get("search_knowledge"),s.category());
-            history.saveExchange(s.id(),email,request.message(),reply,s.category(),sources,warrantyResult,outputs,calls);
+            history.saveExchange(s.id(),email,label,reply,s.category(),sources,warrantyResult,outputs,calls);
             return new ChatResponse(reply,s.id(),sources,warrantyResult,outputs);
         }catch(McpGateway.ToolCallException error){
             discard(request,email,s);
@@ -175,6 +194,13 @@ public class AgentChatService {
         long started=System.nanoTime();var result=policyTools.execute(name,email,args,s.version());
         calls.add(ToolCallRecord.success(name,args,source,result,Duration.ofNanos(System.nanoTime()-started).toMillis()));
         return result;
+    }
+    /** Two or more registered products of the category: one card to pick from before the message is interpreted (answered by chooseProduct). */
+    private static String productChoice(ConsultationService.Snapshot s,List<com.project.backend.product.UserProductService.View> choices,Map<String,ToolEnvelope> outputs){
+        var items=choices.stream().map(p->map("id",p.id(),"category",s.category().name(),"name",p.displayName(),"model",p.warranty().modelName())).toList();
+        outputs.put("card",ToolEnvelope.policy("OK",map("type","PRODUCT_CHOICE","products",items),map("context_version",s.version()),List.of()));
+        String category=s.category().getLabel();
+        return "등록하신 "+category+"가 "+choices.size()+"대 있어요. 어느 "+category+"인지 선택해 주세요.";
     }
     /** A registered product's symptom/error without an approved plan: manual self-check steps, then one summary card. */
     private boolean guided(ConsultationService.Snapshot s){
