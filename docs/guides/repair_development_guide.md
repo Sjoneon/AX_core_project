@@ -450,6 +450,16 @@ $env:HOMECARE_MCP_URL='http://127.0.0.1:8000'
 .\gradlew.bat bootRun
 ```
 
+세 번째 터미널에서 프론트엔드 개발 서버를 실행한다. `node_modules`가 이미 있으면 `npm install`은 생략한다.
+
+```powershell
+Set-Location C:\Users\Roneon\Desktop\core_project_2\frontend
+npm install
+npm run dev
+```
+
+화면은 `http://127.0.0.1:5173`에서 연다. Vite 설정이 `strictPort`라서 5173 포트가 이미 사용 중이면 다른 포트로 넘어가지 않고 실패한다. `/api` 요청은 `http://127.0.0.1:8080`으로 프록시되므로 백엔드가 꺼져 있으면 화면은 열려도 API 호출은 실패한다.
+
 `/health`는 MCP 프로세스 확인용이다. 이것만으로 실제 모델·DB·소유권·정확한 비용을 검증했다고 처리하지 않는다. HTTP 인증은 호출별 HomeCare Bearer JWT이며, stdio의 `HOMECARE_USER_TOKEN`은 사용자 한 명의 로컬 프로세스용이다.
 
 ### 10.2 테스트 명령과 기존 결과의 구분
