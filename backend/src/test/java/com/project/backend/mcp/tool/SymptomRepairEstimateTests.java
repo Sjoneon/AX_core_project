@@ -37,6 +37,14 @@ class SymptomRepairEstimateTests {
         assertThat(SymptomRepairEstimate.of(catalog,ProductCategory.REFRIGERATOR,"ODOR",null)).containsEntry("status","NO_DATA");
         assertThat(SymptomRepairEstimate.of(catalog,ProductCategory.WASHER,null,null)).containsEntry("status","NO_DATA");
     }
+    @Test void withoutAPartLinkTheWholeCategoryRangeIsLabelledAsSuch(){
+        var smoke=SymptomRepairEstimate.orCategory(catalog,ProductCategory.DRYER,null,null);
+        assertThat(smoke).containsEntry("status","OK").containsEntry("basis","CATEGORY").containsEntry("category","DRYER");
+        assertThat(section(smoke,"overall")).containsEntry("min",43440).containsEntry("max",283363);
+        assertThat((List<?>)smoke.get("candidates")).hasSize(6);
+        // A linked symptom keeps its own range.
+        assertThat(SymptomRepairEstimate.orCategory(catalog,ProductCategory.DRYER,"DRYING",null)).containsEntry("basis","SYMPTOM");
+    }
     @Test void everyLinkKeepsItsEvidenceType(){
         assertThat(catalog.symptomParts).hasSize(71).allSatisfy(link->assertThat((List<?>)link.get("evidence")).isNotEmpty());
         assertThat(catalog.symptomParts).filteredOn(link->"OBSERVATION".equals(link.get("kind"))).hasSize(9);
