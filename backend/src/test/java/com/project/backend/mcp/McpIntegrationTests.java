@@ -568,6 +568,7 @@ class McpIntegrationTests {
         assertThat(response.tools()).containsKeys("safety","prepare_service_handoff");
         assertThat(response.tools().get("safety").meta()).containsEntry("risk_source","AI");
         assertThat(response.tools().get("safety").data()).containsEntry("risk_status","SUSPECT").containsEntry("question",RiskRules.questions("RC04").getFirst());
+        assertThat(response.tools()).doesNotContainKey("card");
         assertThat(history.toolCalls(response.conversationId(),owner)).extracting(ConversationService.ToolCallView::selectionSource).containsOnly("SAFETY_POLICY");
     }
     @Test void quotedRiskWordsCanBeClearedByAiBeforeOrdinaryAgentTools(){
@@ -609,6 +610,12 @@ class McpIntegrationTests {
             var first=agent.chat(new ChatRequest("건조기에서 타는 냄새가 나요",null,ProductCategory.DRYER,null,null),owner,token(owner));
             var confirmed=agent.answerRisk(first.conversationId(),owner,answer,((Number)first.tools().get("safety").meta().get("context_version")).longValue());
             assertThat(confirmed.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED").containsEntry("question",null);
+            // No self-care, but the reference repair cost of the category is shown with the warranty and routes.
+            assertThat(confirmed.tools()).doesNotContainKeys("get_diagnostic_plan","get_repair_candidates");
+            assertThat(confirmed.tools().get("card").data()).containsEntry("type","SUMMARY");
+            assertThat(confirmed.tools().get("card").data().get("estimate")).isInstanceOfSatisfying(Map.class,estimate->
+                    assertThat(estimate).containsEntry("status","OK").containsEntry("basis","CATEGORY"));
+            assertThat(confirmed.reply()).contains("예상 수리비");
             int callsBefore=modelCalls.get();
             var repeated=agent.chat(new ChatRequest("타는 냄새에 대해 다시 알려 주세요",first.conversationId(),ProductCategory.DRYER,null,null),owner,token(owner));
             assertThat(repeated.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED");
