@@ -2,7 +2,6 @@ import { productName } from '../data/products.js'
 import { customerText as text, list, sourceUrl } from '../customerDisplay.js'
 
 const statusLabels = { IN_WARRANTY: '보증기간 안', EXPIRED: '만료', UNKNOWN: '추가 확인 필요' }
-const feeLabels = { CONDITIONAL_FREE: '조건 충족 시 무상', PAID: '유상', CONFIRM_REQUIRED: '추가 확인 필요' }
 const duration = (months) => months == null ? '기간 확인 필요' : months % 12 === 0 ? `${months / 12}년` : `${months}개월`
 
 function WarrantyRow({ row }) {
@@ -13,13 +12,8 @@ function WarrantyRow({ row }) {
       <p className={`warranty-status ${status.toLowerCase()}`}>{statusLabels[status]}</p>
       {row.expiresOn && <p>만료일: {text(row.expiresOn)}</p>}
       {row.applicability === 'NEEDS_CONFIRMATION' && <p>{row.expiresOn && status !== 'UNKNOWN'
-        ? '무상 수리와 비용 적용은 아래 조건을 추가로 확인해야 합니다.'
+        ? '무상 수리 적용은 아래 조건을 점검 때 확인해요.'
         : '아래 조건이 이 제품에 적용되는지 확인해야 합니다.'}</p>}
-      <dl className="warranty-fees">
-        <div><dt>부품비</dt><dd>{feeLabels[row.partFee] || feeLabels.CONFIRM_REQUIRED}</dd></div>
-        <div><dt>기술료</dt><dd>{feeLabels[row.laborFee] || feeLabels.CONFIRM_REQUIRED}</dd></div>
-        <div><dt>출장비</dt><dd>{feeLabels[row.visitFee] || feeLabels.CONFIRM_REQUIRED}</dd></div>
-      </dl>
       {list(row.conditions).length > 0 && <ul>{row.conditions.map((condition) => <li key={condition}>{text(condition)}</li>)}</ul>}
     </article>
   )
