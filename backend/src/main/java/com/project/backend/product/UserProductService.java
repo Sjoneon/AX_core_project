@@ -33,9 +33,9 @@ public class UserProductService {
     @Transactional(readOnly=true) public UserProduct owned(String email,Long id){return products.findByIdAndUserEmail(id,email).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"제품을 찾을 수 없습니다."));}
     public View view(UserProduct p){return new View(p.getId(),p.getDisplayName(),p.warranty(),p.getDeliverySido(),p.getDeliverySigungu(),p.getRevision());}
     public static String normalizeSido(String input) {
-        String value=input.strip().replace("특별자치도", "").replace("특별자치시", "").replace("특별시", "").replace("광역시", "");
+        String value=input.strip().replace("통합특별시", "").replace("특별자치도", "").replace("특별자치시", "").replace("특별시", "").replace("광역시", "");
         value=switch(value){case "경기도"->"경기";case "강원도"->"강원";case "충청북도"->"충북";case "충청남도"->"충남";case "전라북도"->"전북";case "전라남도"->"전남";case "경상북도"->"경북";case "경상남도"->"경남";case "제주도"->"제주";default->value;};
-        if(!List.of("서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주").contains(value)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"시·도를 확인해 주세요.");
+        if(!List.of("서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주","전남광주").contains(value)) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"시·도를 확인해 주세요.");
         return value;
     }
 }
