@@ -28,8 +28,13 @@ function Ranges({ value, inWarranty }) {
 function Estimate({ estimate, observations, codeSeen, inWarranty }) {
   if (estimate?.status !== 'OK') return <p>이 증상은 원인 부품을 특정할 근거가 없어 금액은 점검 후 확인할 수 있어요.</p>
   const narrowed = estimate.narrowed?.status === 'OK' ? estimate.narrowed : null
+  // No part is linked (e.g. a safety risk): every part of the category, labelled so it is not read as a diagnosis.
+  const category = estimate.basis === 'CATEGORY'
   return <>
-    {narrowed ? <>
+    {category ? <>
+      <p><strong>{range(estimate.overall)}</strong></p>
+      <p className="card-note">원인 부품은 점검 후 확인돼요. {productName(estimate.category)} 주요 부품 {list(estimate.candidates).length}종 기준 범위예요.</p>
+    </> : narrowed ? <>
       <p className="card-label">답하신 내용 기준</p>
       <Ranges value={narrowed} inWarranty={inWarranty} />
       <p>전체 가능 범위 {range(estimate.overall)}</p>
