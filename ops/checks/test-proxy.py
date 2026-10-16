@@ -63,20 +63,25 @@ def main():
             health = docker('exec', proxy, 'wget', '-qO-', 'http://127.0.0.1/internal-health')
             assert json.loads(health)['status'] == 'UP'
             cases = [
+                ('OPTIONS', '/api/chat/stream', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'POST',
+                                                'Access-Control-Request-Headers': 'authorization,content-type'}, 204, True),
                 ('OPTIONS', '/api/chat', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'POST',
                                          'Access-Control-Request-Headers': 'authorization,content-type'}, 204, True),
                 ('GET', '/api/conversations', {'Origin': ORIGIN}, 401, True),
                 ('OPTIONS', '/api/chat', {'Origin': 'https://evil.example', 'Access-Control-Request-Method': 'POST'}, 403, False),
                 ('OPTIONS', '/api/chat', {'Origin': ORIGIN + '.evil.example', 'Access-Control-Request-Method': 'POST'}, 403, False),
                 ('OPTIONS', '/api/chat', {'Origin': 'null', 'Access-Control-Request-Method': 'POST'}, 403, False),
-                ('OPTIONS', '/api/chat', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'PUT'}, 403, True),
+                ('OPTIONS', '/api/products/1', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'PUT',
+                                             'Access-Control-Request-Headers': 'authorization,content-type'}, 204, True),
+                ('PUT', '/api/products/1', {'Origin': ORIGIN}, 401, True),
+                ('OPTIONS', '/api/products/1', {'Origin': ORIGIN, 'Access-Control-Request-Method': 'PATCH'}, 403, True),
                 ('GET', '/api/conversations', {}, 401, False),
             ]
             for method, path, headers, status, allowed in cases:
                 connection = http.client.HTTPSConnection('127.0.0.1', 18443, context=context, timeout=5)
                 connection.request(method, path, headers=headers)
                 response = connection.getresponse()
-                assert response.status == status
+                assert response.status == status, (method, path, status, response.status)
                 assert response.getheader('Access-Control-Allow-Origin') == (ORIGIN if allowed else None)
                 assert 'Origin' in response.getheader('Vary', '')
                 if status == 204:
@@ -93,10 +98,12 @@ def main():
                 connection.close()
             # IP별 burst 한도 검증(POST /api/chat 10, /api/auth/ 5)
             for path, allowed in (('/api/chat', 11), ('/api/auth/login', 6)):
+                time.sleep(1)  # Refill the general API bucket before testing each narrower limit.
                 statuses = []
-                for _ in range(allowed + 4):
+                for attempt in range(allowed + 4):
+                    endpoint = '/api/chat/stream' if path == '/api/chat' and attempt % 2 else path
                     connection = http.client.HTTPSConnection('127.0.0.1', 18443, context=context, timeout=5)
-                    connection.request('POST', path, body='{}', headers={'Origin': ORIGIN, 'Content-Type': 'application/json'})
+                    connection.request('POST', endpoint, body='{}', headers={'Origin': ORIGIN, 'Content-Type': 'application/json'})
                     response = connection.getresponse()
                     statuses.append(response.status)
                     if response.status == 429:
@@ -111,8 +118,8 @@ def main():
             assert response.status == 308
             assert response.getheader('Location') == 'https://43.202.80.116/api/conversations?test=1'
             connection.close()
-            print('PASS: trusted local TLS, health, HTTPS redirect, seven CORS/preflight/error cases, '
-                  'blocked /api/tools spellings and per-IP chat/auth rate limits.')
+            print(f'PASS: trusted local TLS, health, HTTPS redirect, {len(cases)} CORS/preflight/error cases, '
+                  'blocked /api/tools spellings and shared chat/stream plus auth rate limits.')
         finally:
             for name in (proxy, backend):
                 subprocess.run(['docker', 'rm', '-f', name], capture_output=True)

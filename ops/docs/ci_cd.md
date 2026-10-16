@@ -7,7 +7,7 @@ Terraform에서 준비한 기존 역할·저장소·버킷을 사용하며 인�
 ## 실행 흐름
 
 PR, `main` push와 수동 실행에서 Java 21 테스트·JAR 빌드,
-임시 MySQL 8.4에서 V001→V006 적용 후 `ddl-auto=validate` 기동 검사(`mysqlSchemaTest`)와 통합 테스트, Node 24 설치·lint·빌드,
+임시 MySQL 8.4에서 `ops/sql`의 V001→V004 적용 후 `ddl-auto=validate` 기동 검사(`mysqlSchemaTest`)와 통합 테스트, Node 24 설치·테스트·lint·빌드,
 MCP 단위 테스트와 도구 계약 일치 검사, 운영 스크립트 테스트와 세 Docker 이미지(backend·nginx·mcp) 빌드,
 HTTPS/CORS·`/api/tools` 차단·요청 속도 제한 테스트, MCP 컨테이너 health 검사를 실행합니다.
 PR은 AWS 권한·운영 설정을 받지 않습니다. `pull_request_target`은 사용하지 않습니다.
@@ -22,7 +22,7 @@ AWS 액세스 키를 GitHub에 복사하거나 새로운 Secrets를 등록할 �
 3. `<commit-sha>-<run-id>-<run-attempt>`별로 Compose·배포 스크립트·digest·소스 기록을 묶습니다.
 4. S3 `releases/<release-id>/release.tar.gz`에 게시하고 SHA-256을 SSM 명령에 전달합니다.
 5. EC2 역할로 묶음을 내려받아 해시를 확인하고 root 전용 릴리스 폴더에 풉니다.
-6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고, 새 백엔드 이미지의 V001→V006 마이그레이션을 적용한 뒤 컨테이너를 교체합니다. 마이그레이션 실패 시 교체 전에 중단합니다.
+6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고, 새 백엔드 이미지에 포함된 `ops/sql` V001→V004 중 미적용 마이그레이션만 적용한 뒤 컨테이너를 교체합니다. 마이그레이션 실패 시 교체 전에 중단합니다.
 7. 세 서비스의 health, Nginx 설정 검사·reload와 인증서 검증 HTTPS health를 확인합니다.
 8. SSM 실행 종료·exit code 0을 기다린 뒤 GitHub runner에서도 외부 HTTPS health를 확인합니다.
 
@@ -67,7 +67,10 @@ SSM 대기 시간이 초과되면 원격 실행을 강제 취소하지 않고 �
 같은 커밋의 재실행은 **Re-run all jobs**, 수동 실행은 **Run workflow → main**을 사용합니다.
 
 GitHub `production` Variables에 `ECR_MCP_REPOSITORY`(값: `homecare-prod/mcp`)를 추가해 8개로 사용합니다. `main`만 허용하는 환경 정책은 그대로입니다.
-MCP 도입 배포 전에는 Terraform `plan` 검토·승인 후 `apply`로 ECR `mcp` 저장소와 `/homecare/prod/mcp` 로그 그룹을 만들고, 운영 RDS에 V002~V005를 적용해야 합니다.
+MCP 도입 배포 전에는 ECR `homecare-prod/mcp` 저장소와 `/homecare/prod/mcp` 로그 그룹이 필요합니다. 없다면 Terraform 변경을 검토해 준비합니다.
+DB 변경은 배포 스크립트가 전용 마이그레이션 계정으로 자동 실행합니다. `ops/rds/sql`의 과거 수동 SQL을 별도로 적용하지 않습니다.
+기존 운영 V001·V002와 체크섬을 보존하고 V003(MCP 상담 필드)·V004(도구 호출 기록)를 순서대로 적용합니다.
+`/homecare/prod/MIGRATION_DATASOURCE_PASSWORD`와 전용 계정은 [마이그레이션 안내](../DATABASE_MIGRATIONS.md)를 따릅니다.
 AWS 비밀값 등록이나 Vercel CLI 재인증은 필요하지 않습니다.
 Vercel Git 연결·배포 검사·운영 모니터링은 다음 단계에서 진행합니다.
 

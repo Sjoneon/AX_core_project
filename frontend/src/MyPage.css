@@ -45,6 +45,9 @@
 .product-form input, .product-form select { display: block; width: 100%; margin-top: 8px; border: 1px solid #dfe1e6; border-radius: 8px; background: white; padding: 11px 12px; font-size: 14px; min-height: 44px; }
 .product-form fieldset:disabled { opacity: 0.65; }
 .product-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; }
+.model-field { min-width: 0; margin-bottom: 16px; }
+.model-label-row { display: flex; align-items: center; gap: 6px; }
+.product-form .model-label-row label { margin: 0; }
 .product-form .product-help { display: block; margin-top: 6px; }
 .address-heading { display: flex; align-items: center; gap: 8px; padding-top: 20px; border-top: 1px solid var(--border); margin: 6px 0 18px; }
 .address-heading h3 { font-size: 14px; }

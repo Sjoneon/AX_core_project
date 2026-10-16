@@ -102,7 +102,7 @@ API 키는 기존 `backend/.env`에서 백엔드만 읽습니다. 프론트엔�
 기능 추가 전에 화면에만 표시된 대화는 복원할 수 없습니다.
 `sessionStorage`의 `homecare.accessToken`에는 토큰만 저장하며 비밀번호와 회원 정보는 저장하지 않습니다.
 `localStorage`와 쿠키는 사용하지 않습니다. 토큰을 JavaScript에서 읽을 수 있으므로 XSS에 대한 노출 위험은 남습니다.
-채팅은 `POST /api/chat/stream`의 SSE를 `fetch`로 읽습니다. 채팅·대화 조회 요청에는 `Authorization: Bearer <accessToken>`을 전달하며,
+채팅은 `POST /api/chat/stream`의 SSE를 `fetch`로 읽습니다. MCP Agent가 켜져 있으면 이 요청의 404 응답 후 `POST /api/chat`으로 한 번 재요청하고, 이후에는 JSON 상담을 사용합니다. JSON 응답의 도구·보증 결과도 화면과 기록에 유지합니다. 채팅·대화 조회 요청에는 `Authorization: Bearer <accessToken>`을 전달하며,
 인증 오류(401)가 반환되면 로그인 화면으로 돌아갑니다.
 백엔드는 같은 상담의 최근 10회 문답(최대 20개 메시지, 본문 합계 24,000자)을 활용해 후속 질문에 답합니다.
 문자 수 한도를 넘으면 오래된 문답부터 쌍으로 제외하며, 최신 문답만으로 한도를 넘으면 이전 기록 없이 처리합니다.

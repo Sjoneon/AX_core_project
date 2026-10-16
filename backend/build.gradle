@@ -62,12 +62,13 @@ tasks.register('mysqlTest', Test) {
 	systemProperty 'test.datasource.driver-class-name', 'com.mysql.cj.jdbc.Driver'
 	systemProperty 'test.datasource.username', 'backend_test'
 	systemProperty 'test.datasource.password', 'test-password'
+	systemProperty 'test.ddl-auto', 'validate'
 	exclude '**/DatabaseMigrationTests.class'
 	outputs.upToDateWhen { false }
 }
 
 tasks.register('mysqlSchemaTest', Test) {
-	description = 'Applies ops/rds/sql V001..V005 and backend V006 to disposable MySQL and starts the app with ddl-auto=validate.'
+	description = 'Applies the production ops/sql migrations to disposable MySQL and starts the app with ddl-auto=validate.'
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
@@ -131,10 +132,11 @@ tasks.register('migrationTest', Test) {
 
 tasks.named('mysqlTest') {
 	mustRunAfter tasks.named('migrationTest')
+	mustRunAfter tasks.named('mysqlSchemaTest')
 }
 
 tasks.named('processResources') {
-	from('../ops/rds/sql') {
+	from('../ops/sql') {
 		into 'db/migration'
 	}
 	from('rag-test-data/manuals') {

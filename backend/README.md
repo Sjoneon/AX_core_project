@@ -11,17 +11,23 @@
 
 JWT는 이메일과 회원 ID를 함께 검증합니다. 업데이트 전에 발급된 회원 ID 없는 토큰은 재로그인해야 합니다.
 
-제품 프로필의 우편번호·주소·등록/수정 시각은 `src/main/resources/db/migration/V006__product_profile.sql`에서 추가합니다.
-기존 `ops/rds/sql`의 V001~V005는 변경하지 않았으며, 빌드 시 V006과 함께 `db/migration`에 포함합니다.
-현재 로컬 `ddl-auto=update` 설정은 그대로입니다. `ddl-auto=validate`로 실행하는 DB에는 V006 적용이 필요합니다.
-이번 코드 업데이트에서 실제 DB 마이그레이션은 실행하지 않았습니다. `migrateDatabase`는 명시적으로 실행하는 별도 진입점이며, 이미 수동으로 V002~V005를 적용한 DB는 기존 이력 확인 없이 자동 baseline하지 않습니다.
+배포용 SQL 원본은 [`ops/sql`](../ops/sql/)입니다. 기존 운영 V001·V002를 수정하지 않고,
+V003으로 MCP 상담·보증 필드를 추가하고 V004로 도구 호출 기록 테이블을 만듭니다.
+제품명·모델명·구매일·주소·시각은 기존 V002 컬럼을 사용하고, 기존 상담의 에어컨 기록도 보존합니다.
+Gradle이 이 네 파일만 JAR의 `db/migration`에 넣고 배포가 컨테이너 교체 전에 미적용 SQL을 실행합니다.
+`ops/rds/sql`은 과거 별도 스키마의 보관본이며 현재 배포에 사용하지 않습니다.
+그 SQL을 수동 적용한 DB나 Hibernate로 만든 로컬 DB는 임의로 baseline/repair하지 말고 [전환 안내](../ops/DATABASE_MIGRATIONS.md)를 확인하세요.
 
 MCP 도구 9개와 제품 전체·주요 부품별 보증을 구현했습니다. 기본 상담은 `AgentChatService` → Java MCP SDK → FastMCP HTTP → 인증된 Spring 도구 API로 연결됩니다.
 `GET /api/warranty/policies`, `POST /api/warranty/check`는 기존 JWT 인증을 사용하며,
 4개 품목의 확인된 정책으로 날짜·비용 항목을 분리합니다.
 상담에서도 `check_warranty` 도구를 사용할 수 있고 구조화 결과를 메시지 이력에 저장합니다.
 [설계·실행·자료 제한](../docs/mcp/mcp_implementation.md), [MCP 실행과 테스트](../mcp_server/README.md), [보증 정책](../docs/mcp/warranty_implementation.md)을 참고하세요.
-기존 운영 DB에는 배포 전에 V002 → V003 → V004 → V005를 한 번 적용해야 합니다. 실제 migration과 배포는 실행하지 않았습니다.
+현재 작업에서는 운영 RDS에 접속하거나 운영 마이그레이션·배포를 실행하지 않았습니다.
+
+`HOMECARE_AGENT_ENABLED=false`인 기존 상담은 `POST /api/chat/stream`에서 SSE와 최근 10회 문답(최대 24,000자)의 맥락을 사용합니다.
+보증 답변은 검증이 끝난 후 전달합니다. MCP Agent가 켜져 있으면 스트리밍 API는 404를 반환하며,
+프론트엔드는 `POST /api/chat`으로 재요청해 안전·보증·도구 결과와 상담 기록을 받습니다. 스트리밍 요청은 MCP 상담을 우회하거나 기록을 만들지 않습니다.
 
 사용자 계정과 대화 내역은 MySQL에 저장하고, 로그인 시 발급한 JWT로 API를 인증합니다.
 새 Agent는 B30 원문과 v3 비용 스냅샷을 사용합니다. 아래 가상 매뉴얼 설명은 `HOMECARE_AGENT_ENABLED=false`인 기존 상담 경로의 개발·회귀 시험용입니다. 기존 dotenv/SSM OpenAI 설정은 그대로 사용합니다. 전체 JUnit 실행 전 `HOMECARE_TEST_PYTHON`을 MCP 가상환경의 Python 실행 파일로 설정해야 합니다.

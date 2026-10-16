@@ -1,10 +1,13 @@
 package com.project.backend;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import com.project.backend.chat.ChatService;
+import com.project.backend.chat.dto.ChatRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.regex.Pattern;
@@ -44,6 +47,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -73,7 +78,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "spring.datasource.driver-class-name=${test.datasource.driver-class-name:org.h2.Driver}",
                 "spring.datasource.username=${test.datasource.username:sa}",
                 "spring.datasource.password=${test.datasource.password:}",
-                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.hibernate.ddl-auto=${test.ddl-auto:create-drop}",
                 "jwt.secret=MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=",
                 // One user sends every request in this class; ChatRateLimiterTests covers the real limits.
                 "homecare.rate-limit.chat.burst=1000",
@@ -85,6 +90,7 @@ class BackendApplicationTests {
 
 	private static final AtomicInteger upstreamStatus = new AtomicInteger(200);
 	private static final AtomicReference<String> upstreamBody = new AtomicReference<>();
+    private static final AtomicReference<String> upstreamStreamBody = new AtomicReference<>();
 	private static final AtomicReference<String> requestBody = new AtomicReference<>();
 	private static final AtomicReference<String> authorization = new AtomicReference<>();
     private static final AtomicInteger embeddingStatus = new AtomicInteger(200);
@@ -120,16 +126,24 @@ class BackendApplicationTests {
     @Autowired private com.project.backend.mcp.audit.ToolCallLogRepository toolCallRepository;
     @Autowired private com.project.backend.mcp.consultation.ConsultationService consultations;
 
+    @Autowired private ChatService chatService;
+
     private String accessToken;
 
 	@DynamicPropertySource
-	static void configureUpstream(DynamicPropertyRegistry registry) throws IOException {
+	static void configureUpstream(DynamicPropertyRegistry registry) throws Exception {
+        if ("com.mysql.cj.jdbc.Driver".equals(System.getProperty("test.datasource.driver-class-name"))) {
+            com.project.backend.migration.DatabaseMigration.migrate(System.getProperty("test.datasource.url"),
+                    System.getProperty("test.datasource.username"), System.getProperty("test.datasource.password"), "classpath:db/migration");
+        }
 		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		upstream.createContext("/v1/chat/completions", exchange -> {
 			requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
 			authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-			byte[] body = upstreamBody.get().getBytes(StandardCharsets.UTF_8);
-			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			Map<String, Object> input = JsonPath.read(requestBody.get(), "$");
+            boolean streaming = Boolean.TRUE.equals(input.get("stream")) && upstreamStatus.get() == 200;
+            byte[] body = (streaming ? upstreamStreamBody.get() : upstreamBody.get()).getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", streaming ? "text/event-stream" : "application/json");
 			exchange.sendResponseHeaders(upstreamStatus.get(), body.length);
 			try (var output = exchange.getResponseBody()) {
 				output.write(body);
@@ -172,6 +186,8 @@ class BackendApplicationTests {
         accessToken = jwtTokenProvider.createToken("chat-test@example.com");
 		upstreamStatus.set(200);
 		upstreamBody.set(completion("안녕하세요!"));
+        upstreamStreamBody.set(streamChunk("안녕", null) + streamChunk("하세요! 😀\n다음 줄", null)
+                + streamChunk("", "stop") + "data: [DONE]\n\n");
 		requestBody.set(null);
 		authorization.set(null);
         embeddingStatus.set(200);
@@ -426,8 +442,8 @@ class BackendApplicationTests {
                 .andExpect(jsonPath("$.messages[2].content").value("추가 질문"))
                 .andExpect(jsonPath("$.messages[3].role").value("assistant"));
         // Preserve the existing independent-question behavior.
-        assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
-        assertThat(requestBody.get()).doesNotContain("첫 대화");
+        assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(4);
+        assertThat(requestBody.get()).contains("첫 대화").doesNotContain("새 대화");
     }
 
     @Test
@@ -885,7 +901,11 @@ class BackendApplicationTests {
             vector[16] = 1;
         } else if (text.contains("물방울")) {
             vector[2] = 1;
-        } else if (text.contains("아침 메뉴")) {
+        } else if (text.contains("콘센트 주변도 젖었어요") && !text.contains("HC-E01")) {
+            vector[7] = 1;
+        } else if (text.contains("크게 흔들려요")) {
+            vector[6] = 1;
+        } else if (text.contains("아침 메뉴") || text.contains("그 오류의 점검 절차")) {
             vector[17] = 1;
         } else {
             vector[16] = 1;
@@ -1406,4 +1426,367 @@ class BackendApplicationTests {
         assertThat(toolCallRepository.findByConversationIdOrderByIdAsc(otherConversation.getId())).hasSize(1);
         assertThat(appUserRepository.existsById(other.getId())).isTrue();
     }
+
+        @Test
+        void streamingSendsDeltasThenPersistsTheCompleteAnswerAndSources() throws Exception {
+                String body = streamChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}");
+                assertThat(body).contains("event:start", "event:delta", "event:done", "안녕", "다음 줄")
+                                .doesNotContain("event:error");
+                assertThat(body.indexOf("event:delta")).isLessThan(body.indexOf("event:done"));
+                Map<String, Object> done = streamEvent(body, "done");
+                assertThat(done.get("reply")).isEqualTo("안녕하세요! 😀\n다음 줄");
+                long id = ((Number) done.get("conversationId")).longValue();
+                var messages = messageRepository.findByConversationIdOrderByIdAsc(id);
+                assertThat(messages).hasSize(2);
+                assertThat(messages.get(0).getContent()).isEqualTo("HC-E01이 떠요");
+                assertThat(messages.get(1).getContent()).isEqualTo(done.get("reply"));
+                assertThat(messages.get(1).getSources().getFirst().documentId()).isEqualTo("HC-WS-001");
+                assertThat((Boolean) JsonPath.read(requestBody.get(), "$.stream")).isTrue();
+        }
+
+        @Test
+        void streamingUsesPreviousConversationMessagesAndKeepsTheSameId() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                String body = streamChat("{\"message\":\"그 오류는 어떻게 해결해?\",\"conversationId\":" + id + "}");
+                assertThat(((Number) streamEvent(body, "done").get("conversationId")).longValue()).isEqualTo(id);
+                List<String> roles = JsonPath.read(requestBody.get(), "$.messages[*].role");
+                assertThat(roles).containsExactly("system", "user", "assistant", "user");
+                assertThat(requestBody.get()).contains("HC-E01이 떠요", "안녕하세요!", "그 오류는 어떻게 해결해?");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(4);
+        }
+
+        @Test
+        void streamingDirectRepliesDoNotCallAi() throws Exception {
+                String body = streamChat("{\"message\":\"어떻게 하나요\"}");
+                assertThat(body).contains("event:delta", "event:done").doesNotContain("event:error");
+                assertThat(streamEvent(body, "done").get("reply").toString()).contains("제품 카테고리");
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+                assertThat(messageRepository.count()).isEqualTo(2);
+        }
+
+        @Test
+        void streamingWarrantyOnlyExposesTheVerifiedPolicyAndSavesItsResult() throws Exception {
+                upstreamBody.set(completion("모델이 만든 99년 무료 보증"));
+                String body = streamChat("{\"message\":\"무상 보증을 확인해주세요\",\"category\":\"WASHER\"}");
+                Map<String, Object> done = streamEvent(body, "done");
+                assertThat(done.get("warranty")).isNotNull();
+                assertThat(body).doesNotContain("99년", "event:error");
+                long id = ((Number) done.get("conversationId")).longValue();
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id).getLast().getWarranty()).isNotNull();
+        }
+
+        @Test
+        void streamingSmokeAndWarrantyQuestionStopsUseBeforeAnyModelCall() throws Exception {
+                String body = streamChat("{\"message\":\"연기가 나는데 무상 수리인가요?\",\"category\":\"WASHER\"}");
+                assertThat(streamEvent(body, "done").get("reply").toString()).contains("안전 확인이 먼저");
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "empty", "partial", "length", "malformed" })
+        void failedStreamsDoNotPersistPartialAnswersOrChangeExistingHistory(String failure) throws Exception {
+                long id = sendChat("{\"message\":\"성공한 질문\",\"category\":\"WASHER\"}", accessToken);
+                var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+                upstreamStreamBody.set(switch (failure) {
+                        case "empty" -> streamChunk("", "stop") + "data: [DONE]\n\n";
+                        case "partial" -> streamChunk("미완성 답변", null);
+                        case "length" -> streamChunk("길이 제한으로 잘린 답변", "length") + "data: [DONE]\n\n";
+                        default -> streamChunk("미완성 답변", null) + "data: upstream-secret-invalid-json\n\n";
+                });
+                String body = streamChat("{\"message\":\"계속 질문\",\"conversationId\":" + id + "}");
+                assertThat(body).contains("event:error", "AI 응답을 가져오지 못했습니다")
+                                .doesNotContain("event:done", "upstream-secret-invalid-json");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+                assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
+        }
+
+        @Test
+        void streamingUpstreamAndEmbeddingFailuresAreSafeAndDoNotCreateHistory() throws Exception {
+                upstreamStatus.set(500);
+                upstreamBody.set("{\"error\":{\"message\":\"upstream-secret\"}}");
+                String body = streamChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}");
+                assertThat(body).contains("event:error").doesNotContain("event:done", "upstream-secret");
+                upstreamStatus.set(200);
+                requestBody.set(null);
+                embeddingStatus.set(401);
+                body = streamChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}");
+                assertThat(body).contains("event:error").doesNotContain("event:done", "embedding upstream secret");
+                assertThat(requestBody.get()).isNull();
+                assertThat(conversationRepository.count()).isZero();
+                assertThat(messageRepository.count()).isZero();
+        }
+
+        @Test
+        void cancellingAStreamAfterTheFirstDeltaDoesNotSaveAnExchange() {
+                var last = chatService.stream(new ChatRequest("HC-E01이 떠요", null, ProductCategory.WASHER, null, null), "chat-test@example.com")
+                                .takeUntil(event -> "delta".equals(event.event())).blockLast(Duration.ofSeconds(5));
+                assertThat(last.event()).isEqualTo("delta");
+                assertThat(conversationRepository.count()).isZero();
+                assertThat(messageRepository.count()).isZero();
+        }
+
+        @Test
+        void streamingValidatesAuthenticationInputCategoryAndOwnershipBeforeStarting() throws Exception {
+                mockMvc.perform(post("/api/chat/stream").contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"질문\"}")).andExpect(status().isUnauthorized());
+                for (String body : List.of("{\"message\":\" \"}", "{\"message\":\"질문\",\"category\":\"AIR_CONDITIONER\"}")) {
+                        mockMvc.perform(post("/api/chat/stream").header("Authorization", "Bearer " + accessToken)
+                                        .accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON).content(body))
+                                        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.message").isString());
+                }
+                appUserRepository.save(new AppUser("stream-other@example.com", "unused-test-hash", "USER"));
+                var other = appUserRepository.findByEmail("stream-other@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(other, "다른 계정", ProductCategory.WASHER));
+                for (long id : List.of(conversation.getId(), 999999L)) {
+                        mockMvc.perform(post("/api/chat/stream").header("Authorization", "Bearer " + accessToken)
+                                        .accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON)
+                                        .content("{\"message\":\"질문\",\"conversationId\":" + id + "}"))
+                                        .andExpect(status().isNotFound()).andExpect(jsonPath("$.message").value("대화를 찾을 수 없습니다."));
+                }
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+                assertThat(messageRepository.count()).isZero();
+        }
+
+        @Test
+        void followUpReusesStoredHistoryWithANewTokenWithoutResendingOldSources() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "HC-E01이 떠요", ProductCategory.WASHER));
+                var answer = new ChatMessage(conversation, "assistant", "앞서 안내한 답변");
+                answer.setSources(List.of(new RagSource("OLD-SOURCE", "옛 근거", ProductCategory.WASHER,
+                                "0.1", "old.md", "재전송하면 안 되는 옛 근거 본문")));
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "HC-E01이 떠요"), answer));
+                String newToken = jwtTokenProvider.createToken("chat-test@example.com");
+
+                sendChat("{\"message\":\"그 오류는 어떻게 해결해?\",\"conversationId\":" + conversation.getId() + "}", newToken);
+
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents.subList(1, contents.size())).containsExactly("HC-E01이 떠요", "앞서 안내한 답변",
+                                "상담 제품 카테고리: 세탁기\n고객 문의: 그 오류는 어떻게 해결해?");
+                assertThat(contents.getFirst()).contains("이전 문답은 맥락", "최신 사용자", "HC-WS-001");
+                assertThat(requestBody.get()).doesNotContain("OLD-SOURCE", "재전송하면 안 되는 옛 근거 본문");
+                assertThat(embeddingRequest.get()).contains("HC-E01이 떠요", "그 오류는 어떻게 해결해?")
+                                .doesNotContain("앞서 안내한 답변");
+        }
+
+        @Test
+        void newAndOtherConversationsDoNotShareHistory() throws Exception {
+                long first = sendChat("{\"message\":\"비공개 첫 상담\",\"category\":\"WASHER\"}", accessToken);
+                long second = sendChat("{\"message\":\"별도의 둘째 상담\",\"category\":\"WASHER\"}", accessToken);
+                assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
+                assertThat(requestBody.get()).doesNotContain("비공개 첫 상담");
+                assertThat(embeddingRequest.get()).doesNotContain("비공개 첫 상담");
+
+                sendChat("{\"message\":\"첫 상담의 후속 질문\",\"conversationId\":" + first + "}", accessToken);
+                assertThat(requestBody.get()).contains("비공개 첫 상담").doesNotContain("별도의 둘째 상담");
+                assertThat(embeddingRequest.get()).doesNotContain("별도의 둘째 상담");
+                assertThat(second).isNotEqualTo(first);
+        }
+
+        @Test
+        void historyKeepsOnlyTheLastTenExchangesAndSearchUsesOnlyThreeUserQuestions() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "긴 상담", ProductCategory.WASHER));
+                for (int i = 0; i < 11; i++) {
+                        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "이전 질문 " + i + " 끝"),
+                                        new ChatMessage(conversation, "assistant", "이전 답변 " + i + " 끝")));
+                }
+
+                sendChat("{\"message\":\"마지막 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                List<String> roles = JsonPath.read(requestBody.get(), "$.messages[*].role");
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents).hasSize(22);
+                for (int i = 0; i < 10; i++) {
+                        assertThat(roles.get(1 + i * 2)).isEqualTo("user");
+                        assertThat(roles.get(2 + i * 2)).isEqualTo("assistant");
+                        assertThat(contents.get(1 + i * 2)).isEqualTo("이전 질문 " + (i + 1) + " 끝");
+                        assertThat(contents.get(2 + i * 2)).isEqualTo("이전 답변 " + (i + 1) + " 끝");
+                }
+                assertThat(requestBody.get()).doesNotContain("이전 질문 0 끝", "이전 답변 0 끝");
+                assertThat(embeddingRequest.get()).contains("이전 질문 8 끝", "이전 질문 9 끝", "이전 질문 10 끝", "마지막 질문")
+                                .doesNotContain("이전 질문 7 끝", "이전 답변");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(conversation.getId())).hasSize(24);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { 23999, 24000, 24001 })
+        void historyCharacterLimitEvictsWholeExchangesWithoutChangingStoredMessages(int characters) throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "문자 수 경계", ProductCategory.WASHER));
+                String oldQuestion = "오래된 질문";
+                String oldReply = "가".repeat(characters - oldQuestion.length() - "최근 질문최근 답변".length());
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", oldQuestion),
+                                new ChatMessage(conversation, "assistant", oldReply),
+                                new ChatMessage(conversation, "user", "최근 질문"),
+                                new ChatMessage(conversation, "assistant", "최근 답변")));
+
+                sendChat("{\"message\":\"계속 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                List<String> contents = JsonPath.read(requestBody.get(), "$.messages[*].content");
+                assertThat(contents).hasSize(characters <= 24000 ? 6 : 4);
+                assertThat(contents).contains("최근 질문", "최근 답변");
+                if (characters > 24000) {
+                        assertThat(contents).doesNotContain(oldQuestion, oldReply);
+                        assertThat(embeddingRequest.get()).doesNotContain(oldQuestion);
+                } else {
+                        assertThat(contents).contains(oldQuestion, oldReply);
+                }
+                var stored = messageRepository.findByConversationIdOrderByIdAsc(conversation.getId());
+                assertThat(stored).hasSize(6);
+                assertThat(stored.get(1).getContent()).isEqualTo(oldReply);
+        }
+
+        @Test
+        void oversizedLatestExchangeLeavesNoHistoryOrHistoricalSearchCandidates() throws Exception {
+                var user = appUserRepository.findByEmail("chat-test@example.com").orElseThrow();
+                var conversation = conversationRepository.save(new Conversation(user, "긴 답변", ProductCategory.WASHER));
+                messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", "기억에서 제외할 HC-E02"),
+                                new ChatMessage(conversation, "assistant", "짧은 옛 답변"),
+                                new ChatMessage(conversation, "user", "기억에서 제외할 HC-E01"),
+                                new ChatMessage(conversation, "assistant", "가".repeat(24000))));
+
+                sendChat("{\"message\":\"새로운 질문\",\"conversationId\":" + conversation.getId() + "}", accessToken);
+
+                assertThat((Integer) JsonPath.read(requestBody.get(), "$.messages.length()")).isEqualTo(2);
+                assertThat(requestBody.get()).doesNotContain("기억에서 제외할");
+                assertThat(embeddingRequest.get()).doesNotContain("기억에서 제외할");
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(conversation.getId())).hasSize(6);
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "HC-E01이 아니라 HC-E04였어요", "HC-E04, HC-E01, 다시 HC-E04예요" })
+        void followUpUsesTheLastMentionedCodeWhenSimilaritySearchFindsNothing(String question) throws Exception {
+                long id = sendChat("{\"message\":\"" + question + "\",\"category\":\"WASHER\"}", accessToken);
+                var response = mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류의 점검 절차를 다시 설명해주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(1))
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-002"))
+                                .andReturn();
+                assertThat(requestBody.get()).contains("HC-WS-002");
+                assertThat(embeddingRequest.get()).contains(question, "그 오류의 점검 절차");
+                assertThat(response.getResponse().getContentAsString()).doesNotContain("HC-WS-001");
+        }
+
+        @Test
+        void currentCodeTakesPriorityOverHistoricalCode() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"정정할게요. HC-E04예요. 그 오류의 점검 절차를 알려주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(1))
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-002"));
+        }
+
+        @Test
+        void newLeakSymptomsAreSearchedWithoutPreviousErrorCodeQuestions() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                sendChat("{\"message\":\"정정할게요. HC-E04예요\",\"conversationId\":" + id + "}", accessToken);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"이제 바닥에 물이 새고 콘센트 주변도 젖었어요. 어떻게 해요?\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources[0].documentId").value("HC-WS-004"));
+                assertThat(embeddingRequest.get()).contains("콘센트 주변도 젖었어요").doesNotContain("HC-E01", "HC-E04");
+                assertThat(requestBody.get()).contains("HC-E01이 떠요", "정정할게요. HC-E04예요", "HC-WS-004");
+        }
+
+        @Test
+        void newSmokeSymptomsStopUseBeforeRetrievalOrModelCalls() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"DRYER\"}", accessToken);
+                requestBody.set(null);
+                embeddingRequest.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"지금은 타는 냄새와 연기가 나요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("제품 사용을 멈춰")))
+                                .andExpect(jsonPath("$.sources.length()").value(0));
+                assertThat(embeddingRequest.get()).isNull();
+                assertThat(requestBody.get()).isNull();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "냉장고 HC-E01이 떠요", "에어컨이 고장났어요", "TV가 고장났어요", "HC-E99가 떠요" })
+        void historicalValidationFailuresDoNotBlockACorrectedQuestion(String previousQuestion) throws Exception {
+                long id = sendChat("{\"message\":\"" + previousQuestion + "\",\"category\":\"WASHER\"}", accessToken);
+                assertThat(requestBody.get()).isNull();
+                sendChat("{\"message\":\"세탁기가 탈수할 때 크게 흔들려요\",\"conversationId\":" + id + "}", accessToken);
+                assertThat(requestBody.get()).contains(previousQuestion, "HC-WS-003", "크게 흔들려요");
+                assertThat(messageRepository.count()).isEqualTo(4);
+        }
+
+        @Test
+        void historicalUnknownCodeDoesNotBecomeAFallbackOrReuseAnOlderCode() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                sendChat("{\"message\":\"HC-E99였어요\",\"conversationId\":" + id + "}", accessToken);
+                requestBody.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류의 점검 절차를 다시 설명해주세요\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(0))
+                                .andExpect(jsonPath("$.reply").value(org.hamcrest.Matchers.containsString("근거를 찾지 못했습니다")));
+                assertThat(requestBody.get()).isNull();
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = { "HC-E99가 떠요", "냉장고 HC-E01이 떠요", "에어컨이 고장났어요" })
+        void currentQuestionValidationStillRunsWithValidHistory(String question) throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                requestBody.set(null);
+                embeddingRequest.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"" + question + "\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.sources.length()").value(0));
+                assertThat(requestBody.get()).isNull();
+                assertThat(embeddingRequest.get()).isNull();
+        }
+
+        @Test
+        void embeddingFailureDuringContinuationKeepsExistingHistoryUnchanged() throws Exception {
+                long id = sendChat("{\"message\":\"HC-E01이 떠요\",\"category\":\"WASHER\"}", accessToken);
+                var previousUpdate = conversationRepository.findById(id).orElseThrow().getUpdatedAt();
+                embeddingStatus.set(401);
+                requestBody.set(null);
+                mockMvc.perform(post("/api/chat").header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"message\":\"그 오류는 어떻게 해결해?\",\"conversationId\":" + id + "}"))
+                                .andExpect(status().isBadGateway());
+                assertThat(requestBody.get()).isNull();
+                assertThat(messageRepository.findByConversationIdOrderByIdAsc(id)).hasSize(2);
+                assertThat(conversationRepository.findById(id).orElseThrow().getUpdatedAt()).isEqualTo(previousUpdate);
+        }
+
+        private String streamChat(String body) throws Exception {
+                var result = mockMvc.perform(post("/api/chat/stream").header("Authorization", "Bearer " + accessToken)
+                                .accept(MediaType.TEXT_EVENT_STREAM).contentType(MediaType.APPLICATION_JSON).content(body))
+                                .andExpect(request().asyncStarted()).andReturn();
+                result.getAsyncResult(10000);
+                return mockMvc.perform(asyncDispatch(result)).andExpect(status().isOk())
+                                .andExpect(header().string("Cache-Control", "no-store"))
+                                .andExpect(header().string("X-Accel-Buffering", "no"))
+                                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        }
+
+        private Map<String, Object> streamEvent(String body, String name) {
+                var match = Pattern.compile("event:" + name + "\\r?\\ndata:(.+)").matcher(body);
+                assertThat(match.find()).isTrue();
+                return JsonPath.read(match.group(1), "$");
+        }
+
+        private static String streamChunk(String text, String finishReason) {
+                return "data: {\"id\":\"chatcmpl-test\",\"object\":\"chat.completion.chunk\",\"created\":1,\"model\":\"gpt-4o-mini\","
+                                + "\"choices\":[{\"index\":0,\"delta\":{\"role\":\"assistant\",\"content\":\""
+                                + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+                                + "\"},\"finish_reason\":" + (finishReason == null ? "null" : "\"" + finishReason + "\"") + "}]}\n\n";
+        }
+
 }

@@ -8,9 +8,17 @@
 백엔드 JAR의 `db/migration`에 넣습니다. 로컬·CI·운영은 Flyway로 이 SQL을 실행합니다.
 로컬 DB의 현재 구조나 데이터 덤프를 운영에 자동 복사하지 않습니다.
 
+현재 배포 순서는 V001(계정·상담·메시지) → V002(등록 제품) → V003(MCP 상담·보증 필드) → V004(도구 호출 기록)입니다.
+기존 V001·V002는 변경하지 않았습니다. V003은 V002의 제품 테이블을 확장하며 기존 이름·모델·구매일·주소를 유지합니다.
+기존 제품의 추가 보증 정보는 NULL로 남겨, 앱이 원래 모델명·구매일에서 보증 입력을 읽습니다.
+V003 이후에도 이전 앱은 원래 컬럼으로 제품을 읽고 쓸 수 있습니다. 기존 에어컨 상담은 조회·삭제할 수 있습니다.
+`ops/rds/sql`의 V001~V006은 과거 기능 브랜치의 별도 수동 스키마이며 JAR에 포함하지 않습니다.
+같은 버전 번호의 다른 SQL을 섞어 적용하거나 Flyway 이력을 삭제/repair하지 않습니다.
+해당 수동 스키마를 이미 적용한 DB는 배포 전에 실제 구조·이력을 확인하고 별도 데이터 전환을 준비해야 합니다.
+
 ## 개발할 때
 
-1. 엔티티를 변경할 때 `ops/sql/V002__설명.sql`, 다음은 `V003__설명.sql`처럼 새 파일을 만듭니다.
+1. 엔티티를 변경할 때 `ops/sql/V005__설명.sql`처럼 현재 마지막 버전 다음 번호의 새 파일을 만듭니다.
    이미 적용된 SQL, 특히 기존 `V001__initial_schema.sql`은 수정하지 않습니다.
 2. 로컬 MySQL에 SQL을 적용하고 `ddl-auto=validate`로 앱을 실행해 확인합니다.
 3. 임시 MySQL에서 마이그레이션과 API 테스트를 통과시킨 뒤 코드·SQL을 함께 커밋합니다.
@@ -25,7 +33,7 @@ ALTER TABLE app_users ADD COLUMN display_name VARCHAR(100) NULL;
 ```
 
 엔티티만 수정하거나 SQL 없이 로컬 DB를 직접 변경하면 운영 스키마는 바뀌지 않습니다.
-Hibernate가 SQL을 대신 생성하지 않습니다. 로컬 기본값도 `update`에서 `validate`로 바꿨습니다.
+운영 Hibernate는 SQL을 대신 생성하지 않습니다. 로컬 기본값은 `update`지만, 배포 검증은 반드시 Flyway와 `validate`로 수행합니다.
 
 ### 로컬 DB에 적용
 
@@ -41,7 +49,7 @@ read -s 'MIGRATION_PASSWORD?로컬 DB 비밀번호: '
 export MIGRATION_PASSWORD
 ./gradlew --no-daemon migrateDatabase
 unset MIGRATION_PASSWORD
-./gradlew bootRun
+./gradlew bootRun --args='--spring.jpa.hibernate.ddl-auto=validate'
 ```
 
 위 비밀번호 입력 문법은 macOS 기본 zsh용입니다. 개발 DB의 주소·계정이 다르면 바꿉니다.
@@ -55,7 +63,7 @@ unset MIGRATION_PASSWORD
 
 ```bash
 docker compose -p homecare-migration-check -f compose.mysql-test.yaml up -d --wait
-./gradlew --no-daemon migrationTest mysqlTest
+./gradlew --no-daemon migrationTest mysqlSchemaTest mysqlTest
 docker compose -p homecare-migration-check -f compose.mysql-test.yaml down -v
 ```
 
@@ -79,7 +87,7 @@ DROP·CREATE USER·다른 DB 권한·전역 관리 권한은 부여하지 않습
 Git·이미지·Terraform state에 비밀번호를 넣지 않습니다. EC2의 기존 파라미터 읽기 범위에 포함되어
 새 Terraform 리소스나 GitHub Secret은 필요하지 않습니다.
 앱 런타임 설정 writer는 이 키를 읽지 않으며, 마이그레이션 전용 임시 컨테이너만 전달받습니다.
-상시 컨테이너는 계속 `backend`·`nginx` 두 개입니다.
+상시 컨테이너는 `backend`·`nginx`·내부 전용 `mcp` 세 개입니다.
 
 최초 한 번, **기존 RDS가 V001 상태일 때만** 로컬 관리자 AWS 자격증명으로 계정을 준비합니다.
 
@@ -123,6 +131,14 @@ MySQL DDL은 전체 마이그레이션을 트랜잭션으로 되돌리지 못할
 참고: [Spring Boot의 DB 초기화·Flyway 안내](https://docs.spring.io/spring-boot/how-to/data-initialization.html).
 
 ## 실제 검증 결과
+
+2026-10-16 MCP 통합 준비 검증(운영 DB 변경 없음):
+
+- 기존 `ops/sql` V001·V002에서 V003·V004로 업그레이드, 재실행과 원래 제품·상담 데이터 보존을 일회용 MySQL 8.4에서 확인했습니다.
+- 패키징한 네 SQL의 원본 일치와 Hibernate `validate` 기동, 기존 제품의 모델·구매일 조회 및 이전 앱 방식의 쓰기를 확인했습니다.
+- 읽기 전용 amd64 Docker 이미지의 마이그레이션 진입점, 백엔드 기동, MCP HTTP 도구 9개 조회와 JWT 인증 도구 호출을 확인했습니다.
+
+아래는 2026-10-13 최초 자동 배포의 검증 기록입니다.
 
 - 로컬 H2 API 56개, MySQL API 56개, 마이그레이션 업그레이드·실패 검증, 운영 스크립트 27개 통과.
 - 실제 amd64 이미지의 별도 Java 진입점·TLS·기존 V001 baseline·재실행·새 테이블 CRUD 부여 확인.

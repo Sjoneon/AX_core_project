@@ -34,6 +34,9 @@ class ChatRateLimiterTests {
         var limiter=new ChatRateLimiter(5,1,100,clock);
         var request=new MockHttpServletRequest("POST","/api/chat");request.setUserPrincipal(()->"a@example.com");
         assertThat(limiter.preHandle(request,new MockHttpServletResponse(),new Object())).isTrue();
+        request.setDispatcherType(jakarta.servlet.DispatcherType.ASYNC);
+        assertThat(limiter.preHandle(request,new MockHttpServletResponse(),new Object())).as("async redispatch does not consume another request").isTrue();
+        request.setDispatcherType(jakarta.servlet.DispatcherType.REQUEST);
         var rejected=new MockHttpServletResponse();
         assertThat(limiter.preHandle(request,rejected,new Object())).isFalse();
         assertThat(rejected.getStatus()).isEqualTo(429);assertThat(rejected.getHeader("Retry-After")).isEqualTo("12");

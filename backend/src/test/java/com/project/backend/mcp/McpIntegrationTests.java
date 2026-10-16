@@ -194,6 +194,28 @@ class McpIntegrationTests {
             .POST(java.net.http.HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(args))).build();
         return java.net.http.HttpClient.newHttpClient().send(request,java.net.http.HttpResponse.BodyHandlers.ofString());
     }
+    @Test void streamFallbackDoesNotBypassAgentOrDuplicateHistory() throws Exception {
+        String email="fallback-"+UUID.randomUUID()+"@example.com";
+        users.save(new AppUser(email,"unused","USER"));
+        String body=JSON.writeValueAsString(map("message","콘센트에서 스파크가 튀어요","category","DRYER"));
+        var client=java.net.http.HttpClient.newHttpClient();
+        String base="http://127.0.0.1:"+backendPort;
+        var probe=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/chat/stream"))
+                .header("Authorization",token(email)).header("Content-Type","application/json").header("Accept","text/event-stream")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build();
+        assertThat(client.send(probe,java.net.http.HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
+        assertThat(history.list(email)).isEmpty();
+        assertThat(modelRequests).isEmpty();
+        var request=java.net.http.HttpRequest.newBuilder(URI.create(base+"/api/chat"))
+                .header("Authorization",token(email)).header("Content-Type","application/json")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build();
+        var response=client.send(request,java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(200);
+        var result=JSON.readValue(response.body(),ChatResponse.class);
+        assertThat(result.tools().get("safety").data()).containsEntry("risk_status","CONFIRMED");
+        assertThat(history.detail(result.conversationId(),email).messages()).hasSize(2);
+        assertThat(modelCalls.get()).isZero();
+    }
     @Test void realReviewedPlanRunsThroughHttpConditionsStepsHistoryAndResolution() throws Exception {
         var c=realSelfCare();var response=c.response();
         try(var session=gateway.open(token(c.email()),consultations.snapshot(c.email(),response.conversationId()))){

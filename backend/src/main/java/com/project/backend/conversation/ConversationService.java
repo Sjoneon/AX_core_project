@@ -10,6 +10,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.project.backend.conversation.dto.ConversationDetail;
 import com.project.backend.conversation.dto.ConversationSummary;
+import com.project.backend.conversation.dto.ChatContext;
+import com.project.backend.conversation.dto.ChatContext.HistoryMessage;
 import com.project.backend.conversation.dto.MessageResponse;
 import com.project.backend.mcp.audit.ToolCallLog;
 import com.project.backend.mcp.audit.ToolCallLogRepository;
@@ -24,6 +26,8 @@ import com.project.backend.warranty.WarrantyModels;
 public class ConversationService {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final int MAX_HISTORY_CHARACTERS = 24000;
+
     private final ConversationRepository conversationRepository;
     private final ChatMessageRepository messageRepository;
     private final AppUserRepository userRepository;
@@ -49,6 +53,24 @@ public class ConversationService {
         var messages = messageRepository.findByConversationIdOrderByIdAsc(id).stream()
                 .map(MessageResponse::from).toList();
         return new ConversationDetail(conversation.getId(), conversation.getTitle(), conversation.getCategory(), messages);
+    }
+
+    @Transactional(readOnly = true)
+    public ChatContext loadChatContext(Long id, String email, ProductCategory requestedCategory) {
+        ProductCategory category = resolveCategory(id, email, requestedCategory);
+        if (id == null) {
+            return new ChatContext(category, List.of());
+        }
+        var messages = messageRepository.findTop20ByConversationIdOrderByIdDesc(id).reversed().stream()
+                .map(message -> new HistoryMessage(message.getRole(), message.getContent())).toList();
+        int characters = messages.stream().mapToInt(message -> message.content().length()).sum();
+        int start = 0;
+        // Successful exchanges are stored atomically as a user/assistant pair.
+        while (characters > MAX_HISTORY_CHARACTERS) {
+            characters -= messages.get(start).content().length() + messages.get(start + 1).content().length();
+            start += 2;
+        }
+        return new ChatContext(category, messages.subList(start, messages.size()));
     }
 
     @Transactional(readOnly = true)

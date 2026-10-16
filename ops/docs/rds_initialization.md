@@ -1,5 +1,9 @@
 # RDS 초기화와 TLS 검증
 
+이 문서의 `rds/sql` 수동 마이그레이션 절차는 과거 별도 스키마용 기록입니다.
+현재 배포에는 [`ops/sql`](../sql/)의 V001~V004와 [Flyway 절차](../DATABASE_MIGRATIONS.md)를 사용합니다.
+아래의 과거 V002~V005를 현재 운영 DB에 별도로 실행하지 않습니다.
+
 대상: 서울 리전 `528215464049` 계정의 `homecare-prod-mysql`, DB `project_db`.
 실행 날짜: 2026-10-12. DB 연결과 초기화는 퍼블릭 서브넷 EC2에서 SSM을 통해 수행합니다.
 

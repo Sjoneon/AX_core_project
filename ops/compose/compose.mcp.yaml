@@ -1,5 +1,5 @@
 # 릴리스에 이 파일이 있으면 deploy-service.sh에서 compose.prod.yaml과 병합
-# RDS의 V002~V006 스키마와 ECR MCP 이미지 필요
+# ops/sql의 V001~V004 스키마와 ECR MCP 이미지 필요
 # MCP 릴리스는 Agent를 활성화한다. MCP 없는 이전 릴리스는 prod 기본값 false를 유지한다.
 services:
   backend:

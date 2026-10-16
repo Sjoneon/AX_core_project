@@ -3,6 +3,7 @@ package com.project.backend.chat.exception;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
@@ -23,6 +24,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException exception) {
         return ResponseEntity.status(exception.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of("message", exception.getReason()));
     }
 
@@ -30,12 +32,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleValidation(
             MethodArgumentNotValidException exception) {
         String message = exception.getBindingResult().getFieldErrors().getFirst().getDefaultMessage();
-        return ResponseEntity.badRequest().body(Map.of("message", message));
+        return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(Map.of("message", message));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, String>> handleInvalidJson() {
-        return ResponseEntity.badRequest().body(Map.of("message", "올바른 JSON 요청 본문이 필요합니다."));
+        return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(Map.of("message", "올바른 JSON 요청 본문이 필요합니다."));
     }
 
     @ExceptionHandler(ChatUnavailableException.class)

@@ -98,10 +98,8 @@ class DatabaseMigrationTests {
     }
 
     @Test
-    void profileMigrationPreservesMcpProductsAndConversationHistory(@TempDir Path directory) throws Exception {
-        String[] migrations = {"V001__initial_schema.sql", "V002__warranty_result.sql",
-                "V003__mcp_context_and_products.sql", "V004__four_category_scope.sql", "V005__chat_tool_calls.sql"};
-        for (String name : migrations) {
+    void mcpUpgradePreservesDeployedProductsHistoryAndLegacyWrites(@TempDir Path directory) throws Exception {
+        for (String name : new String[]{"V001__initial_schema.sql", "V002__create_user_products.sql"}) {
             try (var stream = getClass().getResourceAsStream("/db/migration/" + name)) {
                 Files.write(directory.resolve(name), stream.readAllBytes());
             }
@@ -111,33 +109,48 @@ class DatabaseMigrationTests {
              var sql = connection.createStatement()) {
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
             sql.executeUpdate("INSERT INTO app_users(id,email,password,role) VALUES (1,'product-migration@example.com','hash','USER')");
-            sql.executeUpdate("INSERT INTO chat_conversations(id,user_id,title,category,created_at,updated_at) VALUES (1,1,'legacy','WASHER',NOW(),NOW())");
+            sql.executeUpdate("INSERT INTO chat_conversations(id,user_id,title,category,created_at,updated_at) VALUES (1,1,'legacy','AIR_CONDITIONER',NOW(),NOW())");
             sql.executeUpdate("INSERT INTO chat_messages(conversation_id,role,content,sources,created_at) VALUES (1,'assistant','legacy reply','[]',NOW())");
-            sql.executeUpdate("INSERT INTO user_products(user_id,category,display_name,warranty_input,delivery_sido,delivery_sigungu) VALUES (1,'WASHER','legacy product','{}','서울','강남구')");
-            try (var stream = getClass().getResourceAsStream("/db/migration/V006__product_profile.sql")) {
-                Files.write(directory.resolve("V006__product_profile.sql"), stream.readAllBytes());
+            sql.executeUpdate("INSERT INTO user_products(id,user_id,category,name,model,purchase_date,postcode,address,address_detail,created_at,updated_at) "
+                    + "VALUES (1,1,'WASHER','legacy product','TR15WV5','2025-01-02','12345','legacy address','101',NOW(),NOW())");
+            for (String name : new String[]{"V003__mcp_consultation.sql", "V004__chat_tool_calls.sql"}) {
+                try (var stream = getClass().getResourceAsStream("/db/migration/" + name)) {
+                    Files.write(directory.resolve(name), stream.readAllBytes());
+                }
             }
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
             DatabaseMigration.migrate(URL, USER, PASSWORD, location);
-            try (var rows = sql.executeQuery("SELECT category,content,sources FROM chat_conversations JOIN chat_messages ON chat_conversations.id=conversation_id")) {
+            try (var rows = sql.executeQuery("SELECT category,content,sources,warranty,tool_results FROM chat_conversations JOIN chat_messages ON chat_conversations.id=conversation_id")) {
                 assertThat(rows.next()).isTrue();
-                assertThat(rows.getString(1)).isEqualTo("WASHER");
+                assertThat(rows.getString(1)).isEqualTo("AIR_CONDITIONER");
                 assertThat(rows.getString(2)).isEqualTo("legacy reply");
                 assertThat(rows.getString(3)).isEqualTo("[]");
+                assertThat(rows.getString(4)).isNull();
+                assertThat(rows.getString(5)).isNull();
             }
-            try (var rows = sql.executeQuery("SELECT display_name,warranty_input,delivery_sido,delivery_sigungu,postcode,address,address_detail,created_at,updated_at FROM user_products")) {
+            try (var rows = sql.executeQuery("SELECT name,model,purchase_date,postcode,address,address_detail,warranty_input,delivery_sido,delivery_sigungu,revision FROM user_products WHERE id=1")) {
                 assertThat(rows.next()).isTrue();
                 assertThat(rows.getString(1)).isEqualTo("legacy product");
-                assertThat(rows.getString(2)).isEqualTo("{}");
-                assertThat(rows.getString(3)).isEqualTo("서울");
-                assertThat(rows.getString(4)).isEqualTo("강남구");
-                for (int column = 5; column <= 9; column++) assertThat(rows.getObject(column)).isNull();
+                assertThat(rows.getString(2)).isEqualTo("TR15WV5");
+                assertThat(rows.getString(3)).isEqualTo("2025-01-02");
+                assertThat(rows.getString(4)).isEqualTo("12345");
+                assertThat(rows.getString(5)).isEqualTo("legacy address");
+                assertThat(rows.getString(6)).isEqualTo("101");
+                assertThat(rows.getString(7)).isNull();
+                assertThat(rows.getString(8)).isEmpty();
+                assertThat(rows.getString(9)).isEmpty();
+                assertThat(rows.getLong(10)).isZero();
             }
-            resetDisposableDatabase();
-            DatabaseMigration.migrate(URL, USER, PASSWORD, "classpath:db/migration");
+            // An older app can still insert with its original columns after rollback.
+            sql.executeUpdate("INSERT INTO user_products(user_id,category,created_at,updated_at) VALUES (1,'DRYER',NOW(),NOW())");
             try (var rows = sql.executeQuery("SELECT COUNT(*) FROM user_products")) {
                 assertThat(rows.next()).isTrue();
-                assertThat(rows.getInt(1)).isZero();
+                assertThat(rows.getInt(1)).isEqualTo(2);
+            }
+            try (var rows = sql.executeQuery("SELECT version FROM flyway_schema_history WHERE success=1 ORDER BY installed_rank")) {
+                var versions = new java.util.ArrayList<String>();
+                while (rows.next()) versions.add(rows.getString(1));
+                assertThat(versions).containsExactly("001", "002", "003", "004");
             }
         } finally {
             resetDisposableDatabase();

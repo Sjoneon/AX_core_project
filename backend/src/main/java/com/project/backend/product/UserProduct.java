@@ -16,8 +16,10 @@ public class UserProduct {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
     @ManyToOne(fetch=FetchType.LAZY, optional=false) @JoinColumn(name="user_id",nullable=false) private AppUser user;
     @Enumerated(EnumType.STRING) @Column(nullable=false,length=30) private ProductCategory category;
-    @Column(length=100) private String displayName;
-    @Column(nullable=false,columnDefinition="LONGTEXT") private String warrantyInput;
+    @Column(name="name",length=100) private String displayName;
+    @Column(length=100) private String model;
+    private LocalDate purchaseDate;
+    @Column(columnDefinition="LONGTEXT") private String warrantyInput;
     @Column(nullable=false,length=20) private String deliverySido;
     @Column(nullable=false,length=30) private String deliverySigungu;
     @Version private long revision;
@@ -37,6 +39,7 @@ public class UserProduct {
     }
     public UserProduct(AppUser user, String displayName, WarrantyModels.Request warranty, String sido, String sigungu) {
         this(user); this.category=warranty.category(); this.displayName=displayName;
+        this.model=warranty.modelName(); this.purchaseDate=warranty.purchaseDate();
         this.warrantyInput=JSON.writeValueAsString(warranty);
         this.deliverySido=sido; this.deliverySigungu=sigungu;
     }
@@ -57,6 +60,8 @@ public class UserProduct {
         boolean samePurchase = sameModel && Objects.equals(previous.purchaseDate(), purchaseDate);
         this.category = request.category();
         this.displayName = request.name();
+        this.model = request.model();
+        this.purchaseDate = purchaseDate;
         this.warrantyInput = JSON.writeValueAsString(new WarrantyModels.Request(category, request.model(), purchaseDate,
                 samePurchase ? previous.deliveryDate() : null,
                 sameModel ? previous.productionDate() : null,
@@ -80,5 +85,15 @@ public class UserProduct {
     public String getDeliverySido(){return deliverySido;}
     public String getDeliverySigungu(){return deliverySigungu;}
     public long getRevision(){return revision;}
-    public WarrantyModels.Request warranty(){return JSON.readValue(warrantyInput, WarrantyModels.Request.class);}
+    public WarrantyModels.Request warranty(){
+        var saved=warrantyInput==null?null:JSON.readValue(warrantyInput, WarrantyModels.Request.class);
+        boolean sameCategory=saved!=null&&saved.category()==category;
+        boolean sameModel=sameCategory&&Objects.equals(saved.modelName(),model);
+        boolean samePurchase=sameModel&&Objects.equals(saved.purchaseDate(),purchaseDate);
+        // Original columns remain authoritative when an older release writes after rollback.
+        return new WarrantyModels.Request(category,model,purchaseDate,
+                samePurchase?saved.deliveryDate():null,sameModel?saved.productionDate():null,
+                sameCategory?saved.coreVariant():null,sameCategory?saved.productType():null,
+                samePurchase?saved.proofAvailable():null,sameModel?saved.domesticNewHousehold():null);
+    }
 }

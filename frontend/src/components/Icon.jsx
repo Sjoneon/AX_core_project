@@ -1,5 +1,6 @@
 export default function Icon({ name, size = 22 }) {
   const paths = {
+    info: <><circle cx="12" cy="12" r="9" /><path d="M12 10.5v6" /><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
     close: <path d="m6 6 12 12M18 6 6 18" />,
     trash: <path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7" />,

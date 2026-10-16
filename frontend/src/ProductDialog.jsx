@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { PRODUCTS } from './data/products.js'
 import Icon from './components/Icon.jsx'
+import ModelNameHelp from './components/ModelNameHelp.jsx'
 
 function purchaseDate(value) {
   if (!value) return null
@@ -34,6 +35,7 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
   const detailRef = useRef(null)
   const alive = useRef(false)
   const savingRef = useRef(isSaving)
+  const modelId = useId()
 
   useEffect(() => { savingRef.current = isSaving }, [isSaving])
   useEffect(() => {
@@ -103,7 +105,15 @@ export default function ProductDialog({ initial, onSave, onClose, isSaving, save
               {PRODUCTS.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}
             </select></label>
             <label>표시 이름 <small>선택</small><input name="name" value={form.name} onChange={change} maxLength={40} placeholder="예: 주방 냉장고" /></label>
-            <label>모델명 <small>선택</small><input name="model" value={form.model} onChange={change} maxLength={80} placeholder="모르면 비워두세요" /></label>
+            <div className="model-field">
+              <div className="model-label-row">
+                <label htmlFor={modelId}>모델명 <small>선택</small></label>
+                <ModelNameHelp category={form.category} />
+              </div>
+              <input id={modelId} name="model" value={form.model} onChange={change} maxLength={80}
+                placeholder="모르면 비워두세요" aria-describedby={`${modelId}-help`} />
+              <small id={`${modelId}-help`} className="product-help">옆의 ⓘ 도움말에서 모델명 찾는 방법을 확인해 보세요.</small>
+            </div>
             <label>구매일 <small>선택</small><input name="purchaseDate" value={form.purchaseDate} onChange={change} inputMode="numeric" pattern="[0-9]{8}" maxLength={8} placeholder="예: 20250315" aria-describedby="purchase-date-help" />
               <small id="purchase-date-help" className="product-help">연도·월·일을 숫자 8자리로 입력해 주세요.</small></label>
           </div>

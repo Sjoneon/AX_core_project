@@ -19,6 +19,7 @@
 앱 주소는 Docker DNS `127.0.0.11`에서 10초 단위로 갱신합니다.
 앱 컨테이너 교체 후에도 주소를 다시 찾으며 시작 스크립트에서 설정 검사와 reload도 수행합니다.
 프록시 read/send timeout은 110초입니다.
+`/api/`는 응답 버퍼링을 끄므로 스트리밍 채팅의 SSE 이벤트를 도착하는 대로 전달합니다.
 X-Forwarded-For는 실제 접속 IP로 덮어쓰고 access 로그에는 query string·헤더·본문을 넣지 않습니다.
 
 ```bash

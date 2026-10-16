@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
- * Per-user limit for consultation requests (POST /api/chat): a token bucket of {@code burst} requests refilled at
+ * Per-user limit for consultation requests (POST /api/chat and legacy /stream): a token bucket of {@code burst} requests refilled at
  * {@code perMinute}, plus a daily cap in Asia/Seoul. One backend container keeps the windows in memory.
  */
 @Component
@@ -30,7 +30,7 @@ public class ChatRateLimiter implements HandlerInterceptor {
     public ChatRateLimiter(int perMinute,int burst,int perDay,Clock clock){this.perMinute=perMinute;this.burst=burst;this.perDay=perDay;this.clock=clock;}
     @Override
     public boolean preHandle(HttpServletRequest request,HttpServletResponse response,Object handler) throws IOException {
-        if(!"POST".equals(request.getMethod())||request.getUserPrincipal()==null)return true;
+        if(request.getDispatcherType()==jakarta.servlet.DispatcherType.ASYNC||!"POST".equals(request.getMethod())||request.getUserPrincipal()==null)return true;
         long retryAfter=acquire(request.getUserPrincipal().getName());
         if(retryAfter==0)return true;
         response.setStatus(429);response.setHeader("Retry-After",Long.toString(retryAfter));
