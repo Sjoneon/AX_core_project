@@ -1,5 +1,7 @@
 package com.project.backend.chat;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import java.time.*;
 import org.junit.jupiter.api.Test;
@@ -18,7 +20,7 @@ class ChatRateLimiterTests {
         var limiter=new ChatRateLimiter(5,3,100,clock);
         for(int i=0;i<3;i++)assertThat(limiter.acquire("a@example.com")).isZero();
         assertThat(limiter.acquire("a@example.com")).isEqualTo(12);
-        assertThat(limiter.acquire("b@example.com")).as("users are limited separately").isZero();
+        requireNonNull(assertThat(limiter.acquire("b@example.com")).as("users are limited separately")).isZero();
         clock.now=clock.now.plusSeconds(12);
         assertThat(limiter.acquire("a@example.com")).isZero();
     }
@@ -35,12 +37,12 @@ class ChatRateLimiterTests {
         var request=new MockHttpServletRequest("POST","/api/chat");request.setUserPrincipal(()->"a@example.com");
         assertThat(limiter.preHandle(request,new MockHttpServletResponse(),new Object())).isTrue();
         request.setDispatcherType(jakarta.servlet.DispatcherType.ASYNC);
-        assertThat(limiter.preHandle(request,new MockHttpServletResponse(),new Object())).as("async redispatch does not consume another request").isTrue();
+        requireNonNull(assertThat(limiter.preHandle(request,new MockHttpServletResponse(),new Object())).as("async redispatch does not consume another request")).isTrue();
         request.setDispatcherType(jakarta.servlet.DispatcherType.REQUEST);
         var rejected=new MockHttpServletResponse();
         assertThat(limiter.preHandle(request,rejected,new Object())).isFalse();
         assertThat(rejected.getStatus()).isEqualTo(429);assertThat(rejected.getHeader("Retry-After")).isEqualTo("12");
-        assertThat(rejected.getContentAsString(java.nio.charset.StandardCharsets.UTF_8)).contains("잠시 후 다시 시도");
+        assertThat(rejected.getContentAsString(requireNonNull(java.nio.charset.StandardCharsets.UTF_8))).contains("잠시 후 다시 시도");
         var read=new MockHttpServletRequest("GET","/api/chat");read.setUserPrincipal(()->"a@example.com");
         assertThat(limiter.preHandle(read,new MockHttpServletResponse(),new Object())).isTrue();
         assertThat(limiter.preHandle(new MockHttpServletRequest("POST","/api/chat"),new MockHttpServletResponse(),new Object())).isTrue();

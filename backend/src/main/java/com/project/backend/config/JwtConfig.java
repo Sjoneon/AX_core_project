@@ -1,6 +1,7 @@
 package com.project.backend.config;
 
 import java.util.Base64;
+import org.jspecify.annotations.NonNull;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -35,12 +36,12 @@ public class JwtConfig {
     }
 
     @Bean
-    public JwtEncoder jwtEncoder(SecretKey jwtSigningKey) {
+    public JwtEncoder jwtEncoder(@NonNull SecretKey jwtSigningKey) {
         return NimbusJwtEncoder.withSecretKey(jwtSigningKey).algorithm(MacAlgorithm.HS256).build();
     }
 
     @Bean
-    public JwtDecoder jwtDecoder(SecretKey jwtSigningKey, AppUserRepository userRepository) {
+    public JwtDecoder jwtDecoder(@NonNull SecretKey jwtSigningKey, AppUserRepository userRepository) {
         var decoder = NimbusJwtDecoder.withSecretKey(jwtSigningKey).macAlgorithm(MacAlgorithm.HS256).build();
         OAuth2TokenValidator<Jwt> accountValidator = jwt -> {
             Object userId = jwt.getClaim("userId");

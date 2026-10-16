@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolSupport.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,7 @@ public class ToolBackend {
         var s=consultations.snapshot(email,id);var plan=diagnostics.execute(email,s,Map.of());
         String answer=ToolDataCatalog.text(args,"answer");if(!List.of("YES","NO").contains(answer))bad("해결 여부를 확인해 주세요.");
         var steps=plan.data()==null?List.of():(List<?>)plan.data().getOrDefault("steps",List.of());
-        if(!plan.status().equals("OK")||steps.isEmpty()||!Objects.equals(((Map<?,?>)steps.getFirst()).get("step_code"),args.get("step_code")))bad("현재 승인된 조치가 아닙니다.");
+        if(!plan.status().equals("OK")||steps.isEmpty()||!Objects.equals(((Map<?,?>)requireNonNull(steps.getFirst())).get("step_code"),args.get("step_code")))bad("현재 승인된 조치가 아닙니다.");
         long version=number(args,"context_version");if(version!=s.version())throw new ResponseStatusException(HttpStatus.CONFLICT,"CONTEXT_STALE");
         var next=consultations.stepAnswer(email,id,version,ToolDataCatalog.text(args,"step_code"),answer.equals("YES"));return diagnostics.execute(email,next,Map.of());
     }

@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
 import static com.project.backend.mcp.tool.ToolDataCatalog.text;
 import static org.assertj.core.api.Assertions.*;
@@ -172,7 +174,7 @@ class ToolBackendTests {
         var result=backend(real).execute("get_repair_candidates","owner",map("conversation_id",1),3L);
         var allowed=(List<?>)result.data().get("allowed_candidates");
         assertThat(allowed).hasSize(6);assertThat(asMap(allowed.getFirst())).containsKeys("part_code","name").doesNotContainKeys("empiricalMedian");
-        assertThat(allowed).noneMatch(p->"D02".equals(((Map<?,?>)p).get("part_code")));
+        assertThat(allowed).noneMatch(p->"D02".equals(((Map<?,?>)requireNonNull(p)).get("part_code")));
     }
 
     // ---- search_knowledge (rules 2-6) ----
@@ -194,17 +196,17 @@ class ToolBackendTests {
         assertThat(real.overlays.get("B25-MFL71401557-craft-ice-pump-exclusion").status("T876MEE1H1",null)).isEqualTo("EXCLUDED");
         consult(ProductCategory.REFRIGERATOR,null,"T876MEE1H1 craft ice pump");
         var result=backend(real).execute("search_knowledge","owner",map("conversation_id",1,"query","craft ice pump","model_code","T876MEE1H1","top_k",5),3L);
-        assertThat((List<?>)result.data().get("documents")).noneMatch(d->"B25-MFL71401557-craft-ice-pump-exclusion".equals(((Map<?,?>)d).get("document_id")));
+        assertThat((List<?>)result.data().get("documents")).noneMatch(d->"B25-MFL71401557-craft-ice-pump-exclusion".equals(((Map<?,?>)requireNonNull(d)).get("document_id")));
     }
     @Test void recordsWithoutModelListAreUndeterminedNotApprovedForAll(){
         // An empty original list is not "all models": a non-empty effective list takes priority.
         assertThat(real.overlays.get("B20-QA-20155430916430").basis()).isEqualTo("EFFECTIVE_MODEL_LISTS");
         for(var id:List.of("T5-001","T1-001"))
-            assertThat(real.overlays.get(id).status("FX24ENER","FX24KNTR")).as(id).isEqualTo(KnowledgeOverlay.UNDETERMINED);
+            requireNonNull(assertThat(real.overlays.get(id).status("FX24ENER","FX24KNTR")).as(id)).isEqualTo(KnowledgeOverlay.UNDETERMINED);
         consult(ProductCategory.WASHER,null,"세탁기 보증");
         var result=backend(real).execute("search_knowledge","owner",map("conversation_id",1,"query","보증 기간","topic","WARRANTY","top_k",5),3L);
         assertThat(result.missing_fields()).containsExactly("model_code");
-        assertThat((List<?>)result.data().get("documents")).allMatch(d->"UNDETERMINED".equals(((Map<?,?>)d).get("applicability_status")));
+        assertThat((List<?>)result.data().get("documents")).allMatch(d->"UNDETERMINED".equals(((Map<?,?>)requireNonNull(d)).get("applicability_status")));
     }
     @Test void safetyNoticesComeBeforeGeneralGuidance(){
         consult(ProductCategory.DRYER,null,"RD22GSG 건조기에서 이상한 냄새가 나요");
@@ -250,9 +252,9 @@ class ToolBackendTests {
             var args=new LinkedHashMap<String,Object>(calls.getOrDefault(name,Map.of()));args.put("conversation_id",1);
             var result=backend.execute(name,"owner",args,3L);
             assertThat(result.source()).as(name).containsKeys("data_version","files","fact_ids");
-            assertThat(result.confidence()).as(name).isIn("HIGH","MEDIUM","LOW","UNDETERMINED");
+            requireNonNull(assertThat(result.confidence()).as(name)).isIn("HIGH","MEDIUM","LOW","UNDETERMINED");
             assertThat(result.caveats()).as(name).contains(ToolSupport.CANDIDATE_CAVEAT);
-            assertThat(result.independent_action_allowed()).as(name).isFalse();
+            requireNonNull(assertThat(result.independent_action_allowed()).as(name)).isFalse();
         }
         assertThatThrownBy(()->new ToolEnvelope("OK",null,List.of(),List.of(),List.of(),null,Map.of(),Map.of(),"LOW",List.of(),true)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -277,7 +279,7 @@ class ToolBackendTests {
             snapshot=new ConsultationService.Snapshot(1L,ProductCategory.WASHER,2L,"OE",new ConsultationState("CLEAR",null,0,"OE",null,List.of("TEST-1"),1,false),4);return snapshot;
         });
         var next=backend.answerStep("owner",1L,map("step_code","TEST-1","answer","NO","context_version",3));
-        assertThat(((Map<?,?>)((List<?>)next.data().get("steps")).getFirst()).get("step_code")).isEqualTo("TEST-2");
+        assertThat(((Map<?,?>)requireNonNull(((List<?>)next.data().get("steps")).getFirst())).get("step_code")).isEqualTo("TEST-2");
     }
     @Test void unknownSymptomCannotMatchAnApprovedPlanWithNullErrorCode(){
         snapshot=new ConsultationService.Snapshot(1L,ProductCategory.WASHER,2L,"모르는 증상",ConsultationState.start(),3);

@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -14,7 +16,7 @@ public final class RepairCandidatePolicy {
     public static boolean deniedRequest(String input){return input.matches("(?s).*(아니|아닌|아닙|말고|않|무시|지시|선택하|선택해|라고 써).*" );}
     public static String modelFromInput(ToolDataCatalog catalog,ConsultationService.Snapshot s){
         var matches=catalog.models.entrySet().stream().filter(e->e.getValue() instanceof Map<?,?> info&&s.category().name().equals(info.get("category")))
-                .map(Map.Entry::getKey).filter(code->Pattern.compile("(?i)(?<![A-Z0-9./-])"+Pattern.quote(code)+"(?![A-Z0-9./-])").matcher(s.input()).find()).toList();
+                .map((Map.Entry<String,Object> element)->requireNonNull(element).getKey()).filter(code->Pattern.compile("(?i)(?<![A-Z0-9./-])"+Pattern.quote(code)+"(?![A-Z0-9./-])").matcher(s.input()).find()).toList();
         return matches.size()==1?matches.getFirst():null;
     }
     public static List<String> requestedParts(ToolDataCatalog catalog,ConsultationService.Snapshot s,String input){
@@ -60,7 +62,7 @@ public final class RepairCandidatePolicy {
     }
     public static Map<String,Object> costArguments(ToolEnvelope candidates){
         var data=candidates.data();var values=data.get("supported_candidates") instanceof List<?> list?list:List.of();
-        var ids=values.stream().filter(v->v instanceof Map<?,?>).map(v->Objects.toString(((Map<?,?>)v).get("id"))).limit(2).toList();
+        var ids=values.stream().filter(v->v instanceof Map<?,?>).map(v->Objects.toString(((Map<?,?>)requireNonNull(v)).get("id"))).limit(2).toList();
         return map("candidate_set_id",data.get("candidate_set_id"),"candidate_ids",ids,"confidence",ids.isEmpty()?0:0.8);
     }
 }

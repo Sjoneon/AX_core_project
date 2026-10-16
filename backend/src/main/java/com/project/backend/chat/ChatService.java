@@ -1,5 +1,7 @@
 package com.project.backend.chat;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.List;
 import java.util.Map;
 import java.time.Duration;
@@ -154,7 +156,7 @@ public class ChatService {
                             })
                             : Flux.just(result.directReply());
                     var reply = new StringBuilder();
-                    return chunks.timeout(Duration.ofSeconds(30))
+                    return chunks.timeout(requireNonNull(Duration.ofSeconds(30)))
                             .filter(chunk -> !chunk.isEmpty())
                             .map(chunk -> {
                                 reply.append(chunk);
@@ -169,13 +171,13 @@ public class ChatService {
                                 return event("done", new ChatResponse(reply.toString(), id, sources, null));
                             }).subscribeOn(Schedulers.boundedElastic()));
                 }).subscribeOn(Schedulers.boundedElastic()))
-                .timeout(Duration.ofSeconds(40))
+                .timeout(requireNonNull(Duration.ofSeconds(40)))
                 .onErrorResume(exception -> Flux.just(event("error",
                         Map.of("message", new ChatUnavailableException(exception).getMessage()))));
     }
 
     private ServerSentEvent<Object> event(String name, Object data) {
-        return ServerSentEvent.builder(data).event(name).build();
+        return ServerSentEvent.builder(data).event(requireNonNull(name)).build();
     }
 
     private ManualRetriever.Result retrieve(ChatRequest request, ChatContext chatContext) {
@@ -194,7 +196,7 @@ public class ChatService {
     }
 
     private ChatClient.ChatClientRequestSpec prompt(ChatRequest request, ChatContext chatContext, ManualRetriever.Result result) {
-        String context = result.documents().stream().map(document -> document.getText())
+        String context = result.documents().stream().map(document -> java.util.Objects.toString(document.getText(), "null"))
                 .collect(Collectors.joining("\n\n---\n\n"));
         List<Message> history = chatContext.messages().stream()
                 .<Message>map(message -> message.role().equals("user")
@@ -202,7 +204,7 @@ public class ChatService {
                 .toList();
         return chatClient.prompt()
                 .system(SYSTEM_PROMPT + "\n<manual_context>\n" + context + "\n</manual_context>")
-                .messages(history)
+                .messages(requireNonNull(history))
                 .user("상담 제품 카테고리: " + (chatContext.category() == null ? "미선택" : chatContext.category().getLabel())
                         + "\n고객 문의: " + request.message());
     }

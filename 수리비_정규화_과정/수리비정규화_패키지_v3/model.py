@@ -5,7 +5,7 @@ normalize.py 실행 후 사용. [변수]/[함수] 표시.
 """
 import statistics as st
 import pandas as pd
-from normalize import CODE_NAME, TRIP_NOW, FX, REF_DATE
+from normalize import CODE_NAME, TRIP_NOW
 
 OV = pd.read_csv("/home/claude/norm/out_overseas_normalized.csv")
 DM = pd.read_csv("/home/claude/norm/out_domestic_normalized.csv")
@@ -42,7 +42,7 @@ def ratios(exclude_case=None):
     for code, cid, krw, _ in KR_PART:
         if cid == exclude_case: continue
         for g in out:
-            p, n = ov_price(code, g)
+            p, _ = ov_price(code, g)
             if p: out[g].append(krw / p)
     return out
 

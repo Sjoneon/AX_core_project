@@ -1,5 +1,7 @@
 package com.project.backend.mcp.retrieval;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.nio.file.*;
 import java.time.Duration;
@@ -29,13 +31,13 @@ public final class KnowledgeRetrievalEvaluation {
             var hybrid=new KnowledgeRetriever(catalog,vectors);var lexical=KnowledgeRetriever.lexical(catalog);
             var rows=new ArrayList<Map<String,Object>>();
             for(Object value:(List<?>)specification.get("cases")){
-                @SuppressWarnings("unchecked") var test=(Map<String,Object>)value;
+                var test=requireNonNull((Map<?,?>)value);
                 String query=text(test,"query"),category=text(test,"category"),sale=Objects.toString(test.get("model"),null);
                 var baseline=lexical.retrieve(query,category,sale,"MANUAL",null,3);
                 var result=hybrid.retrieve(query,category,sale,"MANUAL",null,3);
                 var repeated=hybrid.retrieve(query,category,sale,"MANUAL",null,3);
                 rows.add(map("id",test.get("id"),"split",test.get("split"),"query",query,"category",category,"model",sale,
-                        "lexical_ids",baseline.documents().stream().map(KnowledgeRetriever.Hit::id).toList(),
+                        "lexical_ids",baseline.documents().stream().map((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).toList(),
                         "documents",result.documents(),"safety",result.safety(),"passed",passes(test,result,catalog),
                         "mode",result.mode(),"index_status",result.indexStatus(),"first_query_ms",result.elapsedMs(),"cached_query_ms",repeated.elapsedMs(),
                         "cached_mode",repeated.mode(),"cached_index_status",repeated.indexStatus(),"cached_documents",repeated.documents()));
@@ -54,9 +56,9 @@ public final class KnowledgeRetrievalEvaluation {
             if(rows.stream().anyMatch(row->!Boolean.TRUE.equals(row.get("passed"))))throw new IllegalStateException("제조사 검색 평가 실패: 보고서를 확인하세요.");
         }
     }
-    public static boolean passes(Map<String,Object> test,KnowledgeRetriever.Result result,ToolDataCatalog catalog){
-        var ids=result.documents().stream().map(KnowledgeRetriever.Hit::id).toList();
-        var safety=result.safety().stream().map(KnowledgeRetriever.Hit::id).toList();
+    public static boolean passes(Map<?,?> test,KnowledgeRetriever.Result result,ToolDataCatalog catalog){
+        var ids=result.documents().stream().map((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).toList();
+        var safety=result.safety().stream().map((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).toList();
         var all=new ArrayList<>(ids);all.addAll(safety);
         if(Boolean.TRUE.equals(test.get("expect_empty"))&&!all.isEmpty())return false;
         if(Boolean.TRUE.equals(test.get("no_safety"))&&!safety.isEmpty())return false;

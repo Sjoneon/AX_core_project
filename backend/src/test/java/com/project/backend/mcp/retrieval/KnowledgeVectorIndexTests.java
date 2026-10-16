@@ -1,5 +1,8 @@
 package com.project.backend.mcp.retrieval;
 
+import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.NonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import static org.assertj.core.api.Assertions.*;
 import java.nio.file.*;
@@ -15,16 +18,16 @@ class KnowledgeVectorIndexTests {
     @TempDir Path directory;
     static class FakeModel implements EmbeddingModel {
         final AtomicInteger calls=new AtomicInteger();boolean fail;boolean malformed;boolean slow;
-        public float[] embed(Document document){return value(document.getText());}
+        public float @NonNull[] embed(@NonNull Document document){return requireNonNull(value(requireNonNull(document.getText())));}
         private float[] value(String text){
             if(slow)try{Thread.sleep(5000);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException("interrupted");}
             if(fail)throw new IllegalStateException("offline");
             if(text.contains("진동")||text.contains("춤"))return new float[]{1,0,0};
             return new float[]{0,1,0};
         }
-        public EmbeddingResponse call(EmbeddingRequest request){
+        public @NonNull EmbeddingResponse call(@NonNull EmbeddingRequest request){
             calls.incrementAndGet();var results=new ArrayList<Embedding>();int i=0;
-            for(String text:request.getInstructions())results.add(new Embedding(malformed?new float[]{Float.NaN}:value(text),i++));
+            for(String text:request.getInstructions())results.add(new Embedding(malformed?new float[]{Float.NaN}:requireNonNull(value(text)),i++));
             return new EmbeddingResponse(results);
         }
     }
@@ -41,7 +44,7 @@ class KnowledgeVectorIndexTests {
             index.prepare();var retriever=new KnowledgeRetriever(catalog,index);
             var result=retriever.retrieve("춤을 춰요","WASHER","MODEL1","MANUAL",null,1);
             assertThat(result.mode()).isEqualTo("HYBRID");
-            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).containsExactly("V1");
+            assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).containsExactly("V1");
             int calls=model.calls.get();retriever.retrieve("춤을 춰요","WASHER","MODEL1","MANUAL",null,1);
             assertThat(model.calls.get()).isEqualTo(calls);
         }
@@ -50,7 +53,7 @@ class KnowledgeVectorIndexTests {
         var model=new FakeModel();var catalog=catalog();
         try(var index=new KnowledgeVectorIndex(catalog,model,true,directory,"fake-model","test")){
             index.prepare();var result=new KnowledgeRetriever(catalog,index).retrieve("원래 상태로 돌아가질 못해요","WASHER","MODEL1","MANUAL",null,3);
-            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).containsExactly("D1");
+            assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).containsExactly("D1");
             assertThat(result.documents().getFirst().match()).isEqualTo("SEMANTIC_ONLY");
         }
     }
@@ -86,7 +89,7 @@ class KnowledgeVectorIndexTests {
             index.prepare();model.fail=true;
             var result=new KnowledgeRetriever(catalog(),index).retrieve("진동이 심해요","WASHER","MODEL1","MANUAL",null,3);
             assertThat(result.mode()).isEqualTo("LEXICAL_FALLBACK");assertThat(result.indexStatus()).isEqualTo("QUERY_UNAVAILABLE");
-            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).containsExactly("V1");
+            assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).containsExactly("V1");
             assertThat(result.documents().getFirst().similarity()).isZero();
         }
     }

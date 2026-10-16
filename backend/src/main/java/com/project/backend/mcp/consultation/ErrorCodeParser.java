@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import java.util.regex.Pattern;
 import com.project.backend.conversation.ProductCategory;
@@ -15,7 +17,7 @@ public final class ErrorCodeParser {
     private ErrorCodeParser(){ }
     private static final Pattern DISPLAYED=Pattern.compile("표시|떠|뜨|나와|나타|화면|에러|오류|메시지|메세지|알림|깜빡");
     public static String find(ToolDataCatalog catalog,ProductCategory category,String input){
-        var codes=new TreeSet<String>(Comparator.comparingInt(String::length).reversed().thenComparing(Comparator.naturalOrder()));
+        var codes=new TreeSet<String>(Comparator.comparingInt((String element)->requireNonNull(element).length()).reversed().thenComparing(Comparator.naturalOrder()));
         for(var source:catalog.knowledge)if(category.name().equals(source.get("category")))for(String raw:ToolDataCatalog.strings(source,"errorCodes")){
             String code=raw.replaceAll("\\s+","").toUpperCase(Locale.ROOT);
             if(code.matches("[A-Z][A-Z0-9-]{1,11}"))codes.add(code);

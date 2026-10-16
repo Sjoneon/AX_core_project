@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
@@ -20,7 +22,7 @@ public record KnowledgeOverlay(String basis,Set<String> approved,Set<String> con
         var supplements=new ArrayList<String>();
         if(raw.get("procedure_supplements") instanceof List<?> links)for(Object link:links)if(link instanceof Map<?,?> s){
             if(s.get("preferred_fact_id") instanceof String id)supplements.add(id);
-            if(s.get("new_procedure_fact_ids") instanceof List<?> ids)ids.forEach(id->supplements.add(id.toString()));
+            if(s.get("new_procedure_fact_ids") instanceof List<?> ids)ids.forEach(id->supplements.add(requireNonNull(id).toString()));
         }
         boolean qa=present(raw.get("current_QA_review")),update=present(raw.get("latest_applicability_update"));
         boolean parts=Objects.toString(doc.get("recordType"),"").contains("part_compatibility");
@@ -52,7 +54,7 @@ public record KnowledgeOverlay(String basis,Set<String> approved,Set<String> con
     }
 
     private static Set<String> codes(Object value){
-        return value instanceof List<?> list?Set.copyOf(list.stream().map(Object::toString).toList()):Set.of();
+        return value instanceof List<?> list?Set.copyOf(list.stream().map((Object element)->requireNonNull(element).toString()).toList()):Set.of();
     }
     private static boolean present(Object value){
         return value instanceof Map<?,?> map?!map.isEmpty():value instanceof List<?> list?!list.isEmpty():value!=null;

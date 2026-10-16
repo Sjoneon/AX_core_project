@@ -1,5 +1,7 @@
 package com.project.backend.mcp.audit;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import java.util.regex.Pattern;
 import com.project.backend.mcp.tool.ToolEnvelope;
@@ -38,7 +40,6 @@ public record ToolCallRecord(String name,Map<String,Object> arguments,List<Strin
         if(value instanceof List<?> list)return list.stream().limit(5).map(ToolCallRecord::safe).toList();
         return value instanceof String text&&SAFE_TEXT.matcher(text).matches()?text:"INVALID_VALUE";
     }
-    @SuppressWarnings("unchecked")
     static Map<String,Object> summary(String name,ToolEnvelope result){
         var data=result.data()==null?Map.<String,Object>of():result.data();
         var value=new LinkedHashMap<String,Object>();value.put("confidence",result.confidence());
@@ -48,7 +49,7 @@ public record ToolCallRecord(String name,Map<String,Object> arguments,List<Strin
             case "check_warranty"->value.put("product_period_status",data.get("productWarranty") instanceof Map<?,?> p?p.get("periodStatus"):null);
             case "get_repair_candidates"->value.put("allowed_candidates",size(data.get("allowed_candidates")));
             case "estimate_repair_cost"->value.put("alternatives",data.get("alternatives") instanceof List<?> list?list.stream().limit(2).map(raw->{
-                var a=(Map<String,Object>)raw;var range=a.get("expected_range") instanceof Map<?,?> r?r:Map.of();
+                var a=requireNonNull((Map<?,?>)raw);var range=a.get("expected_range") instanceof Map<?,?> r?r:Map.of();
                 return Map.of("candidate_id",Objects.toString(a.get("candidate_id"),""),"median",Objects.toString(range.get("median"),""),
                         "min",Objects.toString(range.get("min"),""),"max",Objects.toString(range.get("max"),""),"confidence",Objects.toString(a.get("confidence"),""));}).toList():List.of());
             case "find_service_centers"->{value.put("fallback_level",data.get("fallback_level"));value.put("centers",size(data.get("centers")));}

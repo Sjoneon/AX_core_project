@@ -1,5 +1,7 @@
 package com.project.backend.security;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Instant;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -33,10 +35,10 @@ public class JwtTokenProvider {
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."));
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .subject(email)
-                .claim("userId", user.getId())
-                .issuedAt(now)
-                .expiresAt(now.plusMillis(expirationMs))
+                .subject(requireNonNull(email))
+                .claim("userId", requireNonNull(user.getId()))
+                .issuedAt(requireNonNull(now))
+                .expiresAt(requireNonNull(now.plusMillis(expirationMs)))
                 .build();
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();

@@ -1,5 +1,7 @@
 package com.project.backend.mcp;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.net.*;
 import java.net.http.*;
@@ -109,7 +111,7 @@ class ConsultationEvaluationTests {
         Path report=ROOT.resolve("docs/benchmarks/consultation_agent_20261015_"+run+".json");
         if(Files.exists(report))throw new IllegalStateException("Use a new HOMECARE_EVAL_RUN_ID; evaluation reports are append-only");
         for(var raw:(List<?>)spec.get("cases")){
-            var test=(Map<String,Object>)raw;String id=text(test,"id");
+            var test=requireNonNull((Map<?,?>)raw);String id=text(test,"id");
             if(!selected.isEmpty()&&!selected.contains(id))continue;
             var turns=new ArrayList<Map<String,Object>>();var failures=new ArrayList<String>();
             long started=System.nanoTime();
@@ -123,9 +125,9 @@ class ConsultationEvaluationTests {
             }
             String authorization="Bearer "+jwt.createToken(email);ChatResponse response=null;
             try{
-                for(var operation:(List<?>)test.get("turns")){
-                    var step=(Map<String,Object>)operation;
-                    int repeat="confirm_conditions".equals(step.get("type"))?((Number)step.get("count")).intValue():1;
+                for(var operation:(List<?>)requireNonNull(test.get("turns"))){
+                    var step=requireNonNull((Map<?,?>)operation);
+                    int repeat="confirm_conditions".equals(step.get("type"))?((Number)requireNonNull(step.get("count"))).intValue():1;
                     for(int index=0;index<repeat;index++){
                         var before=response;long turnStart=System.nanoTime();
                         String type=text(step,"type");Long conversation=before==null?null:before.conversationId();
@@ -147,7 +149,7 @@ class ConsultationEvaluationTests {
                                 body.put("question_id",question.get("id"));body.put("plan_scope",diagnostic.data().get("plan_scope"));
                             }else{var steps=(List<?>)diagnostic.data().get("steps");
                                 if(steps==null||steps.isEmpty())throw new IllegalStateException("Expected approved step is absent");
-                                body.put("step_code",((Map<?,?>)steps.getFirst()).get("step_code"));}
+                                body.put("step_code",((Map<?,?>)requireNonNull(steps.getFirst())).get("step_code"));}
                         }
                         response=post(path,body,authorization);
                         var snapshot=consultations.snapshot(email,response.conversationId());
@@ -155,11 +157,11 @@ class ConsultationEvaluationTests {
                         var latest=messages.getLast();
                         var calls=history.toolCalls(response.conversationId(),email).stream().filter(call->Objects.equals(call.messageId(),latest.id())).toList();
                         var checks=new ArrayList<Map<String,Object>>();
-                        if(index==repeat-1)check((Map<String,Object>)step.getOrDefault("expect",Map.of()),response,snapshot,calls,email,checks);
+                        if(index==repeat-1)check((Map<?,?>)(step.containsKey("expect")?step.get("expect"):Map.of()),response,snapshot,calls,email,checks);
                         var saved=latest.tools();
                         add(checks,"history_matches_reply",Objects.equals(response.reply(),latest.content()));
                         add(checks,"history_matches_tool_names",response.tools().keySet().equals(saved.keySet()));
-                        add(checks,"tool_call_budget",calls.size()<=5&&calls.stream().collect(java.util.stream.Collectors.groupingBy(ConversationService.ToolCallView::toolName,java.util.stream.Collectors.counting())).values().stream().allMatch(n->n<=2));
+                        add(checks,"tool_call_budget",calls.size()<=5&&calls.stream().collect(java.util.stream.Collectors.groupingBy((ConversationService.ToolCallView element)->requireNonNull(element).toolName(),java.util.stream.Collectors.counting())).values().stream().allMatch(n->n<=2));
                         for(var check:checks)if(!Boolean.TRUE.equals(check.get("passed")))failures.add("turn "+(turns.size()+1)+": "+check.get("name"));
                         var toolStates=new LinkedHashMap<String,Object>();
                         response.tools().forEach((name,result)->toolStates.put(name,map("status",result.status(),"data",result.data(),"evidence",result.evidence(),"warnings",result.warnings(),"meta",result.meta())));
@@ -188,17 +190,17 @@ class ConsultationEvaluationTests {
         if(response.statusCode()!=200)throw new IllegalStateException("Evaluation HTTP status "+response.statusCode());
         return JSON.readValue(response.body(),ChatResponse.class);
     }
-    private void check(Map<String,Object> expect,ChatResponse response,ConsultationService.Snapshot snapshot,List<ConversationService.ToolCallView> calls,String email,List<Map<String,Object>> checks){
+    private void check(Map<?,?> expect,ChatResponse response,ConsultationService.Snapshot snapshot,List<ConversationService.ToolCallView> calls,String email,List<Map<String,Object>> checks){
         var state=snapshot.state();var diagnostic=response.tools().get("get_diagnostic_plan");
         var plan=diagnostic==null?Map.<String,Object>of():diagnostic.data();
         var evidence=new LinkedHashSet<String>();
         for(var result:response.tools().values())if(result.data()!=null)for(String name:List.of("documents","safety_notices","references"))
             if(result.data().get(name) instanceof List<?> docs)for(var doc:docs)if(doc instanceof Map<?,?> value)evidence.add(Objects.toString(value.get("document_id")));
         for(var entry:expect.entrySet()){
-            String key=entry.getKey();Object wanted=entry.getValue();boolean passed;
+            String key=(String)entry.getKey();Object wanted=entry.getValue();boolean passed;
             var cost=response.tools().get("estimate_repair_cost");
             var alternatives=cost==null||!(cost.data().get("alternatives") instanceof List<?> list)?List.of():list;
-            passed=switch(key){
+            passed=switch(requireNonNull(key)){
                 case "symptom"->Objects.equals(wanted,state.symptomCode());
                 case "intent"->Objects.equals(wanted,state.dialogue().intent());
                 case "risk"->Objects.equals(wanted,state.riskStatus());
@@ -209,7 +211,7 @@ class ConsultationEvaluationTests {
                     if(plan.get("question") instanceof Map<?,?> q)question=Objects.toString(q.get("id"),null);yield Objects.equals(wanted,question);}
                 case "diagnostic"->diagnostic!=null&&Objects.equals(wanted,diagnostic.status());
                 case "skip_reason"->Objects.equals(wanted,plan.get("skip_reason"));
-                case "steps"->Objects.equals(wanted,plan.get("steps") instanceof List<?> list?list.stream().map(item->((Map<?,?>)item).get("step_code")).toList():List.of());
+                case "steps"->Objects.equals(wanted,plan.get("steps") instanceof List<?> list?list.stream().map(item->((Map<?,?>)requireNonNull(item)).get("step_code")).toList():List.of());
                 case "done_steps"->Objects.equals(wanted,state.doneSteps());
                 case "no_steps"->!(plan.get("steps") instanceof List<?> list)||list.isEmpty();
                 case "no_cost"->alternatives.isEmpty();
@@ -217,13 +219,13 @@ class ConsultationEvaluationTests {
                 case "tools"->response.tools().keySet().containsAll((List<?>)wanted);
                 case "evidence"->evidence.containsAll((List<?>)wanted);
                 case "exclude_evidence"->Collections.disjoint(evidence,(List<?>)wanted);
-                case "reply_contains"->((List<?>)wanted).stream().allMatch(value->response.reply().contains(value.toString()));
-                case "reply_excludes"->((List<?>)wanted).stream().noneMatch(value->response.reply().contains(value.toString()));
+                case "reply_contains"->((List<?>)requireNonNull(wanted)).stream().allMatch(value->response.reply().contains(requireNonNull(value).toString()));
+                case "reply_excludes"->((List<?>)requireNonNull(wanted)).stream().noneMatch(value->response.reply().contains(requireNonNull(value).toString()));
                 case "delivery"->{var handoff=response.tools().get("prepare_service_handoff");yield handoff!=null&&Objects.equals(wanted,handoff.data().get("delivery_status"));}
                 case "warranty"->response.warranty()!=null&&Objects.equals(wanted,response.warranty().productWarranty().periodStatus());
                 case "lookup"->{var lookup=response.tools().get("lookup_model");yield lookup!=null&&Objects.equals(wanted,lookup.data().get("match_status"));}
                 case "cost_min","cost_median","cost_max"->{String field=key.substring(5);
-                    yield !alternatives.isEmpty()&&((Map<?,?>)((Map<?,?>)alternatives.getFirst()).get("expected_range")).get(field) instanceof Number number&&number.longValue()==((Number)wanted).longValue();}
+                    yield !alternatives.isEmpty()&&((Map<?,?>)requireNonNull(((Map<?,?>)requireNonNull(alternatives.getFirst())).get("expected_range"))).get(field) instanceof Number number&&number.longValue()==((Number)requireNonNull(wanted)).longValue();}
                 default->throw new IllegalArgumentException("Unknown frozen expectation: "+key);
             };
             add(checks,key,passed);
@@ -232,10 +234,10 @@ class ConsultationEvaluationTests {
     private static void add(List<Map<String,Object>> checks,String name,boolean passed){checks.add(map("name",name,"passed",passed));}
     private void write(Path report,byte[] spec,String commit,String worktree,String run,Set<String> selected,List<Map<String,Object>> rows)throws Exception {
         long passed=rows.stream().filter(row->Boolean.TRUE.equals(row.get("passed"))).count();
-        var turns=rows.stream().flatMap(row->((List<Map<String,Object>>)row.get("turns")).stream()).toList();
-        var timings=turns.stream().map(turn->((Number)turn.get("elapsed_ms")).longValue()).sorted().toList();
-        var calls=turns.stream().flatMap(turn->((List<Map<String,Object>>)turn.get("calls")).stream()).toList();
-        var selection=calls.stream().collect(java.util.stream.Collectors.groupingBy(call->Objects.toString(call.get("selection_source")),TreeMap::new,java.util.stream.Collectors.counting()));
+        var turns=rows.stream().flatMap(row->((List<?>)row.get("turns")).stream()).map(turn->(Map<?,?>)turn).toList();
+        var timings=turns.stream().map(turn->((Number)requireNonNull(requireNonNull(turn).get("elapsed_ms"))).longValue()).sorted().toList();
+        var calls=turns.stream().flatMap(turn->((List<?>)requireNonNull(requireNonNull(turn).get("calls"))).stream()).map(call->(Map<?,?>)call).toList();
+        var selection=calls.stream().collect(java.util.stream.Collectors.groupingBy(call->Objects.toString(requireNonNull(call).get("selection_source")),TreeMap::new,java.util.stream.Collectors.counting()));
         var summary=map("evaluated_date","2026-10-15","run_id",run,"real_model",true,"model",modelName,"data_version",catalog.version,
                 "git_commit",commit,"worktree_dirty",!worktree.isBlank(),"runtime_class_sha256",runtimeHashes,"model_preflight_verified",true,"spec_sha256",HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(spec)),
                 "filtered_cases",selected,"isolated_h2",true,"http_jwt_mcp",true,"physical_operations",false,"index_metrics",vector.metrics(),

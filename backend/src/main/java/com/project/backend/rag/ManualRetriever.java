@@ -1,5 +1,8 @@
 package com.project.backend.rag;
 
+import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.NonNull;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -99,9 +102,9 @@ public class ManualRetriever {
     private synchronized SimpleVectorStore index() {
         if (index == null) {
             var documents = catalog.documents();
-            var embeddings = embeddingModel.embed(documents.stream()
-                    .map((Document document) -> document.getText())
-                    .toList());
+            var embeddings = embeddingModel.embed(requireNonNull(documents.stream()
+                    .map((Document document) -> requireNonNull(document.getText()))
+                    .toList()));
             if (embeddings.size() != documents.size())
                 throw new IllegalStateException("매뉴얼 임베딩 개수 불일치");
             var byId = new LinkedHashMap<String, float[]>();
@@ -111,12 +114,12 @@ public class ManualRetriever {
             // response.
             var batchedModel = new EmbeddingModel() {
                 @Override
-                public float[] embed(Document document) {
-                    return byId.get(document.getId());
+                public float @NonNull[] embed(@NonNull Document document) {
+                    return requireNonNull(byId.get(document.getId()));
                 }
 
                 @Override
-                public EmbeddingResponse call(EmbeddingRequest request) {
+                public @NonNull EmbeddingResponse call(@NonNull EmbeddingRequest request) {
                     return embeddingModel.call(request);
                 }
 

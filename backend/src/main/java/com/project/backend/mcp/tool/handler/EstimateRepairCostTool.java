@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool.handler;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import static com.project.backend.mcp.tool.ToolSupport.*;
 import java.util.*;
@@ -42,21 +44,22 @@ public class EstimateRepairCostTool implements HomeCareTool {
         var coverage=product==null?null:warranty.check(product.warranty());
         var alternatives=new ArrayList<Map<String,Object>>();
         var selected=candidates.execute(email,s,Map.of());
-        var supported=(List<Map<String,Object>>)selected.data().get("supported_candidates");var insufficient=new ArrayList<String>();
+        var supported=(List<?>)selected.data().get("supported_candidates");var insufficient=new ArrayList<String>();
         if(!ids.isEmpty()&&confidence>=0.5)for(String id:ids){
             var p=choices.stream().filter(x->id.equals(text(x,"id"))).findFirst().orElseThrow();
-            var origin=supported.stream().filter(c->id.equals(text(c,"id"))).findFirst();
+            var origin=supported.stream().map(c->(Map<?,?>)c).filter(c->id.equals(text(c,"id"))).findFirst();
             if(origin.isEmpty()){insufficient.add("부품 "+p.get("name")+": 현재 증상과의 연결 근거 또는 명시적 부품 비용 문의가 없습니다.");continue;}
             if(!(p.get("calibrationCases") instanceof Number count)||count.intValue()<RepairCandidatePolicy.MINIMUM_CASES){
                 insufficient.add("부품 "+p.get("name")+": 국내 같은 부품 사례가 "+RepairCandidatePolicy.MINIMUM_CASES+"건 미만입니다.");continue;
             }
+            var originData=requireNonNull(origin.get());
             int median=whole(p,"empiricalMedian"),low=whole(p,"empiricalMin"),high=whole(p,"empiricalMax"),extra=surcharge(p,slot,month);
-            alternatives.add(map("candidate_id",id,"part_name",p.get("name"),"cost_source",origin.get().get("basis"),"candidate_basis",origin.get().get("description"),
+            alternatives.add(map("candidate_id",id,"part_name",p.get("name"),"cost_source",originData.get("basis"),"candidate_basis",originData.get("description"),
                     "reference_range",amount(low,high,median),
                     "surcharge",map("time_slot",slot,"month",month,"amount",extra,"status",month==null?"MONTH_UNKNOWN":"APPLIED"),
                     "expected_range",amount(low+extra,high+extra,median+extra),
                     "base_visit_fee",p.get("baseVisit"),"confidence_grade",p.get("confidenceGrade"),"confidence",confidenceOf(text(p,"confidenceGrade")),
-                    "calibration_cases",p.get("calibrationCases"),"warranty_note",warrantyNote(coverage,p),"evidence_ids",origin.get().get("evidence_ids")));
+                    "calibration_cases",p.get("calibrationCases"),"warranty_note",warrantyNote(coverage,p),"evidence_ids",originData.get("evidence_ids")));
         }
         if(alternatives.isEmpty()&&(ids.isEmpty()||confidence>=0.5))reviewRange(email,s).ifPresent(alternatives::add);
         var warnings=new ArrayList<String>();
@@ -93,7 +96,7 @@ public class EstimateRepairCostTool implements HomeCareTool {
         if(!(part.get(field) instanceof Number n))throw new IllegalStateException("수리비 자료에 값이 없습니다: "+field);
         return n.intValue();
     }
-    private static Map<String,Object> amount(Object min,Object max,Object median){return map("min",min,"max",max,"median",median,"status","CONDITIONAL");}
+    private static Map<String,Object> amount(int min,int max,int median){return map("min",min,"max",max,"median",median,"status","CONDITIONAL");}
     private String validationCaveat(){
         if(!(catalog.costSource.get("validation") instanceof Map<?,?> v))return "추정 모델 검증 결과가 없어 새 사례의 오차를 판단할 수 없습니다.";
         return "국내 유상 사례 "+v.get("cases")+"건 검증에서 중앙 절대오차 "+v.get("median_absolute_error_percent")+"%, 80% 범위 적중 "+v.get("range_hit_percent")+"%였으며 새 사례에서는 오차가 더 클 수 있습니다.";
@@ -109,12 +112,12 @@ public class EstimateRepairCostTool implements HomeCareTool {
     /** Review cases are used only when at least three verified paid cases include the visit fee. */
     private Optional<Map<String,Object>> reviewRange(String email,ConsultationService.Snapshot s){
         var refs=candidates.execute(email,s,Map.of());if(refs.data()==null)return Optional.empty();
-        var cases=((List<Map<String,Object>>)refs.data().get("reference_cases")).stream().filter(c->Boolean.TRUE.equals(c.get("visit_fee_included")))
+        var cases=((List<?>)refs.data().get("reference_cases")).stream().map(c->(Map<?,?>)c).filter(c->Boolean.TRUE.equals(c.get("visit_fee_included")))
                 .filter(c->c.get("charged_total") instanceof Number n&&n.doubleValue()==n.intValue()&&n.intValue()>0)
                 .filter(c->text(c,"source_url").startsWith("https://")&&validDate(text(c,"repair_date")))
                 .collect(java.util.stream.Collectors.toMap(c->text(c,"id"),c->c,(a,b)->a,LinkedHashMap::new)).values().stream().toList();
         if(cases.size()<3)return Optional.empty();
-        var totals=cases.stream().map(x->((Number)x.get("charged_total")).intValue()).sorted().toList();
+        var totals=cases.stream().map(x->((Number)requireNonNull(requireNonNull(x).get("charged_total"))).intValue()).sorted().toList();
         var range=amount(totals.getFirst(),totals.getLast(),totals.get(totals.size()/2));
         return Optional.of(map("candidate_id",null,"cost_source","REVIEW_RANGE","reference_range",range,"expected_range",range,
                 "confidence","LOW","reference_cases",cases));

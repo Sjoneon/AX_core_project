@@ -106,7 +106,7 @@ elif name=='docker':
             self.assertIn(next(arg for arg in call if arg.endswith('/releases/new/compose.mcp.yaml')), call)
 
     def test_rollback_to_a_release_without_mcp_restores_its_two_containers(self):
-        result, current, _, calls = self.run_deployment('health')
+        _, current, _, calls = self.run_deployment('health')
         self.assertEqual(current, 'old')
         restore = [call for call in calls if call[0] == 'docker' and 'up' in call and any('/releases/old/' in arg for arg in call)]
         self.assertTrue(restore)

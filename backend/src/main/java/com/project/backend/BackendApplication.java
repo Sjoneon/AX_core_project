@@ -2,6 +2,7 @@ package com.project.backend;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.jspecify.annotations.NonNull;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -11,7 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BackendApplication {
 
-	public static void main(String[] args) {
+	public static void main(String @NonNull[] args) {
 		Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 		Map<String, Object> properties = new HashMap<>();
 		dotenv.entries(Dotenv.Filter.DECLARED_IN_ENV_FILE)

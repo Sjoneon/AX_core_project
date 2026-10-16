@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
 import java.nio.file.*;
 import java.time.Duration;
@@ -21,11 +23,11 @@ public final class MessageInterpretationEvaluation {
         var options=OpenAiChatOptions.builder().model(modelName).apiKey(key).timeout(Duration.ofSeconds(8)).maxRetries(0).build();
         var client=ChatClient.create(OpenAiChatModel.builder().options(options).build());
         var rawOutput=new java.util.concurrent.atomic.AtomicReference<String>();
-        var interpreter=new MessageInterpreter(input->{String output=client.prompt().system(MessageInterpreter.SYSTEM).user(input).call().content();rawOutput.set(output);return output;},Duration.ofSeconds(8));
+        var interpreter=new MessageInterpreter(input->{String output=client.prompt().system(MessageInterpreter.SYSTEM).user(requireNonNull(input)).call().content();rawOutput.set(output);return output;},Duration.ofSeconds(8));
         Map<String,Object> specification=JSON.readValue(Files.readString(root.resolve("docs/mcp/symptom_evaluation.json")),new TypeReference<>(){});
         var rows=new ArrayList<Map<String,Object>>();
         for(var raw:(List<?>)specification.get("cases")){
-            var test=(Map<String,Object>)raw;var category=ProductCategory.valueOf(test.get("category").toString());String message=test.get("message").toString();
+            var test=requireNonNull((Map<?,?>)raw);var category=ProductCategory.valueOf(requireNonNull(test.get("category")).toString());String message=requireNonNull(test.get("message")).toString();
             var context=test.get("context") instanceof Map<?,?> value?value:Map.of();
             String priorSymptom=Objects.toString(context.get("symptom"),null),priorText=Objects.toString(context.get("symptomText"),null);
             var question="VIBRATION_WHEN".equals(context.get("question"))?new DialogueState.Question("VIBRATION_WHEN","세탁기가 언제 심하게 흔들리나요?",List.of("탈수할 때","세탁할 때","항상","잘 모르겠어요")):null;

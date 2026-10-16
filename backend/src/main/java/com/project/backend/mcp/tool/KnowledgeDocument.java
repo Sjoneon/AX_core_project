@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.util.*;
 
@@ -23,12 +25,12 @@ public record KnowledgeDocument(Map<String,Object> fields) {
         if(fields.get("constraints") instanceof Map<?,?> groups)groups.forEach((group,values)->{
             var selected=new LinkedHashMap<String,Object>();
             if(values instanceof Map<?,?> entries)entries.forEach((key,value)->{
-                String name=key.toString();
+                String name=requireNonNull(key).toString();
                 if(name.startsWith("requires_")||name.startsWith("not_")||name.contains("power_state")
                         ||name.equals("feature_branch_gates")||name.equals("incomplete_source_steps_for_standalone_execution")
                         ||name.equals("standalone_execution_allowed"))selected.put(name,value);
             });
-            if(!selected.isEmpty())result.put(group.toString(),selected);
+            if(!selected.isEmpty())result.put(requireNonNull(group).toString(),selected);
         });
         return result;
     }

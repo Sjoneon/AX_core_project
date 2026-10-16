@@ -26,7 +26,7 @@ KNOWLEDGE_RESULT_CONTRACT = {
     'insufficient_evidence': 'NO_DATA for known models; NEEDS_INPUT with missing model_code when the model is unconfirmed.',
     'safety_scope': 'Safety uses the same model/category exclusions as other facts. UNDETERMINED is eligible only for verified category-common scope.'}
 
-async def main():
+async def main() -> None:
     """실제 등록 도구의 JSON 계약 생성·저장"""
     async with Client(create_server()) as client:
         tools=await client.list_tools()

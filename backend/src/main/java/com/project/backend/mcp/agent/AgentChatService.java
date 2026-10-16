@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
 import java.time.Duration;
 import java.util.*;
@@ -336,8 +338,8 @@ public class AgentChatService {
             }
             if(!prescribed){
                 try{
-                    model.prompt().system(SYSTEM.formatted(limits.maxToolCalls())).user(prompt(email,s,request.message()))
-                            .toolCallbacks(session.callbacks()).call().content();
+                    model.prompt().system(requireNonNull(SYSTEM.formatted(limits.maxToolCalls()))).user(requireNonNull(prompt(email,s,request.message())))
+                            .tools(requireNonNull(session.callbacks())).call().content();
                 }catch(RuntimeException error){
                     var fatal=fatal(error);if(fatal!=null)throw fatal;
                     if(session.results.isEmpty()){calls.addAll(session.calls);return unavailable(s,outputs,"MODEL_UNAVAILABLE",error);}
@@ -430,7 +432,7 @@ public class AgentChatService {
     private static List<RagSource> sources(ToolEnvelope knowledge,ProductCategory category){
         var sources=new ArrayList<RagSource>();if(knowledge==null||knowledge.data()==null)return sources;
         for(String key:List.of("safety_notices","documents"))if(knowledge.data().get(key) instanceof List<?> docs)for(Object raw:docs){
-            var d=(Map<?,?>)raw;String label=key.equals("safety_notices")?"안전 주의":APPLICABILITY.getOrDefault(Objects.toString(d.get("applicability_status")),"적용 확인 필요");
+            var d=requireNonNull((Map<?,?>)raw);String label=key.equals("safety_notices")?"안전 주의":APPLICABILITY.getOrDefault(Objects.toString(d.get("applicability_status")),"적용 확인 필요");
             sources.add(new RagSource(Objects.toString(d.get("document_id")),d.get("title")+" · "+label,category,"B30","homecare/knowledge.json",Objects.toString(d.get("content"))));
         }
         return sources;
@@ -462,9 +464,9 @@ public class AgentChatService {
                 case "get_repair_candidates"->{
                     if(data.get("cause_candidates") instanceof List<?> causes&&!causes.isEmpty()){
                         lines.add("제조사 자료의 원인 후보·상황이며 실제 원인은 아직 확인되지 않았어요.");
-                        for(var raw:causes){var cause=(Map<?,?>)raw;lines.add("원인 후보: "+cause.get("description"));}
+                        for(var raw:causes){var cause=requireNonNull((Map<?,?>)raw);lines.add("원인 후보: "+cause.get("description"));}
                     }
-                    if(data.get("supported_candidates") instanceof List<?> candidates)for(var raw:candidates){var candidate=(Map<?,?>)raw;
+                    if(data.get("supported_candidates") instanceof List<?> candidates)for(var raw:candidates){var candidate=requireNonNull((Map<?,?>)raw);
                         if("USER_PART_REQUEST".equals(candidate.get("basis")))lines.add(candidate.get("name")+" 그룹의 비용 문의로 이해했어요. 이 부품의 고장을 확인한 결과는 아닙니다.");
                     }
                     if(!results.containsKey("estimate_repair_cost"))lines.add("실제 고장 부품은 공식 점검 후 정해집니다.");
@@ -475,7 +477,7 @@ public class AgentChatService {
                             ?"제품의 설치 지역이 저장되어 있지 않아요. 마이페이지 제품 정보에서 주소 검색으로 설치 주소를 다시 저장하면 지역이 함께 저장됩니다.":needsProduct());
                     else if(data.get("centers") instanceof List<?> centers&&!centers.isEmpty()){
                         lines.add("등록 배송지역 기준의 센터이며 거리순은 아닙니다. 방문 전 운영시간과 접수 가능 제품을 확인해 주세요.");
-                        for(var raw:centers){var center=(Map<?,?>)raw;lines.add(center.get("name")+" · "+center.get("address")+" · [센터 정보]("+center.get("detail_url")+")");}
+                        for(var raw:centers){var center=requireNonNull((Map<?,?>)raw);lines.add(center.get("name")+" · "+center.get("address")+" · [센터 정보]("+center.get("detail_url")+")");}
                     }else lines.add("점검은 LG 공식 출장 접수로 신청할 수 있어요. 센터 방문을 원하시면 공식 센터 찾기에서 접수 가능한 센터를 확인해 주세요.");
                     lines.add(serviceRoute());
                 }
@@ -517,11 +519,11 @@ public class AgentChatService {
         var lines=new ArrayList<String>();
         var alternatives=data.get("alternatives") instanceof List<?> list?list:List.of();
         if(alternatives.isEmpty())lines.add("지금 정보로는 수리비 범위를 계산하지 못했어요. 공식 점검 후 정확한 비용을 확인해 주세요.");
-        if(data.get("missing_information") instanceof List<?> missing)for(var reason:missing)lines.add(reason.toString());
+        if(data.get("missing_information") instanceof List<?> missing)for(var reason:missing)lines.add(requireNonNull(reason).toString());
         for(Object raw:alternatives){
-            var alternative=(Map<?,?>)raw;var range=(Map<?,?>)alternative.get("expected_range");
-            String part=alternative.get("part_name")==null?"수리 후기 참고":alternative.get("part_name").toString();
-            String grade=alternative.get("confidence_grade")!=null?alternative.get("confidence_grade").toString():"낮음";
+            var alternative=requireNonNull((Map<?,?>)raw);var range=requireNonNull((Map<?,?>)alternative.get("expected_range"));
+            String part=Objects.toString(alternative.get("part_name"),"수리 후기 참고");
+            String grade=Objects.toString(alternative.get("confidence_grade"),"낮음");
             lines.add("예상 수리비(참고용 예상 범위, 견적 아님) "+part+": 약 "+won(range.get("min"))+" ~ "+won(range.get("max"))+", 가운데 값 "+won(range.get("median"))+" · 신뢰도 "+grade);
             if(alternative.get("surcharge") instanceof Map<?,?> extra&&extra.get("amount") instanceof Number amount&&amount.intValue()>0)
                 lines.add(("NIGHT_HOLIDAY".equals(extra.get("time_slot"))?"야간·휴일":"평일")+(extra.get("month")==null?"":" "+extra.get("month")+"월")
@@ -529,7 +531,7 @@ public class AgentChatService {
         }
         if(!alternatives.isEmpty()){
             if(data.get("basis") instanceof Map<?,?> basis&&basis.get("description")!=null)lines.add("기준: "+basis.get("description"));
-            if(((Map<?,?>)alternatives.getFirst()).get("warranty_note") instanceof String note)lines.add(note);
+            if(((Map<?,?>)requireNonNull(alternatives.getFirst())).get("warranty_note") instanceof String note)lines.add(note);
         }
         lines.add(Objects.toString(data.get("notice"),EstimateRepairCostTool.NOTICE));
         return lines;

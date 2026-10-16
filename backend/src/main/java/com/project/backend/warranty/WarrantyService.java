@@ -30,17 +30,17 @@ public class WarrantyService {
     public WarrantyModels.Catalog policies() { return catalog.data(); }
 
     public WarrantyModels.Result check(WarrantyModels.Request request) {
-        if (request == null || request.category() == null) badRequest("제품 품목을 선택해 주세요.");
-        if (!request.category().isSupported()) badRequest("에어컨은 지원 종료된 품목입니다.");
+        if (request == null || request.category() == null) throw badRequest("제품 품목을 선택해 주세요.");
+        if (!request.category().isSupported()) throw badRequest("에어컨은 지원 종료된 품목입니다.");
         LocalDate today = LocalDate.now(clock);
         for (var date : new LocalDate[]{request.purchaseDate(), request.deliveryDate(), request.productionDate()}) {
-            if (date != null && date.isAfter(today)) badRequest("미래 날짜는 사용할 수 없습니다.");
+            if (date != null && date.isAfter(today)) throw badRequest("미래 날짜는 사용할 수 없습니다.");
         }
         if (request.deliveryDate() != null && request.purchaseDate() == null) {
-            badRequest("배송일을 입력하려면 구매일도 입력해 주세요.");
+            throw badRequest("배송일을 입력하려면 구매일도 입력해 주세요.");
         }
         if (request.deliveryDate() != null && request.deliveryDate().isBefore(request.purchaseDate())) {
-            badRequest("배송일은 구매일보다 빠를 수 없습니다.");
+            throw badRequest("배송일은 구매일보다 빠를 수 없습니다.");
         }
         LocalDate basis = request.purchaseDate();
         String basisSource = basis == null ? "NEEDS_DATE" : "PURCHASE";
@@ -48,11 +48,11 @@ public class WarrantyService {
                 .filter(policy -> policy.category() == request.category()).toList();
         String variant = normalize(request.coreVariant());
         if (variant != null && selected.stream().noneMatch(policy -> variant.equals(policy.variant()))) {
-            badRequest("해당 품목에 없는 주요 부품 유형입니다.");
+            throw badRequest("해당 품목에 없는 주요 부품 유형입니다.");
         }
         String productType = normalize(request.productType());
         if (productType != null && !List.of("GENERAL", "UNKNOWN").contains(productType)) {
-            badRequest("제품 유형을 확인해 주세요.");
+            throw badRequest("제품 유형을 확인해 주세요.");
         }
         var generalPolicies = selected.stream().filter(p -> "PRODUCT".equals(p.scope())).toList();
         WarrantyModels.Row product = generalPolicies.size() == 1
@@ -85,8 +85,7 @@ public class WarrantyService {
         if (policy.producedFrom() != null && (request.productionDate() == null
                 || request.productionDate().isBefore(policy.producedFrom()))) policyKnown = false;
         // Purchase date starts the period. Evidence/use conditions qualify fees, not the date calculation.
-        boolean dated = policyKnown && basis != null && policy.periodMonths() != null;
-        LocalDate expiry = dated ? basis.plusMonths(policy.periodMonths()) : null;
+        LocalDate expiry = policyKnown && basis != null && policy.periodMonths() != null ? basis.plusMonths(policy.periodMonths()) : null;
         String status = expiry == null ? "UNKNOWN" : today.isAfter(expiry) ? "EXPIRED" : "IN_WARRANTY";
         boolean applies = policyKnown && Boolean.TRUE.equals(request.domesticNewHousehold())
                 && Boolean.TRUE.equals(request.proofAvailable());
@@ -168,7 +167,7 @@ public class WarrantyService {
         return value == null || value.isBlank() ? null : value.trim().toUpperCase(java.util.Locale.ROOT);
     }
 
-    private static void badRequest(String message) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+    private static ResponseStatusException badRequest(String message) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
     }
 }

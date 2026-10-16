@@ -1,5 +1,7 @@
 package com.project.backend.data;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import java.nio.file.*;
 import java.util.List;
@@ -20,7 +22,7 @@ class DataIntegrityTests {
     @BeforeEach void copyPackagedData() throws Exception {
         for(var file:FILES){
             var target=root.resolve(file);Files.createDirectories(target.getParent());
-            try(var in=new ClassPathResource(file).getInputStream()){Files.copy(in,target);}
+            try(var in=new ClassPathResource(requireNonNull(file)).getInputStream()){Files.copy(in,target);}
         }
     }
     DataManifest manifest(){return new DataManifest(root.toUri().toString(),new DefaultResourceLoader());}
@@ -38,8 +40,8 @@ class DataIntegrityTests {
     @Test void everyVerifiedFileIsCheckedByteForByte() throws Exception {
         for(var file:FILES.subList(1,FILES.size())){
             tamper(file);
-            assertThatThrownBy(()->{var m=manifest();new ToolDataCatalog(m);new WarrantyCatalog(m);})
-                    .as(file).isInstanceOf(IllegalStateException.class).hasMessageContaining("무결성").hasMessageContaining(file);
+            var error=assertThatThrownBy(()->{var m=manifest();new ToolDataCatalog(m);new WarrantyCatalog(m);});
+            error.as(file);error.isInstanceOf(IllegalStateException.class);error.hasMessageContaining("무결성");error.hasMessageContaining(file);
             restore(file);
         }
     }
@@ -65,6 +67,6 @@ class DataIntegrityTests {
     }
 
     private void restore(String file) throws Exception {
-        try(var in=new ClassPathResource(file).getInputStream()){Files.copy(in,root.resolve(file),StandardCopyOption.REPLACE_EXISTING);}
+        try(var in=new ClassPathResource(requireNonNull(file)).getInputStream()){Files.copy(in,root.resolve(file),StandardCopyOption.REPLACE_EXISTING);}
     }
 }

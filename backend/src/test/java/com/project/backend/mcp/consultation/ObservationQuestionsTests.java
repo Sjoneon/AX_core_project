@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -7,7 +9,7 @@ import com.project.backend.conversation.ProductCategory;
 
 class ObservationQuestionsTests {
     @Test void onlyAskedQuestionsAndTheirOptionsAreAccepted(){
-        assertThat(ObservationQuestions.of(ProductCategory.REFRIGERATOR,"COOLING")).extracting(ObservationQuestions.Question::id).containsExactly("DISPLAY","SOUND","FROST");
+        assertThat(ObservationQuestions.of(ProductCategory.REFRIGERATOR,"COOLING")).extracting((ObservationQuestions.Question element)->requireNonNull(element).id()).containsExactly("DISPLAY","SOUND","FROST");
         assertThat(ObservationQuestions.of(ProductCategory.WASHER,"VIBRATION")).isEmpty();
         assertThat(ObservationQuestions.validate(ProductCategory.REFRIGERATOR,"COOLING",Map.of("SOUND","NO"))).containsExactly(Map.entry("SOUND","NO"));
         assertThat(ObservationQuestions.validate(ProductCategory.REFRIGERATOR,"COOLING",null)).isEmpty();

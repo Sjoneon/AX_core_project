@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.nio.file.*;
 import java.time.*;
@@ -26,13 +28,13 @@ public final class GroundedAnswerEvaluation {
         var options=OpenAiChatOptions.builder().model(modelName).apiKey(key).timeout(Duration.ofSeconds(5)).maxRetries(0).build();
         var client=ChatClient.create(OpenAiChatModel.builder().options(options).build());
         var rawDraft=new java.util.concurrent.atomic.AtomicReference<String>();
-        var generator=new GroundedAnswerGenerator(input->{String draft=client.prompt().system(GroundedAnswerGenerator.SYSTEM).user(input).call().content();rawDraft.set(draft);return draft;},Duration.ofSeconds(5));
+        var generator=new GroundedAnswerGenerator(input->{String draft=client.prompt().system(GroundedAnswerGenerator.SYSTEM).user(requireNonNull(input)).call().content();rawDraft.set(draft);return draft;},Duration.ofSeconds(5));
         var catalog=new ToolDataCatalog(DataManifest.classpath());var retrieval=KnowledgeRetriever.lexical(catalog);var builder=new AnswerContext.Builder(catalog);
         var warranty=new WarrantyService(new WarrantyCatalog(),Clock.fixed(Instant.parse("2026-10-14T00:00:00Z"),ZoneId.of("Asia/Seoul")));
         Map<String,Object> specification=JSON.readValue(Files.readString(root.resolve("docs/mcp/answer_evaluation.json")),new TypeReference<>(){});
         var rows=new ArrayList<Map<String,Object>>();
         for(var raw:(List<?>)specification.get("cases")){
-            var test=(Map<String,Object>)raw;var category=ProductCategory.valueOf(text(test,"category"));String model=text(test,"model"),query=text(test,"query");
+            var test=requireNonNull((Map<?,?>)raw);var category=ProductCategory.valueOf(text(test,"category"));String model=text(test,"model"),query=text(test,"query");
             String symptom=Objects.toString(test.get("symptom"),null);String kind=Objects.toString(test.get("kind"),"manual");
             var state=new ConsultationState("CLEAR",null,0,null,symptom,List.of(),0,false);
             var snapshot=new ConsultationService.Snapshot(1L,category,2L,query,state,3);
@@ -56,7 +58,7 @@ public final class GroundedAnswerEvaluation {
             if(Boolean.TRUE.equals(test.get("reference")))passed&=context.facts().stream().anyMatch(f->f.kind().equals("REFERENCE"))&&!result.evidenceIds().isEmpty();
             if(Boolean.TRUE.equals(test.get("no_reference")))passed&=result.reply().contains("확인된 설명 근거가 부족");
             if(test.get("expected_text") instanceof String expected)passed&=result.reply().contains(expected);
-            if(test.get("forbidden") instanceof List<?> forbidden)for(var phrase:forbidden)passed&=!result.reply().contains(phrase.toString());
+            if(test.get("forbidden") instanceof List<?> forbidden)for(var phrase:forbidden)passed&=!result.reply().contains(requireNonNull(phrase).toString());
             rows.add(map("id",test.get("id"),"kind",kind,"category",category,"model",model,"query",query,"facts",context.facts(),"result",result,"passed",passed));
             if(!passed)rows.getLast().put("synthetic_invalid_draft",rawDraft.get());
             System.out.println("Grounded answer "+rows.size()+": "+test.get("id")+" "+(passed?"PASS":"FAIL")+" "+result.mode());

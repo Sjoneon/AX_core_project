@@ -38,6 +38,11 @@ dependencies {
 	testRuntimeOnly 'com.h2database:h2'
 }
 
+tasks.withType(Test).configureEach {
+	// Mockito's bootstrap instrumentation makes class data sharing unavailable.
+	jvmArgs '-Xshare:off'
+}
+
 tasks.named('test') {
 	useJUnitPlatform {
 		excludeTags 'mysql-schema'

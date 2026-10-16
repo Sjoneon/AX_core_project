@@ -1,5 +1,8 @@
 package com.project.backend.conversation;
 
+import static java.util.Objects.requireNonNull;
+import org.jspecify.annotations.NonNull;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -129,7 +132,7 @@ public class ConversationService {
         answer.setSources(sources);
         answer.setWarranty(warranty);
         answer.setTools(tools);
-        messageRepository.saveAll(List.of(new ChatMessage(conversation, "user", message), answer));
+        messageRepository.saveAll(requireNonNull(List.<@NonNull ChatMessage>of(new ChatMessage(conversation, "user", message), requireNonNull(answer))));
         for (int order = 0; order < calls.size(); order++) {
             var call = calls.get(order);
             toolCallRepository.save(new ToolCallLog(conversation.getId(), answer.getId(), order + 1, call,
@@ -194,7 +197,7 @@ public class ConversationService {
         return recent.stream().map(message->{
             String step=null,condition=null,scope=null;Long version=null;var plan=message.getTools().get("get_diagnostic_plan");
             if(plan!=null&&"OK".equals(plan.status())&&plan.data()!=null&&plan.data().get("steps") instanceof List<?> steps&&!steps.isEmpty())
-                step=java.util.Objects.toString(((java.util.Map<?,?>)steps.getFirst()).get("step_code"),null);
+                step=java.util.Objects.toString(((java.util.Map<?,?>)requireNonNull(steps.getFirst())).get("step_code"),null);
             if(plan!=null&&plan.meta()!=null&&plan.meta().get("context_version") instanceof Number value)version=value.longValue();
             if(plan!=null&&"NEEDS_INPUT".equals(plan.status())&&plan.data()!=null&&plan.data().get("question") instanceof java.util.Map<?,?> q){
                 condition=java.util.Objects.toString(q.get("id"),null);scope=java.util.Objects.toString(plan.data().get("plan_scope"),null);

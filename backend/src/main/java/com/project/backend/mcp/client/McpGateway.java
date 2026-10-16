@@ -1,9 +1,13 @@
 package com.project.backend.mcp.client;
 
+import static java.util.Objects.requireNonNull;
+
 import java.net.http.HttpRequest;
 import java.time.Duration;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.ai.tool.ToolCallback;
@@ -34,6 +38,7 @@ public class McpGateway {
 
     /** A tool error code such as OWNERSHIP_NOT_FOUND. It never carries backend payloads or addresses. */
     public static final class ToolCallException extends RuntimeException {
+        @java.io.Serial private static final long serialVersionUID=1L;
         private final String code;
         public ToolCallException(String code){super(code);this.code=code;}
         public String code(){return code;}
@@ -68,24 +73,24 @@ public class McpGateway {
         public Duration remaining(){return Duration.ofNanos(Math.max(0,deadline-System.nanoTime()));}
         private ToolCallback callback(McpSchema.Tool tool){
             Map<String,Object> schema=JSON.convertValue(tool.inputSchema(),new TypeReference<>(){});
-            Map<String,Object> props=(Map<String,Object>)schema.get("properties");
+            var props=(Map<?,?>)schema.get("properties");
             Set<String> hidden=Set.of("conversation_id","request","region_override");
             hidden.forEach(props::remove);
             // All referenced definitions belong to the removed user-only inputs.
             if(!JSON.writeValueAsString(props).contains("\"$ref\""))schema.remove("$defs");
-            if(schema.get("required") instanceof List<?> required)schema.put("required",required.stream().filter(x->!hidden.contains(x.toString())).toList());
-            var definition=ToolDefinition.builder().name(tool.name()).description(tool.description()).inputSchema(JSON.writeValueAsString(schema)).build();
+            if(schema.get("required") instanceof List<?> required)schema.put("required",required.stream().filter(x->!hidden.contains(requireNonNull(x).toString())).toList());
+            var definition=ToolDefinition.builder().name(requireNonNull(tool.name())).description(requireNonNull(tool.description())).inputSchema(requireNonNull(JSON.writeValueAsString(schema))).build();
             return new ToolCallback(){
-                public ToolDefinition getToolDefinition(){return definition;}
-                public ToolMetadata getToolMetadata(){return ToolMetadata.builder().returnDirect(false).build();}
-                public String call(String input){
+                public @NonNull ToolDefinition getToolDefinition(){return definition;}
+                public @NonNull ToolMetadata getToolMetadata(){return ToolMetadata.builder().returnDirect(false).build();}
+                public @NonNull String call(@NonNull String input){
                     var args=JSON.readValue(input,new TypeReference<Map<String,Object>>(){});
                     try{
                         if(!props.keySet().containsAll(args.keySet())){
                             calls.add(ToolCallRecord.failure(tool.name(),args,"MODEL","INVALID_ARGUMENT",0));
                             throw new ToolCallException("INVALID_ARGUMENT");
                         }
-                        return JSON.writeValueAsString(invoke(tool.name(),args,"MODEL"));
+                        return requireNonNull(JSON.writeValueAsString(invoke(tool.name(),args,"MODEL")));
                     }catch(ToolCallException error){
                         if(FATAL.contains(error.code()))throw error;
                         // The model sees only the code; server-side arguments are validated again on every call.
@@ -103,15 +108,15 @@ public class McpGateway {
                 calls.add(ToolCallRecord.failure(name,args,selection,"TOOL_LIMIT_REACHED",0));throw new ToolCallException("TOOL_LIMIT_REACHED");
             }
             if(System.nanoTime()>deadline){calls.add(ToolCallRecord.failure(name,args,selection,"TOOL_TIMEOUT",0));throw new ToolCallException("TOOL_TIMEOUT");}
-            perTool.merge(name,1,Integer::sum);
+            perTool.merge(name,1,(left,right)->requireNonNull(left)+requireNonNull(right));
             var bounded=new LinkedHashMap<>(args);bounded.put("conversation_id",snapshot.id());
             long started=System.nanoTime();
             try{
-                var response=client.callTool(new McpSchema.CallToolRequest(name,bounded));
+                var response=client.callTool(new McpSchema.CallToolRequest(name,bounded,null));
                 if(Boolean.TRUE.equals(response.isError()))throw new ToolCallException(errorCode(response));
                 Object structured=response.structuredContent();
                 if(structured instanceof Map<?,?> map&&map.containsKey("result")&&map.size()==1)structured=map.get("result");
-                var result=JSON.convertValue(structured,ToolEnvelope.class);
+                @Nullable ToolEnvelope result=structured==null?null:JSON.convertValue(structured,ToolEnvelope.class);
                 if(result==null||result.meta()==null||!(result.meta().get("context_version") instanceof Number version)||version.longValue()!=snapshot.version())throw new ToolCallException("CONTEXT_STALE");
                 long elapsed=millis(started);
                 calls.add(ToolCallRecord.success(name,args,selection,result,elapsed));

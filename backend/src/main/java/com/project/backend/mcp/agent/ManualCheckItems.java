@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import java.util.regex.Pattern;
 import com.project.backend.mcp.tool.KnowledgeDocument;
@@ -65,7 +67,7 @@ public final class ManualCheckItems {
         if(stopSelfCare(document))return List.of();
         var clauses=new ArrayList<String>();
         if(document.fields().get("actionDescriptions") instanceof List<?> actions)
-            for(Object action:actions)for(String clause:action.toString().split(" / "))clauses.add(clause.strip());
+            for(Object action:actions)for(String clause:requireNonNull(action).toString().split(" / "))clauses.add(clause.strip());
         if(document.fields().get("branches") instanceof Map<?,?> branches&&branches.get("action_branches") instanceof List<?> list)
             for(Object raw:list)if(raw instanceof Map<?,?> branch&&branch.get("feature_gate")==null&&branch.get("action_summary") instanceof String summary)clauses.add(summary.strip());
         var items=new LinkedHashSet<String>();

@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import com.project.backend.mcp.tool.ToolEnvelope;
 
@@ -18,7 +20,7 @@ public final class DiagnosticGuidance {
         }
         if("NEEDS_INPUT".equals(result.status()))return "마이페이지에 해당 품목의 제품을 등록해 주세요. 같은 품목의 제품이 여러 개라면 상담할 제품의 표시 이름이나 모델명을 대화로 알려 주세요.";
         if("OK".equals(result.status())&&data.get("steps") instanceof List<?> steps&&!steps.isEmpty()){
-            var step=(Map<?,?>)steps.getFirst();return Objects.toString(step.get("text"),"")+"\n"+Objects.toString(step.get("caution"),"")+"\n이 단계 후 해결됐는지 알려 주세요. 이미 수행했고 해결되지 않았다면 아니요로 답해 주세요.";
+            var step=requireNonNull((Map<?,?>)steps.getFirst());return Objects.toString(step.get("text"),"")+"\n"+Objects.toString(step.get("caution"),"")+"\n이 단계 후 해결됐는지 알려 주세요. 이미 수행했고 해결되지 않았다면 아니요로 답해 주세요.";
         }
         return "이 제품·증상에는 검토를 마친 단계별 자가점검 절차가 아직 없어요. 자가조치가 없다고 확정한 것은 아니며, 문제가 계속되면 공식 점검을 받아 주세요.";
     }

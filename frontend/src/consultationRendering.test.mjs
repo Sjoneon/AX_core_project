@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 
 let server, Message, Trace
 before(async () => {
-  server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' })
+  server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom', logLevel: 'error' })
   Message = (await server.ssrLoadModule('/src/components/ConsultationMessage.jsx')).default
   Trace = (await server.ssrLoadModule('/src/components/ToolCallTrace.jsx')).default
 })

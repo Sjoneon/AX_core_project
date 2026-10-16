@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import com.project.backend.conversation.ProductCategory;
 
@@ -76,7 +78,7 @@ public final class DialogueRouter {
             if(symptom==null&&previous.errorCode()==null&&!inquiry&&pending==null&&reply==null){
                 if(questions>=1){intent="UNCLASSIFIED";reply="증상을 특정하지 못했어요. 공식 점검을 통해 제품 상태를 확인해 주세요.";}
                 else{
-                    List<String> options=candidates.isEmpty()?SymptomCatalog.forCategory(category).stream().map(SymptomCatalog.Symptom::label).toList():candidates.stream().map(c->SymptomCatalog.label(category,c.code())).toList();
+                    List<String> options=candidates.isEmpty()?SymptomCatalog.forCategory(category).stream().map((SymptomCatalog.Symptom element)->requireNonNull(element).label()).toList():candidates.stream().map(c->SymptomCatalog.label(category,c.code())).toList();
                     var choices=new ArrayList<>(options);choices.add("잘 모르겠어요");
                     pending=new DialogueState.Question("SYMPTOM","어떤 증상인가요? 아래에서 고르거나 증상을 말씀해 주세요.",List.copyOf(choices));questions++;
                     reply=pending.text();

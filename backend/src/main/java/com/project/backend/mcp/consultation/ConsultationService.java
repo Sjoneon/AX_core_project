@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
@@ -75,7 +77,7 @@ public class ConsultationService {
     /** Registered products the customer must pick from: none selected yet and two or more of this category, oldest first. */
     @Transactional(readOnly=true) public List<UserProductService.View> productChoices(String email,Snapshot snapshot){
         if(snapshot.productId()!=null)return List.of();
-        var candidates=products.list(email).stream().filter(p->p.warranty().category()==snapshot.category()).sorted(Comparator.comparing(UserProductService.View::id)).toList();
+        var candidates=products.list(email).stream().filter(p->p.warranty().category()==snapshot.category()).sorted(Comparator.comparing((UserProductService.View element)->requireNonNull(element).id())).toList();
         return candidates.size()>1?candidates:List.of();
     }
     @Transactional(readOnly=true) public String selectedModel(String email,Snapshot snapshot){

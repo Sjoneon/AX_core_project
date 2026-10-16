@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.util.*;
 import com.project.backend.conversation.ProductCategory;
@@ -44,7 +46,7 @@ public final class SymptomRepairEstimate {
                 // The whole range also covers parts that only an answer links to (e.g. the defrost heater).
                 @SuppressWarnings("unchecked") var all=(Map<String,Object>)result.get("overall");
                 var some=(Map<?,?>)narrowed.get("overall");
-                all.put("min",Math.min((int)all.get("min"),(int)some.get("min")));all.put("max",Math.max((int)all.get("max"),(int)some.get("max")));
+                all.put("min",Math.min((int)all.get("min"),(int)requireNonNull(some.get("min"))));all.put("max",Math.max((int)all.get("max"),(int)requireNonNull(some.get("max"))));
             }
         }
         return result;

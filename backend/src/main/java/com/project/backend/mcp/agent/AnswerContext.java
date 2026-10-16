@@ -3,15 +3,17 @@ package com.project.backend.mcp.agent;
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.NonNull;
 import com.project.backend.mcp.consultation.*;
 import com.project.backend.mcp.retrieval.KnowledgeRetriever;
 import com.project.backend.mcp.tool.*;
 
 /** Immutable, checked facts for answer composition. Raw manuals and execution candidates are never prompts. */
-public record AnswerContext(List<Fact> facts) {
+public record AnswerContext(List<@NonNull Fact> facts) {
     public record Fact(String id,String kind,String text,List<String> evidenceIds,boolean required) { }
     public AnswerContext { facts=List.copyOf(facts); }
     public static final class InvalidEvidence extends RuntimeException {
+        @java.io.Serial private static final long serialVersionUID=1L;
         public InvalidEvidence(){super("INVALID_EVIDENCE");}
     }
     private static final Pattern INSTRUCTION=Pattern.compile("(?is)(ignore.{0,30}(instruction|rule)|system\\s*:|assistant\\s*:|이전.{0,15}지시.{0,15}무시|규칙.{0,10}무시|역할.{0,10}변경|\\{\\{|<[/!]?)");
@@ -22,7 +24,7 @@ public record AnswerContext(List<Fact> facts) {
         private final KnowledgeRetriever policy;
         public Builder(ToolDataCatalog catalog){this.catalog=catalog;this.policy=KnowledgeRetriever.lexical(catalog);}
         public AnswerContext build(ConsultationService.Snapshot s,String selectedModel,Map<String,ToolEnvelope> outputs,String fixedReply){
-            var facts=new ArrayList<Fact>();
+            var facts=new ArrayList<@NonNull Fact>();
             for(var result:outputs.values()){
                 if(result.meta()==null||!(result.meta().get("context_version") instanceof Number version)||version.longValue()!=s.version())throw new InvalidEvidence();
                 if(result.meta().get("data_version")!=null&&!catalog.version.equals(result.meta().get("data_version")))throw new InvalidEvidence();

@@ -1,5 +1,7 @@
 package com.project.backend.mcp.retrieval;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.*;
 import java.util.*;
 import com.project.backend.mcp.tool.*;
@@ -22,7 +24,7 @@ final class KnowledgeRetrievalPolicy {
             try {
                 Map<String,Object> wrapper=JSON.readValue(text(source,"text"),new TypeReference<>(){});
                 if(wrapper.get("record") instanceof Map<?,?> record&&("fault".equals(record.get("display_class"))||"T2_error_codes".equals(record.get("table")))){
-                    var labels=record.get("raw_display_labels") instanceof List<?> list?list.stream().map(Object::toString).toList():List.<String>of();
+                    var labels=record.get("raw_display_labels") instanceof List<?> list?list.stream().map((Object element)->requireNonNull(element).toString()).toList():List.<String>of();
                     displays.put(text(source,"id"),labels);
                 }
                 if(wrapper.get("record") instanceof Map<?,?> record&&"품목 공통".equals(record.get("scope"))

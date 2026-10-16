@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
 import java.util.*;
@@ -45,12 +47,12 @@ class AnswerContextTests {
         var s=new ConsultationService.Snapshot(1L,ProductCategory.REFRIGERATOR,2L,"냉장고가 시원하지 않아요",new ConsultationState("CLEAR",null,0,null,"COOLING",List.of(),0,false),3);
         var builder=new AnswerContext.Builder(catalog);
         var stop=builder.build(s,"S836MEE022",Map.of("search_knowledge",result("B15-MFL71401523-no_cooling","S836MEE022","MODEL_LISTED",3)),"공식 점검 안내");
-        assertThat(stop.facts()).anySatisfy(f->assertThat(f.text()).contains("‘냉장·냉동 정지’","확인 항목은 ‘정전 여부와 전원 플러그 연결’","실행할 조치의 승인이 아닙니다")
+        assertThat(stop.facts()).anySatisfy(f->requireNonNull(assertThat(f.text()).contains("‘냉장·냉동 정지’","확인 항목은 ‘정전 여부와 전원 플러그 연결’","실행할 조치의 승인이 아닙니다"))
                 .doesNotContain("원인 후보","증상의 원인을 특정할 수 없어"));
         var weak=builder.build(s,"S836MEE022",Map.of("search_knowledge",result("B15-MFL71401523-weak_cooling","S836MEE022","MODEL_LISTED",3)),"공식 점검 안내");
         assertThat(weak.facts()).anySatisfy(f->assertThat(f.text()).contains("‘보관 온도, 문 닫힘, 식품 배치와 주위 설치 환경’"));
         var odor=builder.build(s,"S836MEE022",Map.of("search_knowledge",result("B16-MFL71401523-topic_46-000","S836MEE022","MODEL_LISTED",3)),"공식 점검 안내");
-        assertThat(odor.facts().toString()).contains("냄새가 강한 식품을 넣은 경우").doesNotContain("1℃ 낮추","밀폐 용기","청소한다","확인 항목은");
+        requireNonNull(assertThat(odor.facts().toString()).contains("냄새가 강한 식품을 넣은 경우")).doesNotContain("1℃ 낮추","밀폐 용기","청소한다","확인 항목은");
     }
     @Test void theAnsweredCoolingObservationIsPartOfTheConfirmedSymptom(){
         var dialogue=new DialogueState("SYMPTOM",null,List.of(),"냉장고가 시원하지 않아요",null,0,Map.of("COOLING_STATE","NONE"),"AI",null);

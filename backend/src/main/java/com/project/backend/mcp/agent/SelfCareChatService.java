@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import static com.project.backend.mcp.tool.ToolDataCatalog.map;
 import java.util.*;
 import org.springframework.stereotype.Service;
@@ -18,16 +20,16 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class SelfCareChatService {
     private final ToolBackend tools;private final ConsultationService consultations;private final ConversationService history;
-    private final AgentLimits limits;private final ToolDataCatalog catalog;private final WarrantyService warranty;
+    private final AgentLimits limits;private final ToolDataCatalog catalog;
     private static final JsonMapper JSON=JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
-    public SelfCareChatService(ToolBackend tools,ConsultationService consultations,ConversationService history,AgentLimits limits,ToolDataCatalog catalog,WarrantyService warranty){this.tools=tools;this.consultations=consultations;this.history=history;this.limits=limits;this.catalog=catalog;this.warranty=warranty;}
+    public SelfCareChatService(ToolBackend tools,ConsultationService consultations,ConversationService history,AgentLimits limits,ToolDataCatalog catalog,WarrantyService warranty){this.tools=tools;this.consultations=consultations;this.history=history;this.limits=limits;this.catalog=catalog;}
     @Transactional
     public ChatResponse answer(Long id,String email,Map<String,Object> args,boolean condition){
         var before=tools.execute("get_diagnostic_plan",email,map("conversation_id",id),ToolSupport.number(args,"context_version"));
         var result=condition?tools.answerCondition(email,id,args):tools.answerStep(email,id,args);
         String label=Map.of("YES","예","NO","아니요","UNSURE","모르겠어요").get(Objects.toString(args.get("answer"),""));
         String question=condition?Objects.toString(((Map<?,?>)before.data().get("question")).get("text"),""):
-            Objects.toString(((Map<?,?>)((List<?>)before.data().get("steps")).getFirst()).get("text"),"")+" — 해결됐나요?";
+            Objects.toString(((Map<?,?>)requireNonNull(((List<?>)before.data().get("steps")).getFirst())).get("text"),"")+" — 해결됐나요?";
         return save(consultations.snapshot(email,id),email,question+"\n"+label,result);
     }
     @Transactional

@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -41,7 +43,7 @@ public final class MessageInterpreter {
         """;
     private final Function<String,String> completion;
     private final Duration timeout;
-    public MessageInterpreter(ChatClient model){this(input->model.prompt().system(SYSTEM).user(input).call().content(),Duration.ofSeconds(8));}
+    public MessageInterpreter(ChatClient model){this(input->model.prompt().system(SYSTEM).user(requireNonNull(input)).call().content(),Duration.ofSeconds(8));}
     MessageInterpreter(Function<String,String> completion,Duration timeout){this.completion=completion;this.timeout=timeout;}
     public Interpretation interpret(ProductCategory category,String input,DialogueState dialogue,Object history,List<Map<String,Object>> approvedSteps){
         // A literal reply to a server-owned option needs no generative interpretation.
@@ -64,8 +66,8 @@ public final class MessageInterpreter {
         var root=JSON.readTree(content);
         var names=new HashSet<String>();root.properties().forEach(e->names.add(e.getKey()));
         if(!root.isObject()||!names.equals(Set.of("intent","mentionedCategory","symptomCandidates","doneSteps","selfCareReply")))throw new IllegalArgumentException("Invalid interpretation fields");
-        String intent=root.get("intent").asText();if(!INTENTS.contains(intent))throw new IllegalArgumentException("Invalid intent");
-        var mentioned=root.get("mentionedCategory");String mentionedCategory=mentioned.isNull()?null:mentioned.asText();
+        String intent=root.get("intent").asString();if(!INTENTS.contains(intent))throw new IllegalArgumentException("Invalid intent");
+        var mentioned=root.get("mentionedCategory");String mentionedCategory=mentioned.isNull()?null:mentioned.asString();
         if(mentionedCategory!=null&&!Set.of("WASHER","DRYER","REFRIGERATOR","DISHWASHER","AIR_CONDITIONER","UNSUPPORTED").contains(mentionedCategory))throw new IllegalArgumentException("Invalid category");
         var candidates=root.get("symptomCandidates");var steps=root.get("doneSteps");var reply=root.get("selfCareReply");
         if(!candidates.isArray()||candidates.size()>3||!steps.isArray())throw new IllegalArgumentException("Invalid arrays");
@@ -73,13 +75,13 @@ public final class MessageInterpreter {
         var parsed=new ArrayList<Candidate>();var seen=new HashSet<String>();
         for(var candidate:candidates){
             if(!candidate.isObject()||candidate.size()!=2||!candidate.has("code")||!candidate.has("confidence")||!candidate.get("code").isString()||!candidate.get("confidence").isNumber())throw new IllegalArgumentException("Invalid candidate");
-            String code=candidate.get("code").asText();double confidence=candidate.get("confidence").asDouble();
+            String code=candidate.get("code").asString();double confidence=candidate.get("confidence").asDouble();
             if(!Double.isFinite(confidence)||confidence<0||confidence>1)throw new IllegalArgumentException("Invalid confidence");
             if(SymptomCatalog.allows(category,code)&&seen.add(code))parsed.add(new Candidate(code,confidence));
         }
-        parsed.sort(Comparator.comparingDouble(Candidate::confidence).reversed());
-        var completed=new ArrayList<String>();for(var step:steps){if(!step.isString())throw new IllegalArgumentException("Invalid step");if(allowed.contains(step.asText())&&!completed.contains(step.asText()))completed.add(step.asText());}
-        String selfCare=reply.isNull()?null:reply.asText();if(selfCare!=null&&!Set.of("RESOLVED","NOT_RESOLVED").contains(selfCare))throw new IllegalArgumentException("Invalid reply");
+        parsed.sort(Comparator.comparingDouble((Candidate element)->requireNonNull(element).confidence()).reversed());
+        var completed=new ArrayList<String>();for(var step:steps){if(!step.isString())throw new IllegalArgumentException("Invalid step");if(allowed.contains(step.asString())&&!completed.contains(step.asString()))completed.add(step.asString());}
+        String selfCare=reply.isNull()?null:reply.asString();if(selfCare!=null&&!Set.of("RESOLVED","NOT_RESOLVED").contains(selfCare))throw new IllegalArgumentException("Invalid reply");
         return new Interpretation(intent,mentionedCategory,List.copyOf(parsed),List.copyOf(completed),selfCare,"AI");
     }
     static String fallbackIntent(String input){

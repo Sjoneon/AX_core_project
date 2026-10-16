@@ -1,6 +1,7 @@
 package com.project.backend.mcp.retrieval;
 
-import static com.project.backend.mcp.tool.ToolDataCatalog.*;
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import java.util.*;
 import org.junit.jupiter.api.*;
@@ -14,7 +15,7 @@ class KnowledgeRetrievalTests {
     @Test void vibrationParaphrasesSelectTheModelFactWithoutFloodOrFilterGuidance(){
         for(String query:List.of("탈수할때 세탁기 본체가 많이 흔들리면서 원 위치에서 크게 벗어나요.","진동이 심해요","탈수 중 원래 자리에서 움직여요")){
             var result=retriever.retrieve(query,"WASHER","FX24ENER","MANUAL",null,5);
-            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).contains("B17-MFL71792818-topic_66-009")
+            requireNonNull(assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).contains("B17-MFL71792818-topic_66-009"))
                     .doesNotContain("B16-MFL71792818-topic_65-008","T4-016","T4-036");
             assertThat(result.safety()).isEmpty();
             assertThat(result.documents()).allSatisfy(hit->assertThat(catalog.structuredKnowledgeById.get(hit.id()).fields().get("symptoms").toString())
@@ -23,12 +24,12 @@ class KnowledgeRetrievalTests {
     }
     @Test void displayedSensorFaultNeedsTheActualLabel(){
         var result=retriever.retrieve("진동 센서 이상이라고 표시돼요","WASHER","FX24ENER","MANUAL",null,3);
-        assertThat(result.documents().getFirst()).extracting(KnowledgeRetriever.Hit::id,KnowledgeRetriever.Hit::match)
+        assertThat(result.documents().getFirst()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id(),(KnowledgeRetriever.Hit element)->requireNonNull(element).match())
                 .containsExactly("B16-MFL71792818-topic_65-008","EXACT_DISPLAY_LABEL");
     }
     @Test void safetyIsFilteredByTheSameExactModelRule(){
         var right=retriever.retrieve("세탁기 밑면이 물에 잠겼어요","WASHER","F24WDWPR","MANUAL",null,3);
-        assertThat(right.safety()).extracting(KnowledgeRetriever.Hit::id).contains("T4-016").doesNotContain("T4-036");
+        requireNonNull(assertThat(right.safety()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).contains("T4-016")).doesNotContain("T4-036");
         var wrong=retriever.retrieve("세탁기가 침수됐어요","WASHER","FX24ENER","MANUAL",null,3);
         assertThat(wrong.safety()).isEmpty();assertThat(wrong.documents()).isEmpty();
     }
@@ -45,7 +46,7 @@ class KnowledgeRetrievalTests {
     @Test void exactCodesAndSpacedLabelsUseLiteralBoundaries(){
         for(String query:List.of("OE","O E 표시가 떠요")){
             var result=retriever.retrieve(query,"WASHER","F24WDWPR","MANUAL",null,3);
-            assertThat(result.documents()).anySatisfy(hit->assertThat(hit).extracting(KnowledgeRetriever.Hit::id,KnowledgeRetriever.Hit::match).containsExactly("T2-003","EXACT_ERROR_CODE"));
+            assertThat(result.documents()).anySatisfy(hit->assertThat(hit).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id(),(KnowledgeRetriever.Hit element)->requireNonNull(element).match()).containsExactly("T2-003","EXACT_ERROR_CODE"));
         }
         assertThat(retriever.retrieve("SOMEOTHER","WASHER","F24WDWPR","MANUAL",null,3).documents()).isEmpty();
     }
@@ -58,18 +59,18 @@ class KnowledgeRetrievalTests {
     @Test void coolingComplaintsSelectCoolingFactsNotInteriorFacts(){
         for(String query:List.of("냉장고가 시원하지 않아요.","냉장이 안 돼요","냉장·냉동이 잘되지 않아요","냉동이 약해요")){
             var result=retriever.retrieve(query,"REFRIGERATOR","S836MEE022","MANUAL",null,3);
-            assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).as(query).contains("B15-MFL71401523-no_cooling")
+            requireNonNull(requireNonNull(assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).as(query)).contains("B15-MFL71401523-no_cooling"))
                     .doesNotContain("B16-MFL71401523-topic_46-000","B16-MFL71401523-topic_46-001");
         }
         // "냉장고 안" is the interior, not a cooling failure.
         var odor=retriever.retrieve("냉장고 안에서 냄새가 나요","REFRIGERATOR","S836MEE022","MANUAL",null,3);
-        assertThat(odor.documents()).extracting(KnowledgeRetriever.Hit::id).contains("B16-MFL71401523-topic_46-000")
+        requireNonNull(assertThat(odor.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).contains("B16-MFL71401523-topic_46-000"))
                 .doesNotContain("B15-MFL71401523-no_cooling","B15-MFL71401523-weak_cooling");
         assertThat(retriever.retrieve("냉장고가 안 켜져요","REFRIGERATOR","S836MEE022","MANUAL",null,3).documents())
-                .extracting(KnowledgeRetriever.Hit::id).doesNotContain("B15-MFL71401523-no_cooling","B15-MFL71401523-weak_cooling");
+                .extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).doesNotContain("B15-MFL71401523-no_cooling","B15-MFL71401523-weak_cooling");
     }
     @Test void negatedVibrationDoesNotOverrideTheDrainSymptom(){
         var result=retriever.retrieve("진동은 없고 물이 안 빠져요","WASHER","F24WDWPR","MANUAL",null,3);
-        assertThat(result.documents()).extracting(KnowledgeRetriever.Hit::id).contains("T3-001").doesNotContain("T2-010","T3-137");
+        requireNonNull(assertThat(result.documents()).extracting((KnowledgeRetriever.Hit element)->requireNonNull(element).id()).contains("T3-001")).doesNotContain("T2-010","T3-137");
     }
 }

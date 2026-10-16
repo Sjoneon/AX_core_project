@@ -5,7 +5,7 @@ HomeCare AI — 해외·국내 수리비 한국 기준 정규화 & 예상 수리
 
 [변수] = 설정값/데이터, [함수] = 계산 로직
 """
-import re, csv, statistics as st
+import re, csv
 import pandas as pd
 
 # ───────────────────────── [변수] 기준값 ─────────────────────────

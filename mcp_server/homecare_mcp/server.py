@@ -28,7 +28,7 @@ def create_server(backend_url: str | None = None, token_provider: Callable[[], s
     mcp = FastMCP("HomeCare AI", mask_error_details=True)
 
     @mcp.custom_route("/health", methods=["GET"])
-    async def health(request: Request):
+    async def health(request: Request) -> JSONResponse:
         """MCP 프로세스 상태와 등록 도구 수 조회"""
         return JSONResponse({"status": "UP", "service": "homecare-mcp", "tool_count": len(TOOL_NAMES)})
 

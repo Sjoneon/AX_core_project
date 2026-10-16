@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 from fastmcp.client.transports import StreamableHttpTransport
 
 from homecare_mcp.tools import TOOL_NAMES
@@ -75,7 +76,7 @@ def redact(value: Any, settings: Settings, path: tuple[str, ...] = ()) -> Any:
     return value
 
 
-def envelope(result: Any) -> dict[str, Any]:
+def envelope(result: CallToolResult) -> dict[str, Any]:
     """FastMCP의 직접 응답과 result wrapper에서 공통 envelope 조회"""
     raw = result.structured_content
     if raw is None:
@@ -104,7 +105,7 @@ def envelope(result: Any) -> dict[str, Any]:
 class SmokeRun:
     """도구 호출 결과와 최소 검증 요약 수집"""
 
-    def __init__(self, settings: Settings, verbose: bool):
+    def __init__(self, settings: Settings, verbose: bool) -> None:
         self.settings = settings
         self.verbose = verbose
         self.rows: list[tuple[str, str, str, str, str]] = []

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.jspecify.annotations.NonNull;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,7 @@ public class ChatRateLimiter implements HandlerInterceptor {
     }
     public ChatRateLimiter(int perMinute,int burst,int perDay,Clock clock){this.perMinute=perMinute;this.burst=burst;this.perDay=perDay;this.clock=clock;}
     @Override
-    public boolean preHandle(HttpServletRequest request,HttpServletResponse response,Object handler) throws IOException {
+    public boolean preHandle(@NonNull HttpServletRequest request,@NonNull HttpServletResponse response,@NonNull Object handler) throws IOException {
         if(request.getDispatcherType()==jakarta.servlet.DispatcherType.ASYNC||!"POST".equals(request.getMethod())||request.getUserPrincipal()==null)return true;
         long retryAfter=acquire(request.getUserPrincipal().getName());
         if(retryAfter==0)return true;

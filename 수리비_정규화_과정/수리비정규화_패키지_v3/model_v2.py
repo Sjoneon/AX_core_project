@@ -5,8 +5,6 @@ v2: 기술료를 '제품군'이 아니라 '작업 난이도 등급'으로 나눈
       LG전자 중국 有偿服务收费标准 — 대수리/중수리/소수리로 부품별 등급을 공시 (lg.com/cn/support/service-policy-4)
 [변수]/[함수] 표시.
 """
-import statistics as st
-import numpy as np
 import pandas as pd
 import model as M
 

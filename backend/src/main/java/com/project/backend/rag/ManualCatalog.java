@@ -1,5 +1,7 @@
 package com.project.backend.rag;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,7 +26,7 @@ public class ManualCatalog {
         var ids = new HashSet<String>();
         var resources = new PathMatchingResourcePatternResolver().getResources("classpath*:rag/manuals/*.md");
         for (var resource : resources) {
-            String markdown = resource.getContentAsString(StandardCharsets.UTF_8);
+            String markdown = resource.getContentAsString(requireNonNull(StandardCharsets.UTF_8));
             String[] sections = markdown.split("(?m)^## (?=HC-)");
             for (int i = 1; i < sections.length; i++) {
                 String section = sections[i].strip();
@@ -33,10 +35,10 @@ public class ManualCatalog {
                 if (!ProductCategory.valueOf(category).isSupported()) continue;
                 if (!ids.add(id)) throw new IllegalStateException("중복 매뉴얼 ID: " + id);
                 String title = section.lines().findFirst().orElseThrow().split("\\|", 2)[1].strip();
-                loaded.add(new Document(id, section, Map.of(
+                loaded.add(new Document(requireNonNull(id), section, requireNonNull(Map.of(
                         "title", title, "category", category, "version", field(section, "문서 버전"),
                         "file", "rag-test-data/manuals/" + resource.getFilename(),
-                        "errorCodes", line(section, "오류 코드"))));
+                        "errorCodes", line(section, "오류 코드")))));
             }
         }
         if (loaded.isEmpty()) throw new IllegalStateException("RAG 매뉴얼이 없습니다.");

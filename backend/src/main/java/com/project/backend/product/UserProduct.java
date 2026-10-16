@@ -56,19 +56,19 @@ public class UserProduct {
         else if (addressReplaced) { deliverySido = ""; deliverySigungu = ""; }
         var previous = warrantyInput == null ? null : warranty();
         boolean sameCategory = previous != null && previous.category() == request.category();
-        boolean sameModel = sameCategory && Objects.equals(previous.modelName(), request.model());
-        boolean samePurchase = sameModel && Objects.equals(previous.purchaseDate(), purchaseDate);
+        boolean sameModel = previous != null && sameCategory && Objects.equals(previous.modelName(), request.model());
+        boolean samePurchase = previous != null && sameModel && Objects.equals(previous.purchaseDate(), purchaseDate);
         this.category = request.category();
         this.displayName = request.name();
         this.model = request.model();
         this.purchaseDate = purchaseDate;
         this.warrantyInput = JSON.writeValueAsString(new WarrantyModels.Request(category, request.model(), purchaseDate,
-                samePurchase ? previous.deliveryDate() : null,
-                sameModel ? previous.productionDate() : null,
-                sameCategory ? previous.coreVariant() : null,
-                sameCategory ? previous.productType() : null,
-                samePurchase ? previous.proofAvailable() : null,
-                sameModel ? previous.domesticNewHousehold() : null));
+                previous != null && samePurchase ? previous.deliveryDate() : null,
+                previous != null && sameModel ? previous.productionDate() : null,
+                previous != null && sameCategory ? previous.coreVariant() : null,
+                previous != null && sameCategory ? previous.productType() : null,
+                previous != null && samePurchase ? previous.proofAvailable() : null,
+                previous != null && sameModel ? previous.domesticNewHousehold() : null));
         this.postcode = request.postcode();
         this.address = request.address();
         this.addressDetail = request.addressDetail();
@@ -88,12 +88,12 @@ public class UserProduct {
     public WarrantyModels.Request warranty(){
         var saved=warrantyInput==null?null:JSON.readValue(warrantyInput, WarrantyModels.Request.class);
         boolean sameCategory=saved!=null&&saved.category()==category;
-        boolean sameModel=sameCategory&&Objects.equals(saved.modelName(),model);
-        boolean samePurchase=sameModel&&Objects.equals(saved.purchaseDate(),purchaseDate);
+        boolean sameModel=saved!=null&&sameCategory&&Objects.equals(saved.modelName(),model);
+        boolean samePurchase=saved!=null&&sameModel&&Objects.equals(saved.purchaseDate(),purchaseDate);
         // Original columns remain authoritative when an older release writes after rollback.
         return new WarrantyModels.Request(category,model,purchaseDate,
-                samePurchase?saved.deliveryDate():null,sameModel?saved.productionDate():null,
-                sameCategory?saved.coreVariant():null,sameCategory?saved.productType():null,
-                samePurchase?saved.proofAvailable():null,sameModel?saved.domesticNewHousehold():null);
+                saved!=null&&samePurchase?saved.deliveryDate():null,saved!=null&&sameModel?saved.productionDate():null,
+                saved!=null&&sameCategory?saved.coreVariant():null,saved!=null&&sameCategory?saved.productType():null,
+                saved!=null&&samePurchase?saved.proofAvailable():null,saved!=null&&sameModel?saved.domesticNewHousehold():null);
     }
 }

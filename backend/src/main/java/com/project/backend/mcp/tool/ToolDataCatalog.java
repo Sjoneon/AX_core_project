@@ -1,5 +1,7 @@
 package com.project.backend.mcp.tool;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -95,9 +97,9 @@ public class ToolDataCatalog {
     private static Map<String,KnowledgeOverlay> overlays(List<Map<String,Object>> knowledge,Map<String,Object> models){
         return knowledge.stream().collect(Collectors.toUnmodifiableMap(d->text(d,"id"),d->KnowledgeOverlay.of(d,models.keySet())));
     }
-    public static String text(Map<String,Object> data,String key){return Objects.toString(data.get(key),"");}
-    public static List<String> strings(Map<String,Object> data,String key){
-        Object value=data.get(key);return value instanceof List<?> list?list.stream().map(Object::toString).toList():List.of();
+    public static String text(Map<?,?> data,String key){return Objects.toString(data.get(key),"");}
+    public static List<String> strings(Map<?,?> data,String key){
+        Object value=data.get(key);return value instanceof List<?> list?list.stream().map((Object element)->requireNonNull(element).toString()).toList():List.of();
     }
     public static Map<String,Object> map(Object... pairs){
         var result=new LinkedHashMap<String,Object>();for(int i=0;i<pairs.length;i+=2)result.put(pairs[i].toString(),pairs[i+1]);return result;

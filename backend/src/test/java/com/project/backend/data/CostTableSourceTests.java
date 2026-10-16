@@ -1,5 +1,7 @@
 package com.project.backend.data;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +39,6 @@ class CostTableSourceTests {
                     .containsEntry("summerNightHolidaySurcharge",Integer.parseInt(summer[1])).containsEntry("confidenceGrade",c[16]);
             compared++;
         }
-        assertThat(compared).isEqualTo(parts.size()).isEqualTo(32);
+        requireNonNull(assertThat(compared).isEqualTo(parts.size())).isEqualTo(32);
     }
 }

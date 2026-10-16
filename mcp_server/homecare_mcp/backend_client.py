@@ -33,12 +33,12 @@ def resolve_backend_origin(backend_url: str | None = None) -> str:
 class BackendClient:
     """요청별 JWT를 전달하는 Spring 도구 API 클라이언트"""
     def __init__(self, origin: str, token_provider: Callable[[], str],
-                 transport: httpx.AsyncBaseTransport | None = None):
+                 transport: httpx.AsyncBaseTransport | None = None) -> None:
         self.origin = origin
         self.token_provider = token_provider
         self.transport = transport
 
-    async def post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+    async def post(self, path: str, payload: dict[str, Any]) -> object:
         """인증된 Spring API 요청과 JSON 응답 조회
 
         X-HomeCare-Context-Version이 제공되면 백엔드 요청에도 전달합니다.

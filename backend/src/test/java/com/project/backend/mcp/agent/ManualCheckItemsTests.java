@@ -1,5 +1,7 @@
 package com.project.backend.mcp.agent;
 
+import static java.util.Objects.requireNonNull;
+
 import static org.assertj.core.api.Assertions.*;
 import static com.project.backend.mcp.tool.ToolDataCatalog.text;
 import java.util.*;
@@ -29,7 +31,7 @@ class ManualCheckItemsTests {
         assertThat(ManualCheckItems.conditions(catalog.structuredKnowledgeById.get("B16-MFL71401523-topic_46-000"))).containsExactly("냄새가 강한 식품을 넣은 경우","채소가 상한 경우");
         var all=new ArrayList<String>();
         for(var source:catalog.knowledge)if("MANUAL".equals(text(source,"topic")))all.addAll(ManualCheckItems.conditions(catalog.structuredKnowledgeById.get(text(source,"id"))));
-        assertThat(all).isNotEmpty().allSatisfy(c->assertThat(c).endsWith("경우").doesNotContainPattern("분해|교체|부품|센서|모터|공유기"));
+        assertThat(all).isNotEmpty().allSatisfy(c->requireNonNull(assertThat(c).endsWith("경우")).doesNotContainPattern("분해|교체|부품|센서|모터|공유기"));
     }
     @Test void noStepUsesWordsACustomerWouldNotKnow(){
         var all=new ArrayList<String>();

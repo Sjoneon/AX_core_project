@@ -30,7 +30,7 @@ class KnowledgeDocumentTests {
         assertThat(original.view().get("relationships").toString()).contains("B18-MFL71995305-inlet-reassembly-supplement");
     }
     @Test void plainCallersCannotAccidentallyPublishAnEmbeddedJsonWrapper(){
-        assertThatThrownBy(()->KnowledgeDocument.plain(map("id","X","text"," {\"record\":{}}")))
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("원본 JSON");
+        var error=assertThatThrownBy(()->KnowledgeDocument.plain(map("id","X","text"," {\"record\":{}}")));
+        error.isInstanceOf(IllegalStateException.class);error.hasMessageContaining("원본 JSON");
     }
 }

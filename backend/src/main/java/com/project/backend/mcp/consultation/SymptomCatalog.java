@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import com.project.backend.conversation.ProductCategory;
 
@@ -14,6 +16,6 @@ public final class SymptomCatalog {
     private static Symptom s(String code,String label){return new Symptom(code,label);}
     public static List<Symptom> forCategory(ProductCategory category){return CODES.getOrDefault(category,List.of());}
     public static boolean allows(ProductCategory category,String code){return forCategory(category).stream().anyMatch(s->s.code().equals(code));}
-    public static String label(ProductCategory category,String code){return forCategory(category).stream().filter(s->s.code().equals(code)).map(Symptom::label).findFirst().orElse("");}
+    public static String label(ProductCategory category,String code){return forCategory(category).stream().filter(s->s.code().equals(code)).map((Symptom element)->requireNonNull(element).label()).findFirst().orElse("");}
     private SymptomCatalog(){ }
 }

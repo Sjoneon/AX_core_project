@@ -1,5 +1,7 @@
 package com.project.backend.mcp.consultation;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.*;
 import com.project.backend.conversation.ProductCategory;
 
@@ -16,11 +18,11 @@ public final class ObservationQuestions {
     private static final Option UNKNOWN=new Option("UNKNOWN","잘 모르겠어요");
     private static final Map<String,List<Question>> QUESTIONS=Map.of("REFRIGERATOR/COOLING",List.of(
         new Question("DISPLAY","표시창","표시창(온도가 보이는 화면)은 어떤가요?",null,
-            List.of(new Option("NORMAL","평소처럼 켜져 있어요"),new Option("FLASHING","깜빡여요"),new Option("OFF","꺼져 있어요"),new Option("CODE","오류 코드가 보여요"),UNKNOWN)),
+            List.of(new Option("NORMAL","평소처럼 켜져 있어요"),new Option("FLASHING","깜빡여요"),new Option("OFF","꺼져 있어요"),new Option("CODE","오류 코드가 보여요"),requireNonNull(UNKNOWN))),
         new Question("SOUND","작동 소리","냉장고 가까이에서 2~3분 들어 보면 '웅' 하는 작동 소리가 나나요?","조용한 제품은 소리가 작을 수 있어요.",
-            List.of(new Option("YES","소리가 나요"),new Option("NO","소리가 안 나요"),UNKNOWN)),
+            List.of(new Option("YES","소리가 나요"),new Option("NO","소리가 안 나요"),requireNonNull(UNKNOWN))),
         new Question("FROST","냉동실 성에","냉동실 문을 열면 안쪽 벽에 하얀 성에가 두껍게 끼어 있나요?","성에를 직접 녹이거나 떼어 내지 마세요.",
-            List.of(new Option("BACK_WALL","안쪽 벽에 두껍게 있어요"),new Option("DOOR","문 주변에 있어요"),new Option("NONE","없어요"),UNKNOWN))));
+            List.of(new Option("BACK_WALL","안쪽 벽에 두껍게 있어요"),new Option("DOOR","문 주변에 있어요"),new Option("NONE","없어요"),requireNonNull(UNKNOWN)))));
 
     public static List<Question> of(ProductCategory category,String symptomCode){
         return category==null||symptomCode==null?List.of():QUESTIONS.getOrDefault(category.name()+"/"+symptomCode,List.of());
