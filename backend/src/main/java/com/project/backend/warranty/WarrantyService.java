@@ -129,17 +129,22 @@ public class WarrantyService {
         return String.join("\n", lines);
     }
 
-    /** Short chat answer; the result card retains the complete policy conditions. */
+    /** Short chat answer: periods only. Fee statuses without amounts are left to the inspection, not listed. */
     public String summarize(WarrantyModels.Result result) {
         var lines=new ArrayList<String>();lines.add(result.headline());
-        lines.add("제품 전체 보증: "+describe(result.productWarranty()));
-        for(var part:result.partWarranties())lines.add("주요 부품 보증 — "+part.name()+": "+describe(part));
-        lines.add("기간 계산과 실제 무상 수리 승인은 다릅니다. 고장 부품·증빙·모델 적용 조건과 부품비·기술료·출장비는 별도로 확인해야 합니다.");
+        lines.add("제품 전체 보증: "+period(result.productWarranty()));
+        for(var part:result.partWarranties())lines.add("주요 부품 보증 — "+part.name()+": "+period(part));
+        lines.add("기간 계산과 실제 무상 수리 승인은 다릅니다. 고장 부품·증빙·모델 적용 조건은 점검 때 확인합니다.");
         lines.add("[LG 공식 보증 정책]("+result.sourceUrl()+") · 정책 확인일 "+result.policyVerifiedOn());
         return String.join("\n",lines);
     }
 
     private String describe(WarrantyModels.Row row) {
+        return period(row) + " · 부품비 " + feeLabel(row.partFee()) + " / 기술료 " + feeLabel(row.laborFee())
+                + " / 출장비 " + feeLabel(row.visitFee());
+    }
+
+    private String period(WarrantyModels.Row row) {
         String duration = row.periodMonths() == null ? "기간 추가 확인"
                 : row.periodMonths() % 12 == 0 ? row.periodMonths() / 12 + "년(" + row.periodMonths() + "개월)"
                 : row.periodMonths() + "개월";
@@ -148,9 +153,7 @@ public class WarrantyService {
             case "EXPIRED" -> "만료";
             default -> "적용·만료일 추가 확인";
         };
-        return duration + " · " + label + (row.expiresOn() == null ? "" : " · 만료일 " + row.expiresOn())
-                + " · 부품비 " + feeLabel(row.partFee()) + " / 기술료 " + feeLabel(row.laborFee())
-                + " / 출장비 " + feeLabel(row.visitFee());
+        return duration + " · " + label + (row.expiresOn() == null ? "" : " · 만료일 " + row.expiresOn());
     }
 
     private String feeLabel(String value) {
