@@ -94,8 +94,9 @@ test('purchase-based warranty displays expiry separately from unconfirmed free-r
       partFee: 'CONFIRM_REQUIRED', laborFee: 'CONFIRM_REQUIRED', visitFee: 'CONFIRM_REQUIRED' },
     partWarranties: [], notes: [],
   } })
-  for (const expected of ['구매일 2026-05-05', '보증기간 안', '만료일: 2027-05-05', '무상 수리와 비용 적용은']) assert.ok(html.includes(expected), expected)
-  assert.doesNotMatch(html, /아래 조건이 이 제품에 적용되는지|조건 충족 시 무상|0원/)
+  for (const expected of ['구매일 2026-05-05', '보증기간 안', '만료일: 2027-05-05', '무상 수리 적용은']) assert.ok(html.includes(expected), expected)
+  // Fee statuses without amounts are not listed.
+  assert.doesNotMatch(html, /아래 조건이 이 제품에 적용되는지|조건 충족 시 무상|0원|부품비|기술료|출장비/)
 })
 
 test('cost, warranty and service results retain verified amounts, unknowns, conditional fees and prepared-only meaning', () => {
@@ -106,8 +107,8 @@ test('cost, warranty and service results retain verified amounts, unknowns, cond
     prepare_service_handoff: envelope({ summary_text: '모델: TR15WV5\n증상: UE\n자가조치: 미해결', route }),
     followup: envelope({ route }, 'PARTIAL'),
   } })
-  for (const expected of ['124,569원', '230,145원', '169,319원', '추가 확인 필요', '조건 충족 시 무상', '두 후보를 합산하지 않습니다', '실제 접수는 공식 채널', '일부 후속 조회를 마치지 못했습니다']) assert.ok(html.includes(expected), expected)
-  assert.doesNotMatch(html, /NaN|undefined|OFFICIAL_|예약 완료/)
+  for (const expected of ['124,569원', '230,145원', '169,319원', '추가 확인 필요', '두 후보를 합산하지 않습니다', '실제 접수는 공식 채널', '일부 후속 조회를 마치지 못했습니다']) assert.ok(html.includes(expected), expected)
+  assert.doesNotMatch(html, /NaN|undefined|OFFICIAL_|예약 완료|조건 충족 시 무상/)
   assert.equal((html.match(/aria-label="세탁기 보증 확인 결과"/g) || []).length, 1)
 })
 
@@ -161,6 +162,18 @@ test('summary response shows one card with warranty, cost and A/S instead of sep
   for (const expected of ['점검 안내', '보증기간 안이에요', '약 48,000원 ~ 184,000원', '컴프레서 고장이면 약 231,000원 ~ 428,000원', '전체 범위 약 48,000원 ~ 428,000원',
     '인천 연수구 설치 제품', '출장 수리 접수', '상담원 연결 1544-7777', '상담 내용 복사', '국내 수리 사례 6건']) assert.ok(html.includes(expected), expected)
   assert.doesNotMatch(html, /제품 전체 보증<\/h3>|상담원 전달 요약|A\/S 연결 <small>/)
+})
+
+test('a confirmed risk shows the category range in the summary card instead of the warranty fee card', () => {
+  const candidates = [{ id: 'D04', name: '온도퓨즈', min: 43440, max: 80256 }, { id: 'D06', name: '메인 PCB', min: 153374, max: 283363 }]
+  const card = { type: 'SUMMARY', warranty: { status: 'IN_WARRANTY', text: '제품 보증기간 안이에요(만료 2027-10-15).' },
+    estimate: { status: 'OK', basis: 'CATEGORY', category: 'DRYER', base: { min: 43440, max: 283363, parts: ['온도퓨즈', '메인 PCB'] }, separate: [], overall: { min: 43440, max: 283363 }, candidates }, route }
+  const html = render({ content: '안전을 위해 제품 사용을 멈춰 주세요.', tools: {
+    safety: envelope({ risk_status: 'CONFIRMED', case_code: 'RC03', question: null }, 'BLOCKED_BY_SAFETY'), card: envelope(card),
+    check_warranty: envelope({ productWarranty: { periodStatus: 'IN_WARRANTY', partFee: 'CONFIRM_REQUIRED' }, partWarranties: [] }),
+  } })
+  for (const expected of ['약 43,000원 ~ 283,000원', '원인 부품은 점검 후 확인돼요. 건조기 주요 부품 2종 기준 범위예요.', '온도퓨즈: 약 43,000원 ~ 80,000원']) assert.ok(html.includes(expected), expected)
+  assert.doesNotMatch(html, /제품 전체 보증<\/h3>|부품비<\/dt>|직접 확인해 보세요|\(온도퓨즈·메인 PCB\)/)
 })
 
 test('the self-check card starts at its first step and sends no chat options of its own question', () => {
