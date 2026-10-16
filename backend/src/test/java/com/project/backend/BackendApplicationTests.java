@@ -1367,6 +1367,28 @@ class BackendApplicationTests {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"전남광주통합특별시", "전남광주"})
+    void productRegistrationAndUpdateAcceptJeonnamGwangju(String sido) throws Exception {
+        String body = """
+                {"category":"WASHER","address":"전남광주통합특별시 북구 용봉로 77",
+                "deliverySido":"%s","deliverySigungu":"북구"}
+                """.formatted(sido);
+        long id = createProduct(body);
+        perform(get("/api/products").header("Authorization", "Bearer " + accessToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(id))
+                .andExpect(jsonPath("$[0].address").value("전남광주통합특별시 북구 용봉로 77"))
+                .andExpect(jsonPath("$[0].deliverySido").value("전남광주"))
+                .andExpect(jsonPath("$[0].deliverySigungu").value("북구"));
+        perform(put("/api/products/{id}", id).header("Authorization", "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.deliverySido").value("전남광주"))
+                .andExpect(jsonPath("$.deliverySigungu").value("북구"));
+        var saved = productRepository.findById(id).orElseThrow();
+        assertThat(saved.getDeliverySido()).isEqualTo("전남광주");
+        assertThat(saved.getDeliverySigungu()).isEqualTo("북구");
+    }
+
     @Test
     void profileApiUpdatesTheSameProductUsedByMcpWithoutLosingDeliveryRegion() throws Exception {
         var created = perform(post("/api/me/products").header("Authorization", "Bearer " + accessToken)
