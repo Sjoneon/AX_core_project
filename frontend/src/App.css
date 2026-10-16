@@ -219,12 +219,8 @@
 .warranty-status { font-weight: 700; }
 .warranty-status.in_warranty { color: #18664a; }
 .warranty-status.expired { color: #9d4b2b; }
-.warranty-fees { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.warranty-fees div { background: #f1f5f9; padding: 8px; border-radius: 6px; }
-.warranty-fees dt { font-size: 14px; color: #54657a; }
-.warranty-fees dd { margin: 6px 0 0; font-size: 15px; }
 .warranty-row li, .warranty-result li { margin: 6px 0; line-height: 1.5; }
-@media (max-width: 640px) { .warranty-panel fieldset { grid-template-columns: 1fr; } .warranty-fees { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .warranty-panel fieldset { grid-template-columns: 1fr; } }
 .consultation-controls, .tool-result { padding: 12px 16px; margin: 8px 0; border: 1px solid #d7e2ec; border-radius: 10px; background: #f8fbfd; font-size: 16px; line-height: 1.6; }
 .consultation-controls summary { cursor: pointer; font-weight: 600; }
 .consultation-controls label { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; align-items: center; }
