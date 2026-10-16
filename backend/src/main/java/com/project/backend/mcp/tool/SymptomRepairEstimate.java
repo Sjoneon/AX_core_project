@@ -50,6 +50,20 @@ public final class SymptomRepairEstimate {
         return result;
     }
 
+    /**
+     * The symptom or error range, or every part of the category when neither links to a part (e.g. smoke reported as a
+     * safety risk). The category range is labelled as such: the failed part is decided at the inspection.
+     */
+    public static Map<String,Object> orCategory(ToolDataCatalog catalog,ProductCategory category,String symptomCode,String errorCode){
+        var linked=of(catalog,category,symptomCode,errorCode);
+        if(!"NO_DATA".equals(linked.get("status")))return linked;
+        var links=catalog.parts.stream().filter(p->category.name().equals(p.get("category"))).map(p->map("partId",p.get("id"))).toList();
+        if(links.isEmpty())return linked;
+        var result=range(catalog,links);
+        result.put("basis","CATEGORY");result.put("category",category.name());
+        return result;
+    }
+
     /** Base, separate and overall ranges of the linked parts; links to the same part are merged with their evidence. */
     private static Map<String,Object> range(ToolDataCatalog catalog,List<Map<String,Object>> links){
         var byPart=new LinkedHashMap<String,Map<String,Object>>();
