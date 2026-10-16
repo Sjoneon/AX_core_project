@@ -65,6 +65,7 @@ jobs:
         run: |
           npm ci
           npm run lint
+          npm test
           npm run build
       - name: Deployment scripts and Docker images
         run: |
