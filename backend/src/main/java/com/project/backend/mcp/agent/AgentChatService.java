@@ -174,17 +174,22 @@ public class AgentChatService {
         boolean suspect="SUSPECT".equals(s.state().riskStatus());
         String question=suspect?RiskRules.questions(s.state().riskCase()).get(s.state().riskQuestionNo()):null;
         outputs.put("safety",ToolEnvelope.policy("BLOCKED_BY_SAFETY",map("risk_status",s.state().riskStatus(),"case_code",s.state().riskCase(),"question",question,"question_no",s.state().riskQuestionNo()),
-                map("context_version",s.version()),List.of("안전 확인 전에는 자가 조치와 비용 안내를 하지 않습니다.")));
+                map("context_version",s.version()),List.of(suspect?"안전 확인 전에는 자가 조치를 안내하지 않습니다.":"위험 신호가 있어 자가 조치는 안내하지 않습니다.")));
         var handoff=policy("prepare_service_handoff",email,s,map("conversation_id",s.id(),"reason","RISK"),calls);
         handoff.meta().put("execution_source","SAFETY_POLICY");outputs.put("prepare_service_handoff",handoff);
+        // A confirmed risk skips self-care but still shows the warranty, reference repair cost and official routes.
         if(!suspect){
-            outputs.put("check_warranty",policy("check_warranty",email,s,map("conversation_id",s.id()),calls));
-            if(s.productId()!=null)outputs.put("find_service_centers",policy("find_service_centers",email,s,map("conversation_id",s.id()),calls));
+            var checked=policy("check_warranty",email,s,map("conversation_id",s.id()),calls);outputs.put("check_warranty",checked);
+            ToolEnvelope centers=null;
+            if(s.productId()!=null){centers=policy("find_service_centers",email,s,map("conversation_id",s.id()),calls);outputs.put("find_service_centers",centers);}
+            outputs.put("card",summaryCard(s,"위험 신호가 있어 자가 조치 없이 점검이 필요해요.",null,checked,centers,handoff,
+                    SymptomRepairEstimate.orCategory(catalog,s.category(),s.state().symptomCode(),s.state().errorCode()),Map.of()));
         }
         var lines=new ArrayList<String>();lines.add(RiskRules.warning());
         if("RC09".equals(s.state().riskCase()))lines.add("겉이 말랐더라도 안전이 확인된 것은 아닙니다. 점검 전에는 다시 전원을 연결하거나 작동하지 말고 공식 점검을 요청하세요.");
         if(question!=null)lines.add(question);
         lines.add(RiskRules.serviceLine(route("phone")));
+        if(!suspect)lines.add("예상 수리비와 보증, 접수 방법을 아래에 정리했어요.");
         return String.join("\n",lines);
     }
     private ToolEnvelope policy(String name,String email,ConsultationService.Snapshot s,Map<String,Object> args,List<ToolCallRecord> calls){
@@ -293,15 +298,20 @@ public class AgentChatService {
         ToolEnvelope handoff=null;
         try{handoff=policy("prepare_service_handoff",email,s,map("conversation_id",s.id(),"reason","NOT_VERIFIED"),calls,"POLICY_FALLBACK");outputs.put("prepare_service_handoff",handoff);}
         catch(ResponseStatusException unavailable){LOG.info("homecare_summary_handoff_skipped status={}",unavailable.getStatusCode().value());}
-        var coverage=warrantyOf(checked);var place=centers.data()==null?Map.<String,Object>of():centers.data();
-        outputs.put("card",ToolEnvelope.policy("OK",map("type","SUMMARY","lead",lead,"official",official==null?null:map("shown",official.get("shown"),
+        outputs.put("card",summaryCard(s,lead,official,checked,centers,handoff,
+                SymptomRepairEstimate.of(catalog,s.category(),s.state().symptomCode(),s.state().errorCode(),observed),observed));
+        return lead+"\n\n예상 수리비와 보증, 접수 방법을 아래에 정리했어요.";
+    }
+    private ToolEnvelope summaryCard(ConsultationService.Snapshot s,String lead,Map<String,Object> official,ToolEnvelope checked,ToolEnvelope centers,
+            ToolEnvelope handoff,Map<String,Object> estimate,Map<String,String> observed){
+        var coverage=warrantyOf(checked);var place=centers==null||centers.data()==null?Map.<String,Object>of():centers.data();
+        return ToolEnvelope.policy("OK",map("type","SUMMARY","lead",lead,"official",official==null?null:map("shown",official.get("shown"),
                 "meaning",official.get("meaning"),"cause",official.get("cause"),"contact",official.get("contact"),"source_url",official.get("source_url")),"warranty",warrantyLine(coverage),
-                "estimate",SymptomRepairEstimate.of(catalog,s.category(),s.state().symptomCode(),s.state().errorCode(),observed),
+                "estimate",estimate,
                 "observations",ObservationQuestions.lines(s.category(),s.state().symptomCode(),observed),"error_code_seen","CODE".equals(observed.get("DISPLAY")),
                 "region",place.get("base_region"),"region_status",place.get("region_status"),"centers",place.getOrDefault("centers",List.of()),
                 "route",catalog.route,"handoff_summary",handoff==null||handoff.data()==null?null:handoff.data().get("summary_text")),
-                map("context_version",s.version()),List.of()));
-        return lead+"\n\n예상 수리비와 보증, 접수 방법을 아래에 정리했어요.";
+                map("context_version",s.version()),List.of());
     }
     private static Map<String,Object> warrantyLine(WarrantyModels.Result coverage){
         if(coverage==null)return map("status","UNKNOWN","text","구매일이 등록되어 있지 않아 보증기간을 확인하지 못했어요.");
@@ -444,7 +454,7 @@ public class AgentChatService {
                 case "check_warranty"->{
                     if(Set.of("WARRANTY","COST").contains(intent)){
                         if(result.status().equals("NEEDS_INPUT"))lines.add("보증기간을 확인하려면 구입일이 필요해요. 마이페이지에서 등록 제품의 구입일을 확인해 주세요.");
-                        else if(warrantyResult!=null)lines.add("WARRANTY".equals(intent)?warranty.summarize(warrantyResult):warrantyResult.headline()+" 비용은 보증 적용·고장 부품·증빙 확인 후 달라질 수 있습니다. 부품비·기술료·출장비 조건은 아래 보증 결과에서 확인해 주세요.");
+                        else if(warrantyResult!=null)lines.add("WARRANTY".equals(intent)?warranty.summarize(warrantyResult):warrantyResult.headline()+" 비용은 보증 적용·고장 부품·증빙 확인 후 달라질 수 있습니다.");
                         if("WARRANTY".equals(intent))lines.add("품질보증기간은 구입일 기준이고, 부품보유기간은 제조일 기준으로 서로 다릅니다. 부품보유기간은 확인된 자료가 없어 제공하지 않습니다.");
                     }
                 }
