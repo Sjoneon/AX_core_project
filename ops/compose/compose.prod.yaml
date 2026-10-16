@@ -17,6 +17,7 @@ services:
       HOMECARE_AGENT_ENABLED: ${HOMECARE_AGENT_ENABLED:-false}
     volumes:
       - /opt/homecare/config/rds-truststore.p12:/app/config/rds-truststore.p12:ro
+      - manufacturer-cache:/app/.homecare-cache
     tmpfs:
       - /tmp:size=64m,mode=1777
     healthcheck:
@@ -70,3 +71,6 @@ services:
         max-buffer-size: 4m
         cache-max-size: 10m
         cache-max-file: "3"
+
+volumes:
+  manufacturer-cache:

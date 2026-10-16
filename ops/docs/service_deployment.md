@@ -19,7 +19,7 @@
 | 호스트 포트 | 없음 | 80·443 |
 | 메모리 상한 | 1GiB, JVM heap 최대 65% | 128MiB |
 | 실행 사용자 | 10001:10001 | Nginx 기본 master/worker |
-| 루트 파일시스템 | 읽기 전용, `/tmp`는 tmpfs | 읽기 전용, cache·PID는 tmpfs |
+| 루트 파일시스템 | 읽기 전용, `/tmp`는 tmpfs, 제조사 임베딩은 전용 Docker 볼륨 | 읽기 전용, cache·PID는 tmpfs |
 | 재시작 | unless-stopped | unless-stopped |
 | healthcheck | 앱 health HTTP 상태 | 로컬 전용 `/internal-health`의 프록시 경유 앱 health |
 | CloudWatch | `/homecare/prod/backend` | `/homecare/prod/nginx` |

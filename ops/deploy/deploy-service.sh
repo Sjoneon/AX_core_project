@@ -7,6 +7,7 @@ test "$(id -u)" = 0
 test -r "$release_dir/compose.prod.yaml"
 test -r "$release_dir/compose.mcp.yaml"
 test -r "$release_dir/images.env"
+test -r "$release_dir/migrate-database.py"
 test -r /opt/homecare/config/rds-truststore.p12
 test -r /etc/letsencrypt/live/homecare-api/fullchain.pem
 test -r /etc/letsencrypt/live/homecare-api/privkey.pem
@@ -82,6 +83,8 @@ aws ecr get-login-password --region ap-northeast-2 |
     docker login --username AWS --password-stdin \
         528215464049.dkr.ecr.ap-northeast-2.amazonaws.com >/dev/null
 compose "$release_dir" pull
+backend_image=$(sed -n 's/^BACKEND_IMAGE=//p' "$release_dir/images.env")
+python3 "$release_dir/migrate-database.py" --image "$backend_image"
 if [[ -n "$previous" ]]; then
     test -r "$previous/compose.prod.yaml"
     test -r "$previous/images.env"

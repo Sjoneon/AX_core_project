@@ -1,10 +1,10 @@
 # 릴리스에 이 파일이 있으면 deploy-service.sh에서 compose.prod.yaml과 병합
-# RDS의 V002~V005 스키마와 ECR MCP 이미지 필요
-# HOMECARE_AGENT_ENABLED=true 설정 시 Agent 활성화(기본값 false)
+# RDS의 V002~V006 스키마와 ECR MCP 이미지 필요
+# MCP 릴리스는 Agent를 활성화한다. MCP 없는 이전 릴리스는 prod 기본값 false를 유지한다.
 services:
   backend:
     environment:
-      HOMECARE_AGENT_ENABLED: ${HOMECARE_AGENT_ENABLED:-false}
+      HOMECARE_AGENT_ENABLED: "true"
       HOMECARE_MCP_URL: http://mcp:8000
     depends_on:
       mcp:

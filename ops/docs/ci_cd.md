@@ -7,7 +7,7 @@ Terraform에서 준비한 기존 역할·저장소·버킷을 사용하며 인�
 ## 실행 흐름
 
 PR, `main` push와 수동 실행에서 Java 21 테스트·JAR 빌드,
-임시 MySQL 8.4에서 V001→V005 적용 후 `ddl-auto=validate` 기동 검사(`mysqlSchemaTest`)와 통합 테스트, Node 24 설치·lint·빌드,
+임시 MySQL 8.4에서 V001→V006 적용 후 `ddl-auto=validate` 기동 검사(`mysqlSchemaTest`)와 통합 테스트, Node 24 설치·lint·빌드,
 MCP 단위 테스트와 도구 계약 일치 검사, 운영 스크립트 테스트와 세 Docker 이미지(backend·nginx·mcp) 빌드,
 HTTPS/CORS·`/api/tools` 차단·요청 속도 제한 테스트, MCP 컨테이너 health 검사를 실행합니다.
 PR은 AWS 권한·운영 설정을 받지 않습니다. `pull_request_target`은 사용하지 않습니다.
@@ -22,7 +22,7 @@ AWS 액세스 키를 GitHub에 복사하거나 새로운 Secrets를 등록할 �
 3. `<commit-sha>-<run-id>-<run-attempt>`별로 Compose·배포 스크립트·digest·소스 기록을 묶습니다.
 4. S3 `releases/<release-id>/release.tar.gz`에 게시하고 SHA-256을 SSM 명령에 전달합니다.
 5. EC2 역할로 묶음을 내려받아 해시를 확인하고 root 전용 릴리스 폴더에 풉니다.
-6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고 컨테이너를 교체합니다.
+6. 배포 잠금 획득 후 Parameter Store 설정과 이미지를 준비하고, 새 백엔드 이미지의 V001→V006 마이그레이션을 적용한 뒤 컨테이너를 교체합니다. 마이그레이션 실패 시 교체 전에 중단합니다.
 7. 세 서비스의 health, Nginx 설정 검사·reload와 인증서 검증 HTTPS health를 확인합니다.
 8. SSM 실행 종료·exit code 0을 기다린 뒤 GitHub runner에서도 외부 HTTPS health를 확인합니다.
 
@@ -31,8 +31,9 @@ SHA 이미지 태그는 불변이며 재실행도 덮어쓰지 않습니다.
 서비스 배포는 `compose.prod.yaml`(backend·nginx)과 `compose.mcp.yaml`(내부 전용 mcp)을 함께 적용합니다.
 각 릴리스 폴더는 자기 Compose 파일로 다시 시작하므로, MCP 도입 이전 릴리스로 복원하면 그 릴리스의 두 컨테이너가 복원되고 mcp는 제거됩니다.
 `compose.mcp.yaml`이 없는 새 릴리스는 컨테이너 교체 전에 거부합니다.
-MCP 컨테이너를 배포해도 상담 에이전트는 `HOMECARE_AGENT_ENABLED`를 따로 켜기 전까지 꺼져 있습니다.
-프론트엔드 빌드는 검증만 수행하며 Vercel 자동 배포 연결은 8단계입니다.
+MCP 릴리스에서는 상담 에이전트가 켜집니다. 이전 MCP 없는 릴리스로 복원하면 해당 릴리스의 설정을 사용합니다.
+백엔드 제조사 임베딩 캐시는 `homecare_manufacturer-cache` Docker 볼륨에 남아 컨테이너 교체 후 재사용됩니다.
+이 워크플로의 프론트엔드 빌드는 검증용입니다. 실제 웹 배포는 별도의 Vercel Git 연결과 배포 검사를 따릅니다.
 
 ## 잠금과 실패 복원
 
@@ -40,7 +41,7 @@ GitHub에서 같은 ref의 실행을 직렬화하며 실행 중인 작업은 새
 GitHub concurrency는 대기 중인 오래된 실행을 새 실행으로 대체할 수 있습니다.
 EC2는 `/opt/homecare/deploy.lock`의 `flock`을 사용합니다.
 
-설정 읽기·Compose 검사·이미지 pull 실패는 컨테이너 교체 전에 종료합니다.
+설정 읽기·Compose 검사·이미지 pull·DB 마이그레이션 실패는 컨테이너 교체 전에 종료합니다.
 교체 직전 현재 릴리스의 `runtime.snapshot.env`에 기존 실행 설정을 root 전용 0600으로 보관합니다.
 새 서비스가 180초 안에 healthy가 되지 않거나 Nginx·HTTPS 검증이 실패하면
 이전 설정을 원자적으로 복원하고 이전 릴리스의 Compose·digest로 서비스를 다시 시작합니다.

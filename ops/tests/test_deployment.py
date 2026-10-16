@@ -95,6 +95,10 @@ elif name=='docker':
         health = next(i for i, call in enumerate(calls) if call[0] == 'curl')
         promotion = next(i for i, call in enumerate(calls) if call[0] == 'mv' and call[-1].endswith('/current'))
         self.assertLess(health, promotion)
+        migration = next(i for i, call in enumerate(calls) if call[0] == 'python3' and call[1].endswith('/migrate-database.py'))
+        activation = next(i for i, call in enumerate(calls) if call[0] == 'docker' and 'up' in call)
+        self.assertEqual(calls[migration][-2:], ['--image', 'test-image'])
+        self.assertLess(migration, activation)
         self.assertNotIn('test-secret', result.stdout + result.stderr)
         # 새 릴리스의 backend·nginx·mcp 병합 정의로 pull·up 실행 검증
         for action in ('pull', 'up'):
