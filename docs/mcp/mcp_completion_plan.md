@@ -205,9 +205,9 @@ MCP 연결, 일반 증상 분류·근거 검색, 조건부 자가조치와 비�
 - [x] 기존 위험 질문·긴급 안내, 인증·소유권, 버전 충돌, 프롬프트 주입, 장애 대체 응답을 회귀 검증한다.
 - [x] 호출 주체 `MODEL`, `POLICY_FALLBACK`, `SAFETY_POLICY`를 구분하고, 검색 적합성·근거 없는 내용·누락된 질문·지연을 기록한다.
 - [x] 수정 범위에 맞는 백엔드·Python·프론트엔드 검사를 수행한다. MCP 입력·출력 계약을 변경하면 관련 계약과 소비 코드를 함께 검증한다.
-- [x] `mcp_implementation.md`, `verification_guide.md`, `followup_prompt.md`, README의 오래된 상태 설명을 실제 결과에 맞춰 갱신한다.
+- [x] `mcp_implementation.md`, `verification_guide.md`, `remaining_tasks.md`, README의 오래된 상태 설명을 실제 결과에 맞춰 갱신한다.
 
-관련 파일: [McpIntegrationTests.java](../../backend/src/test/java/com/project/backend/mcp/McpIntegrationTests.java), [ToolBackendTests.java](../../backend/src/test/java/com/project/backend/mcp/tool/ToolBackendTests.java), [검증 가이드](../guides/verification_guide.md), [MCP 구현 문서](mcp_implementation.md), [이전 후속 작업 문서](followup_prompt.md).
+관련 파일: [McpIntegrationTests.java](../../backend/src/test/java/com/project/backend/mcp/McpIntegrationTests.java), [ToolBackendTests.java](../../backend/src/test/java/com/project/backend/mcp/tool/ToolBackendTests.java), [검증 가이드](../guides/verification_guide.md), [MCP 구현 문서](mcp_implementation.md), [남은 작업 문서](remaining_tasks.md).
 
 검증 범위: 개발 세트 24개는 22→24개 제어 검사 통과. 추가 표현은 최초 4/6, 수정 뒤 5/6이며 누락된 전원 설명과 원인 부재 고지를 보완한 해당 2개 재검사 2/2를 별도 보존했다. 이는 여러 실행의 사례별 최신 결과이며 독립된 30개 전체 성공률이 아니다. Java 305개 중 303개 통과·MySQL 2개 건너뜀·JAR, Python MCP 21개·자료/평가 검증 8개, 프론트엔드 24개·lint·build·로컬 Edge 검사 통과. 실제 원인·승인 조치가 부족한 사례와 실물·전체 명세·사용자 효과 검증은 남아 있다.
 

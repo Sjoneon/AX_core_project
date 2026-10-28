@@ -30,7 +30,7 @@ def predict3(code, exclude_case=None):
 
 def loo():
     """[함수] 20건 LOO 예측과 로그 잔차"""
-    VV = pd.read_csv("/home/claude/norm/out_validation.csv")
+    VV = pd.read_csv(M.DATA_DIR / "out_validation.csv")
     rows = []
     for _, r in VV.iterrows():
         p = predict3(r["부품코드"], exclude_case=r["ID"]); a = r["실제(오늘가치)"]
@@ -58,8 +58,8 @@ if __name__ == "__main__":
                      "±20% 이내": f"{(e<=20).sum()}/20", "중앙 절대오차(%)": round(e.median(), 1), "평균 절대오차(%)": round(e.mean(), 1)})
     S = pd.DataFrame(summ); print(S.to_string(index=False))
     print("80% 범위 배수 e^q =", round(np.exp(q), 3), " LOO 적중률 =", hit)
-    L.drop(columns=["로그잔차"]).to_csv("/home/claude/norm/out_validation_v3.csv", index=False, encoding="utf-8-sig")
-    S.to_csv("/home/claude/norm/out_model_compare.csv", index=False, encoding="utf-8-sig")
+    L.drop(columns=["로그잔차"]).to_csv(M.DATA_DIR / "out_validation_v3.csv", index=False, encoding="utf-8-sig")
+    S.to_csv(M.DATA_DIR / "out_model_compare.csv", index=False, encoding="utf-8-sig")
     rows = []
     for code in M.CODE_NAME:
         p = predict3(code)
@@ -75,6 +75,6 @@ if __name__ == "__main__":
                      "국내 같은 부품 중앙값": p["국내 같은 부품 중앙값"], "국내 사례 가중치": p["국내 사례 가중치"],
                      "예상 총액 중앙": round(m), "80% 범위 하한": round(lo), "80% 범위 상한": round(hi),
                      "야간·휴일 가산": 5000, "6~8월 가산(평일/야간)": "5000/10000", "신뢰도": conf})
-    T = pd.DataFrame(rows); T.to_csv("/home/claude/norm/out_estimate_table_v3.csv", index=False, encoding="utf-8-sig")
+    T = pd.DataFrame(rows); T.to_csv(M.DATA_DIR / "out_estimate_table_v3.csv", index=False, encoding="utf-8-sig")
     print(T[["부품코드","부품","작업 등급","국내 같은 부품 사례 수","해외 기반 총액(v2)","예상 총액 중앙","80% 범위 하한","80% 범위 상한","신뢰도"]].to_string())
     for t, v in V.TL.items(): print(t, v["n"], round(v["p25"]), round(v["p50"]), round(v["p75"]))

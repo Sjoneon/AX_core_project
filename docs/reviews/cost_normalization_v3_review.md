@@ -151,7 +151,7 @@ README의 순서는 normalize → model → model_v2 → model_v3다. 실제 코
 | model_v2 | model의 자료·함수, `out_validation.csv` | 비교 표를 콘솔에 출력; 별도 CSV 저장 없음 |
 | model_v3 | model/model_v2와 `out_validation.csv` | `out_validation_v3.csv`, `out_model_compare.csv`, `out_estimate_table_v3.csv` |
 
-코드는 `/home/claude/norm/...` 및 `/home/claude/LG_AS_수리비_후기_사례.csv`, `/home/claude/삼성_AS_수리비_후기_사례.csv`를 직접 읽는다. 국내 후기 원본과 정규화/검증 중간 CSV는 현재 확인한 패키지 폴더에 없다. 관련 Drive 검색에서도 원본을 확보하지 못했지만, 사용자의 다른 저장소까지 없다고 단정할 수는 없다.
+검토 당시 코드는 작성 당시 실행 환경의 절대 경로로 중간 CSV 폴더(`norm/`)와 `LG_AS_수리비_후기_사례.csv`, `삼성_AS_수리비_후기_사례.csv`를 직접 읽었다. 이후 경로는 환경변수 `COST_DATA_DIR`(지정하지 않으면 스크립트가 있는 폴더) 기준으로 바꿨고 계산 로직은 바꾸지 않았다. 국내 후기 원본과 정규화/검증 중간 CSV는 현재 확인한 패키지 폴더에 없다. 관련 Drive 검색에서도 원본을 확보하지 못했지만, 사용자의 다른 저장소까지 없다고 단정할 수는 없다.
 
 필요 라이브러리는 pandas·numpy이며 패키지의 별도 의존성 고정 파일은 폴더 목록에서 확인되지 않았다. model을 import하면 CSV를 바로 읽기 때문에 현재 서버에서 `predict3`만 가져와 즉시 사용하는 방식도 입력 경로가 없으면 실패한다.
 

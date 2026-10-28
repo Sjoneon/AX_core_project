@@ -69,7 +69,7 @@ def predict2(code, exclude_case=None, trip=28000):
 
 if __name__ == "__main__":
     for t, v in TL.items(): print(t, v["n"], round(v["p25"]), round(v["p50"]), round(v["p75"]), [round(x) for x in v["values"]])
-    VV = pd.read_csv("/home/claude/norm/out_validation.csv")
+    VV = pd.read_csv(M.DATA_DIR / "out_validation.csv")
     rows = []
     for _, r in VV.iterrows():
         p1 = M.predict(r["부품코드"], exclude_case=r["ID"]); p2 = predict2(r["부품코드"], exclude_case=r["ID"])
