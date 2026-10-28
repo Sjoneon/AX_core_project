@@ -1,12 +1,46 @@
 # 상담 설계 결정 기록
 
-<!-- 개발자 직접 검토·수정 필요: "이유" 칸의 초안 문장과 [개발자 작성] 빈칸은 개발자가 확정한다. -->
+> 상담 흐름 개편(2026-10-15~16)의 설계 결정, 이유, 구현 위치 기록
+> 기준 커밋: `0dbb709` · 범위: 등록 제품 상담의 카드, 자가 점검, 수리비, 보증, A/S 연결
 
-작성 기준: 2026-10-15~16 상담 흐름 개편 때 정한 내용을 옮겼다. "반영 위치"는 커밋 `0dbb709`의 코드·테스트에서 찾았다. "이유"는 저장소 문서에 근거가 있을 때만 출처와 함께 초안으로 적었고, 근거가 없으면 `[개발자 작성]`으로 남겼다. 구현 내용은 [상담 흐름·카드 개편 구현 기록](consultation_card_flow.md)에, 남은 작업은 [남은 작업](remaining_tasks.md#2-상담-흐름카드-개편-2026-10-16-기준)에 있다.
+**정리 기준**
 
-## 1. 목표 상담 흐름
+- 반영 위치: 커밋 `0dbb709`의 코드와 테스트에서 확인
+- 이유: 개발 기록에 근거가 있는 내용만 기재
+- 발견 시각: 개발 대화 기록 기준(KST)
 
-개발자가 제시한 흐름도([consultation_flow_target.png](consultation_flow_target.png))를 기준으로 한다. 응답마다 카드 하나만 쓰고, 한눈에 보이게 배치한다.
+**목차**
+
+1. [요약](#1-요약)
+2. [목표 상담 흐름](#2-목표-상담-흐름)
+3. [설계 결정](#3-설계-결정)
+4. [검수에서 찾은 문제](#4-검수에서-찾은-문제)
+5. [관련 문서](#5-관련-문서)
+
+---
+
+## 1. 요약
+
+| # | 결정 | 상태 |
+| --- | --- | --- |
+| [3.1](#31-응답마다-카드-하나) | 응답마다 카드 하나 | 구현 |
+| [3.2](#32-고객이-알-필요-없는-문구-삭제) | 고객이 알 필요 없는 문구 삭제 | 구현 |
+| [3.3](#33-설명서-확인-항목을-자가-점검으로-안내) | 설명서 확인 항목을 자가 점검으로 안내 | 구현 |
+| [3.4](#34-후보-부품-기준-수리비-범위-표시) | 후보 부품 기준 수리비 범위 표시 | 구현 |
+| [3.5](#35-증상부품-근거-표-구축) | 증상·부품 근거 표 구축 | 구현 |
+| [3.6](#36-전국-센터-자료로-가까운-센터-안내) | 전국 센터 자료로 가까운 센터 안내 | **미구현** |
+| [3.7](#37-수집-링크-관리-파일은-github에서-제외) | 수집 링크 관리 파일은 GitHub에서 제외 | 구현 |
+| [3.8](#38-위험-확정-후에도-수리비-안내) | 위험 확정 후에도 수리비 안내 | 구현 |
+| [3.9](#39-구매일-기준-보증-계산) | 구매일 기준 보증 계산 | 구현 |
+| [3.10](#310-답변-적합성-기준-분리) | 답변 적합성 기준 분리 | 구현 |
+| [3.11](#311-지원-범위-4품목) | 지원 범위 4품목 | 구현 |
+
+---
+
+## 2. 목표 상담 흐름
+
+- 기준: [목표 흐름도][flow-png]
+- 원칙: 응답마다 카드 하나, 한눈에 보이는 배치
 
 ```text
 품목 버튼 + 질문 ─► AI 해석·위험 판단 ─► 위험 신호?
@@ -25,44 +59,407 @@
 2차 카드(보증 판정 · 예상 수리비 · 근거, 위험이면 맨 위에 안전 경고) ─► A/S 연결(배송지 기준 가까운 센터 · 출장 수리 접수 · 상담원 연결)
 ```
 
-- 위험 확인 질문 중에도 [상담원 연결]을 함께 보여 준다. 확인하는 동안 제품 사용을 멈추라는 문구를 먼저 띄운다.
+- 위험 확인 질문 중에도 [상담원 연결] 버튼을 함께 표시
+- 확인하는 동안 제품 사용을 멈추라는 문구를 먼저 표시
 
-## 2. 결정 / 이유 / 반영 위치
+---
 
-| 항목 | 결정 | 이유 | 반영 위치 (코드·테스트) |
-|---|---|---|---|
-| 카드 | 응답마다 카드 하나. 자가검진·보증·A/S·요약·근거 카드를 여러 개 쌓지 않는다. | 초안: 개편 전에는 보증 설명과 상담 요약이 말풍선과 아래 카드에 두 번씩 나왔다([answer_quality_backlog.md](answer_quality_backlog.md) "배경"). 답변이 난잡하다는 지적도 있었다([구현 기록 1.3](consultation_card_flow.md#13-자가검진-단계와-요약-카드-2026-10-15)). | 코드: [AgentChatService.java](../../backend/src/main/java/com/project/backend/mcp/agent/AgentChatService.java)(`tools.card`의 `PRODUCT_CHOICE`·`SELF_CHECK`·`SUMMARY`), [ConsultationMessage.jsx](../../frontend/src/components/ConsultationMessage.jsx), [ConsultationCard.jsx](../../frontend/src/components/ConsultationCard.jsx). 테스트: [consultationRendering.test.mjs](../../frontend/src/consultationRendering.test.mjs) "summary response shows one card with warranty, cost and A/S instead of separate tool cards", [McpIntegrationTests](../../backend/src/test/java/com/project/backend/mcp/McpIntegrationTests.java) `registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard` |
-| 불필요한 문구 | [answer_rework_requirements.md](answer_rework_requirements.md) 3절 목록을 삭제한다. "이 설명은 … 승인이 아닙니다", 연결 문구, 설명서 링크, "검토된 절차 없음" 카드 등이 대상이다. | 초안: 요구사항 문서 1절의 "고객이 알 필요 없는 문구와 카드는 표시하지 않는다". 개편 전 답변은 면책 문구 위주라 고객이 할 수 있는 일이 없었다([answer_quality_backlog.md](answer_quality_backlog.md) "배경"). | 등록 제품 안내 흐름(`AgentChatService.guided`)에 적용. 테스트: `McpIntegrationTests.registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard`(답변에 "제조사 자료"·"승인" 문구가 없음을 확인). 참고: [AnswerContext.java](../../backend/src/main/java/com/project/backend/mcp/agent/AnswerContext.java)에는 "이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다." 문구가 남아 있다. 안내 흐름 밖의 경로로 보이며 [개발자 확인] |
-| 자가 점검 | 설명서 확인 항목(예: 정전 여부와 전원 플러그 연결 / 보관 온도 / 문 닫힘 / 식품 배치 / 주위 설치 환경)은 자가 조치다. 단계별로 안내하고 설명서 링크는 주지 않는다. 자가 점검이 없으면 텍스트로 "점검 방법이 없다"고 말하고 수리비로 넘어간다. | 초안: 설명서 확인 항목이 구조화 자료(`actionDescriptions`)에 있는데도 최종 답변에서 빠졌다([manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 4.1절). 설명서 링크를 주지 않는 이유: [개발자 작성] | 코드: [ManualCheckItems.java](../../backend/src/main/java/com/project/backend/mcp/agent/ManualCheckItems.java), `AgentChatService.checkSteps`, "이 증상은 직접 해 볼 수 있는 점검 방법이 없어요" 문구(`AgentChatService`). 테스트: [ManualCheckItemsTests](../../backend/src/test/java/com/project/backend/mcp/agent/ManualCheckItemsTests.java), `McpIntegrationTests.manualConditionsBecomeSelfCheckStepsAndOneOutcomeClosesThem`, `McpIntegrationTests.registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard` |
-| 수리비 표시 | 후보 부품의 기본 범위를 보여 준다. 상한이 10만 원 이상 차이 나는 비싼 부품(예: 컴프레서, 보증이 안 될 때)은 따로 알리고, 그 부품을 포함한 전체 범위도 보여 준다. 사례 3건 미만 부품도 포함한다. | 초안: 개편 전에는 "비용을 물었을 때만", "증상·부품 연결 근거", "국내 같은 부품 사례 3건 이상"이라는 세 조건이 겹쳐 수리비가 나오지 않았다([answer_quality_backlog.md](answer_quality_backlog.md) "수리비가 나오지 않는 이유", [answer_rework_requirements.md](answer_rework_requirements.md) 4절). 10만 원 기준과 3건 미만 포함의 이유: [개발자 작성] | 코드: [SymptomRepairEstimate.java](../../backend/src/main/java/com/project/backend/mcp/tool/SymptomRepairEstimate.java)(`SEPARATE_GAP=100_000`). 테스트: [SymptomRepairEstimateTests](../../backend/src/test/java/com/project/backend/mcp/tool/SymptomRepairEstimateTests.java) `coolingShowsTheCommonRangeAndTheCompressorSeparately`, `closeRangesStayInOneBaseRangeAndUnknownSymptomsHaveNoAmount` |
-| 증상→부품 근거 | 근거 자료를 조사해 증상·오류·관찰 답과 부품을 잇는 근거 표를 구축했다([구현 기록 1.2](consultation_card_flow.md#12-증상별-수리비와-근거-자료-2026-10-15)·1.4·1.5). 수리업체 가이드도 유효한 근거로 쓴다(국내 사례·공식 자료와 구분 표기). | 초안: 개편 전에는 증상과 부품 그룹을 잇는 자료가 없었고, "증상별 후보 부품 그룹을 누가, 어떤 근거로 정할지"가 결정 대상이었다([answer_rework_requirements.md](answer_rework_requirements.md) 4·6절). 수리업체 가이드를 근거로 인정한 이유: [개발자 작성] | 자료: [증상_부품_근거_v1.csv](../../수리비_정규화_과정/증상_부품_근거_v1.csv), [관찰_부품_근거_v1.csv](../../수리비_정규화_과정/관찰_부품_근거_v1.csv), [symptom-parts.json](../../backend/src/main/resources/homecare/symptom-parts.json). 코드: [build_symptom_parts.py](../../backend/scripts/build_symptom_parts.py), [ToolDataCatalog.java](../../backend/src/main/java/com/project/backend/mcp/tool/ToolDataCatalog.java)(`symptomParts`). 테스트: `SymptomRepairEstimateTests.everyLinkKeepsItsEvidenceType`, [DataIntegrityTests](../../backend/src/test/java/com/project/backend/data/DataIntegrityTests.java), `python -I backend/scripts/build_symptom_parts.py --check` |
-| 가까운 센터 | LG 공식 센터 상세 페이지로 전국 센터 자료를 직접 구축해, 설치 지역 기준 센터를 보여 준다. 공식 센터 찾기 링크도 함께 둔다. | 초안: 결정 당시 적힌 이유는 "LG 센터 찾기에는 지역을 지정하는 링크가 없다"였다. 기존 `centers.json`은 3곳뿐이라 다른 지역은 결과가 없었다([manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 4.4절). | **미구현.** 현재 [FindServiceCentersTool.java](../../backend/src/main/java/com/project/backend/mcp/tool/handler/FindServiceCentersTool.java)는 `directory_status=NOT_INTEGRATED`와 공식 센터 찾기 연결만 반환한다. 테스트: [ToolBackendTests](../../backend/src/test/java/com/project/backend/mcp/tool/ToolBackendTests.java) `serviceConnectionReportsTheStoredRegionAndNeverListsSeedCenters`. 설계: [구현 기록 2.1](consultation_card_flow.md#21-전국-센터-자료) |
-| 링크 관리 파일 | 수집 링크를 관리하는 `collected_sources.json`(저장소 최상위)은 GitHub에 올리지 않는다. | [개발자 작성] | [.gitignore](../../.gitignore)의 `collected_sources.json`, [source_registry.py](../../backend/scripts/source_registry.py) |
-| 위험 확정 후 수리비 (2026-10-16) | 위험이 확정돼도 자가조치만 빼고 수리비는 알려 준다. 보증 카드의 부품비·기술료·출장비는 금액을 보여 줄 수 없으면 빼고 수리비를 보여 준다. | 초안(비용 칸 제거): 실제 데이터에서 출장비는 항상, 나머지도 대부분 "추가 확인 필요"였다([구현 기록 1.6](consultation_card_flow.md#16-위험-확정-후-요약-카드-보증-카드의-비용-칸-제거-2026-10-16)). 위험 확정 상담에도 수리비를 보여 주는 이유: [개발자 작성] | 코드: `AgentChatService.safety()`, `SymptomRepairEstimate.orCategory`, [WarrantyResult.jsx](../../frontend/src/components/WarrantyResult.jsx), `WarrantyService.summarize`. 테스트: `McpIntegrationTests.yesAndUnsureConfirmRiskAndConfirmedRiskCannotBeDismissedByAi`, `SymptomRepairEstimateTests.withoutAPartLinkTheWholeCategoryRangeIsLabelledAsSuch`, [WarrantyServiceTests](../../backend/src/test/java/com/project/backend/warranty/WarrantyServiceTests.java) `chatSummaryStatesPeriodsAndTheOfficialPolicyWithoutFeeStatuses`, `consultationRendering.test.mjs` "a confirmed risk shows the category range in the summary card instead of the warranty fee card" |
+## 3. 설계 결정
 
-### 2.1 다른 문서에 기록된 결정
+- 구성: 결정 → 이유 → 반영 위치
+- 3.1~3.8: 상담 흐름 개편에서 정한 결정
+- 3.9~3.11: 개편 밖의 문서에 요구·범위 결정으로 기록된 항목
 
-개편 인계 문서 밖에서 "사용자 요구·요청·범위 확정"으로 기록된 결정이다. 이 표에 넣을지는 개발자가 판단한다. [개발자 확인]
+### 3.1 응답마다 카드 하나
 
-| 항목 | 결정 | 이유 | 반영 위치 (코드·테스트) |
-|---|---|---|---|
-| 구매일 기준 보증 | 등록 구매일을 보증 시작일로 계산한다. 구입 증빙·국내 가정용 확인이 비어 있어도 제품 전체 보증의 만료일과 기간 상태를 제공하고, 실제 무상 적용·비용 조건은 따로 표시한다. | 초안: 개편 전에는 구매일이 있어도 증빙·가정용 조건이 미확인이면 만료일 계산이 막혀, 등록 구매일은 보이는데 보증 카드는 모두 미확인으로 나왔다([manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 4.3절). | 코드: [WarrantyService.java](../../backend/src/main/java/com/project/backend/warranty/WarrantyService.java), [CheckWarrantyTool.java](../../backend/src/main/java/com/project/backend/mcp/tool/handler/CheckWarrantyTool.java), [WarrantyResult.jsx](../../frontend/src/components/WarrantyResult.jsx). 테스트: `WarrantyServiceTests.purchaseDateStartsWarrantyEvenWhenDeliveryDiffers`, `WarrantyServiceTests.registeredRefrigeratorPurchaseCalculatesExpiryWithoutProofOrHouseholdFlags`, `McpIntegrationTests.registeredRefrigeratorPurchaseReachesMcpChatAndSavedHistory`. 기록: [warranty_implementation.md](warranty_implementation.md), [purchase_date_warranty_verification.md](purchase_date_warranty_verification.md) |
-| 답변 적합성 기준 분리 | 분류·도구 호출의 `OK`만으로 상담 성공을 판정하지 않고, 실제 질문과 최종 문장을 대조하는 답변 적합성 기준을 따로 둔다. | 초안: 개발 세트 `final` 실행은 제어 검사 24개를 모두 통과했지만, 답변 검토에서 무관한 비용 부속 설명과 부정 문장의 재질문이 남았다([consultation_validation.md](consultation_validation.md) "결과 읽는 방법"). | 기준: [consultation_answer_rubric.json](consultation_answer_rubric.json), [consultation_evaluation.json](consultation_evaluation.json). 코드: [ConsultationEvaluationTests.java](../../backend/src/test/java/com/project/backend/mcp/ConsultationEvaluationTests.java)(`real-agent` 태그), [evaluate_consultation_answers.py](../../backend/scripts/evaluate_consultation_answers.py) |
-| 지원 범위 4품목 | 세탁기·건조기·냉장고(김치 포함)·식기세척기로 코드·계약·자료·문서를 통일한다. 에어컨은 새 상담과 등록에서 제외한다. | [개발자 작성] (기록: [repair_development_guide.md](../guides/repair_development_guide.md) 서두 "사용자의 범위 확정에 따라") | [ProductCategory.java](../../backend/src/main/java/com/project/backend/conversation/ProductCategory.java), [V004__four_category_scope.sql](../../ops/rds/sql/V004__four_category_scope.sql) |
+**결정**
 
-## 3. 검수에서 찾은 문제
+- 응답마다 카드 하나만 사용
+- 자가검진·보증·A/S·요약·근거 카드를 여러 개 쌓지 않음
 
-실제 상담 출력과 화면을 확인하며 찾은 문제와 조치를 다른 기록에서 모았다. "발견 경위"는 기록에 "사용자가 지적·제시"로 적힌 경우만 채웠다(이 기록들의 "사용자"는 개발 지시를 한 개발자다). 나머지는 `[개발자 작성]`이다.
+**이유**
 
-| 문제 | 확인한 원인·내용 | 조치 | 발견 경위 | 기록 |
-|---|---|---|---|---|
-| 등록 제품 상담에서 선택 전에 "검토를 마친 절차가 없어요"가 먼저 나옴, 설명서 내용이 자가검진으로 안내되지 않음, 답변이 난잡함 | 승인 계획이 없는 제품은 `NOT_VERIFIED` 안내와 여러 카드가 함께 나옴 | 등록 제품 증상 상담을 LLM 없이 정해진 순서(제품 선택 → 질문 → 자가검진 단계 → 요약 카드)로 진행 | 개발자 지적 | [구현 기록 1.3](consultation_card_flow.md#13-자가검진-단계와-요약-카드-2026-10-15) |
-| S836MEE022 "냉장고가 시원하지 않아요." 답변이 대부분 "확인 필요" | 설명 필드 전달 누락, 실행 승인 없음이 보증·센터·요약 전체를 불러옴, 보증 계산 조건 결합, 주소-지역 미연결 | 관찰 항목 설명, 자동 확장 축소, 구매일 기준 보증, 주소 검색 지역 저장 | 개발자 제시 사례 | [manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 4절·8절 |
-| 무관한 근거: 냉각 질문에 냄새 자료가 연결됨 | [KnowledgeTextMatcher.java](../../backend/src/main/java/com/project/backend/mcp/retrieval/KnowledgeTextMatcher.java)의 `COOLING` 정규식이 "냉장고 안에서"를 부정으로 해석하고 "정지·저하"를 놓침 | 정규식 교체, [KnowledgeRetrievalTests](../../backend/src/test/java/com/project/backend/mcp/retrieval/KnowledgeRetrievalTests.java) `coolingComplaintsSelectCoolingFactsNotInteriorFacts` | [개발자 작성] | [answer_quality_backlog.md](answer_quality_backlog.md) "배경"의 버그 표, [manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 3절 |
-| 무관한 근거: 세탁기 진동 질문에 침수·급수 문서가 선택됨 | "세탁기"처럼 넓은 단어만 일치한 문서가 상위에 나옴 | 모델·품목·제외 필터와 증상 어휘·임베딩 검색으로 보완 | [개발자 작성] | [mcp_completion_plan.md](mcp_completion_plan.md) "확인된 재현 사례"·2단계 |
-| 무관한 근거: 비용 문의에 무관한 모터별 보증과 금액 없는 '위 금액' 고지 | 실제 상담 평가의 답변 대조에서 발견 | 비용 근거·부족 사유·전체 보증 요지만 제공 | 실제 상담 평가 | [consultation_validation.md](consultation_validation.md) "발견한 문제와 수정" (표 전체 10건) |
-| JSON 노출: 고객 화면에 원본 JSON·해시·내부 QA 이력·파일 경로가 나올 수 있음 | 과거 B30 자료의 `content/text`가 JSON 래퍼였음 | 표시 시점에 고객용 필드만 투영하고 원본은 DEV 영역에서만 표시([customerDisplay.js](../../frontend/src/customerDisplay.js)). 테스트: `consultationRendering.test.mjs` "rendered response shows one structured document and keeps file paths, raw JSON and internal evidence out" | [개발자 작성] | [consultation_display.md](consultation_display.md), [mcp_completion_plan.md](mcp_completion_plan.md) 7단계 |
-| 링크가 `http참고 자료/...`로 깨짐 | `customerDisplay.js`의 드라이브 문자 정규식이 `https://`의 `s:/`를 경로로 치환 | 앞 글자가 영문이면 제외, 말풍선의 링크를 앵커로 렌더링 | [개발자 작성] | [answer_quality_backlog.md](answer_quality_backlog.md) 버그 표 |
-| 제품 선택: 냉장고 2대 계정에서 묻지 않고 첫 번째 냉장고가 선택됨 | 닉네임 "냉장고"가 문장에 들어 있다는 이유로 자동 선택 | 품목 이름과 같은 닉네임으로는 자동 선택하지 않고 `PRODUCT_CHOICE` 카드로 묻기(`ConsultationService.automaticProduct`). 테스트: `McpIntegrationTests.withTwoRegisteredRefrigeratorsTheCustomerPicksOneBeforeTheQuestionIsAnswered` | [개발자 작성] | [구현 기록 1.3](consultation_card_flow.md#13-자가검진-단계와-요약-카드-2026-10-15) 0번 |
-| 제품 선택 반복 | [개발자 작성] — 저장소 문서에서 이 문제를 직접 적은 기록을 찾지 못했다. | [개발자 작성] | [개발자 작성] | — |
-| 센터 하드코딩: 센터 3곳을 전국 조회처럼 사용 | `centers.json`이 대치·분당·북수원 3곳뿐이라 제주 등 다른 지역은 결과가 없음. 등록 주소가 센터 검색용 지역으로 연결되지 않음 | `find_service_centers`가 센터 목록 대신 공식 출장 접수·센터 찾기·전화를 반환(`directory_status=NOT_INTEGRATED`). 주소 검색 결과의 시·도/시·군·구 저장. 전국 센터 자료는 미구현 | [개발자 작성] | [manufacturer_data_usage_audit.md](manufacturer_data_usage_audit.md) 4.4절·8절, [service_channel_operating_plan.md](service_channel_operating_plan.md) |
+- 개편 전: 보증 설명과 상담 요약이 말풍선과 아래 카드에 중복 표시
+- 검수 지적: 답변 구성이 난잡함
+
+**반영 위치**
+
+- 코드
+    - [AgentChatService.java][agent-chat]: `tools.card`의 `PRODUCT_CHOICE`·`SELF_CHECK`·`SUMMARY`
+    - [ConsultationMessage.jsx][consultation-message], [ConsultationCard.jsx][consultation-card]
+- 테스트
+    - [consultationRendering.test.mjs][rendering-test]: "summary response shows one card with warranty, cost and A/S instead of separate tool cards"
+    - [McpIntegrationTests][mcp-it]: `registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard`
+
+### 3.2 고객이 알 필요 없는 문구 삭제
+
+**결정**
+
+- [답변 개편 요구사항][rework-req] 3절 목록의 문구와 카드 삭제
+- 대상: "이 설명은 … 승인이 아닙니다", 연결 문구, 설명서 링크, "검토된 절차 없음" 카드 등
+
+**이유**
+
+- 요구사항 1절 기준: "고객이 알 필요 없는 문구와 카드는 표시하지 않음"
+- 개편 전 답변: 면책 문구 위주, 고객이 할 수 있는 행동 없음
+
+**반영 위치**
+
+- 코드: 등록 제품 안내 흐름(`AgentChatService.guided`)
+- 테스트: `McpIntegrationTests.registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard`
+    - 답변에 "제조사 자료"·"승인" 문구가 없는지 확인
+- 남은 문구
+    - [AnswerContext.java][answer-context]의 "이 설명은 고장 확정이나 직접 실행할 조치의 승인이 아닙니다."
+    - 안내 흐름을 타지 않는 상담의 근거 답변 경로(`AnswerContext` → `GroundedAnswerGenerator`)에서 사용
+
+### 3.3 설명서 확인 항목을 자가 점검으로 안내
+
+**결정**
+
+- 설명서 확인 항목을 자가 조치로 분류
+    - 예: 정전 여부와 전원 플러그 연결, 보관 온도, 문 닫힘, 식품 배치, 주위 설치 환경
+- 단계별로 안내하고 설명서 링크는 제공하지 않음
+- 자가 점검이 없으면 "점검 방법이 없다"고 텍스트로 알린 뒤 수리비 안내로 이동
+
+**이유**
+
+- 구조화 자료(`actionDescriptions`)에 있는 설명서 확인 항목이 최종 답변에서 누락
+- 참고: [제조사 자료 사용 점검][data-audit] 4.1절
+
+**반영 위치**
+
+- 코드
+    - [ManualCheckItems.java][manual-check-items], `AgentChatService.checkSteps`
+    - "이 증상은 직접 해 볼 수 있는 점검 방법이 없어요" 문구(`AgentChatService`)
+- 테스트
+    - [ManualCheckItemsTests][manual-check-items-test]
+    - `McpIntegrationTests.manualConditionsBecomeSelfCheckStepsAndOneOutcomeClosesThem`
+    - `McpIntegrationTests.registeredSymptomWithoutManualStepsGoesStraightToOneSummaryCard`
+
+### 3.4 후보 부품 기준 수리비 범위 표시
+
+**결정**
+
+- 후보 부품의 기본 범위 표시
+- 상한이 10만 원 이상 차이 나는 비싼 부품은 따로 알리고, 그 부품을 포함한 전체 범위도 표시
+    - 예: 보증이 안 될 때의 컴프레서
+- 사례가 3건 미만인 부품도 포함
+
+**이유**
+
+- 개편 전: 아래 세 조건이 겹쳐 수리비 미표시
+    - "비용을 물었을 때만"
+    - "증상·부품 연결 근거"
+    - "국내 같은 부품 사례 3건 이상"
+- 참고: [답변 개편 요구사항][rework-req] 4절
+
+**반영 위치**
+
+- 코드: [SymptomRepairEstimate.java][symptom-estimate] (`SEPARATE_GAP=100_000`)
+- 테스트: [SymptomRepairEstimateTests][symptom-estimate-test]
+    - `coolingShowsTheCommonRangeAndTheCompressorSeparately`
+    - `closeRangesStayInOneBaseRangeAndUnknownSymptomsHaveNoAmount`
+
+### 3.5 증상·부품 근거 표 구축
+
+**결정**
+
+- 근거 자료를 조사해 증상·오류·관찰 답과 부품을 잇는 근거 표 구축
+- 수리업체 가이드도 유효한 근거로 사용하되, 국내 사례·공식 자료와 구분해 표기
+
+**이유**
+
+- 개편 전: 증상과 부품 그룹을 잇는 자료 없음
+- 미결정 항목: "증상별 후보 부품 그룹을 누가, 어떤 근거로 정할지"
+- 참고: [답변 개편 요구사항][rework-req] 4·6절
+
+**반영 위치**
+
+- 자료: [증상_부품_근거_v1.csv][symptom-parts-csv], [관찰_부품_근거_v1.csv][observation-parts-csv], [symptom-parts.json][symptom-parts-json]
+- 코드: [build_symptom_parts.py][build-symptom-parts], [ToolDataCatalog.java][tool-data-catalog] (`symptomParts`)
+- 테스트
+    - `SymptomRepairEstimateTests.everyLinkKeepsItsEvidenceType`
+    - [DataIntegrityTests][data-integrity-test]
+    - `python -I backend/scripts/build_symptom_parts.py --check`
+
+### 3.6 전국 센터 자료로 가까운 센터 안내
+
+> 상태: **미구현** (현재는 공식 센터 찾기 연결만 반환)
+
+**결정**
+
+- LG 공식 센터 상세 페이지로 전국 센터 자료를 직접 구축
+- 설치 지역 기준으로 가까운 센터를 표시하고, 공식 센터 찾기 링크도 함께 제공
+
+**이유**
+
+- 결정 당시 기록: "LG 센터 찾기에는 지역을 지정하는 링크가 없다"
+- 기존 `centers.json`: 3곳뿐이라 다른 지역은 결과 없음
+- 참고: [제조사 자료 사용 점검][data-audit] 4.4절
+
+**반영 위치**
+
+- 코드: [FindServiceCentersTool.java][find-centers-tool]
+    - `directory_status=NOT_INTEGRATED`와 공식 센터 찾기 연결만 반환
+- 테스트: [ToolBackendTests][tool-backend-test] `serviceConnectionReportsTheStoredRegionAndNeverListsSeedCenters`
+
+### 3.7 수집 링크 관리 파일은 GitHub에서 제외
+
+**결정**
+
+- 수집 링크를 관리하는 `collected_sources.json`(저장소 최상위)은 GitHub에 올리지 않음
+
+**반영 위치**
+
+- [.gitignore][gitignore]의 `collected_sources.json`
+- [source_registry.py][source-registry]
+
+### 3.8 위험 확정 후에도 수리비 안내
+
+결정일: 2026-10-16
+
+**결정**
+
+- 위험이 확정돼도 자가조치만 빼고 수리비는 안내
+- 보증 카드의 부품비·기술료·출장비는 금액을 보여 줄 수 없으면 빼고 수리비를 표시
+
+**이유**
+
+- 실제 데이터의 보증 카드 비용 칸: 출장비는 항상, 나머지도 대부분 "추가 확인 필요"
+- 위 이유로 보증 카드의 비용 칸 제거
+
+**반영 위치**
+
+- 코드
+    - `AgentChatService.safety()`, `SymptomRepairEstimate.orCategory`
+    - [WarrantyResult.jsx][warranty-result], `WarrantyService.summarize`
+- 테스트
+    - `McpIntegrationTests.yesAndUnsureConfirmRiskAndConfirmedRiskCannotBeDismissedByAi`
+    - `SymptomRepairEstimateTests.withoutAPartLinkTheWholeCategoryRangeIsLabelledAsSuch`
+    - [WarrantyServiceTests][warranty-service-test] `chatSummaryStatesPeriodsAndTheOfficialPolicyWithoutFeeStatuses`
+    - `consultationRendering.test.mjs`: "a confirmed risk shows the category range in the summary card instead of the warranty fee card"
+
+### 3.9 구매일 기준 보증 계산
+
+**결정**
+
+- 등록 구매일을 보증 시작일로 계산
+- 구입 증빙·국내 가정용 확인이 비어 있어도 제품 전체 보증의 만료일과 기간 상태 제공
+- 실제 무상 적용과 비용 조건은 따로 표시
+
+**이유**
+
+- 개편 전: 증빙·가정용 조건이 미확인이면 구매일이 있어도 만료일 계산 불가
+- 결과: 등록 구매일은 보이지만 보증 카드는 모두 미확인으로 표시
+- 참고: [제조사 자료 사용 점검][data-audit] 4.3절
+
+**반영 위치**
+
+- 코드: [WarrantyService.java][warranty-service], [CheckWarrantyTool.java][check-warranty-tool], [WarrantyResult.jsx][warranty-result]
+- 테스트
+    - `WarrantyServiceTests.purchaseDateStartsWarrantyEvenWhenDeliveryDiffers`
+    - `WarrantyServiceTests.registeredRefrigeratorPurchaseCalculatesExpiryWithoutProofOrHouseholdFlags`
+    - `McpIntegrationTests.registeredRefrigeratorPurchaseReachesMcpChatAndSavedHistory`
+- 기록: [보증 구현][warranty-impl], [구매일 기준 보증 검수][purchase-warranty]
+
+### 3.10 답변 적합성 기준 분리
+
+**결정**
+
+- 분류·도구 호출의 `OK`만으로 상담 성공을 판정하지 않음
+- 실제 질문과 최종 문장을 대조하는 답변 적합성 기준을 따로 둠
+
+**이유**
+
+- 개발 세트 `final` 실행: 제어 검사 24개 모두 통과
+- 같은 실행의 답변 검토: 무관한 비용 부속 설명, 부정 문장의 재질문이 남음
+- 참고: [실제 상담 평가][validation] "결과 읽는 방법"
+
+**반영 위치**
+
+- 기준: [consultation_answer_rubric.json][answer-rubric], [consultation_evaluation.json][consultation-eval]
+- 코드: [ConsultationEvaluationTests.java][consultation-eval-test] (`real-agent` 태그), [evaluate_consultation_answers.py][evaluate-answers]
+
+### 3.11 지원 범위 4품목
+
+**결정**
+
+- 세탁기·건조기·냉장고(김치 포함)·식기세척기로 코드·계약·자료·문서 통일
+- 에어컨은 새 상담과 등록에서 제외
+
+**반영 위치**
+
+- [ProductCategory.java][product-category]
+- [V004__four_category_scope.sql][v004-sql]
+
+---
+
+## 4. 검수에서 찾은 문제
+
+- 범위: 실제 상담 출력과 화면 검수에서 찾은 문제와 조치
+- 발견 경위: 저장소 기록이나 개발 대화 기록에 남은 경우만 기재
+
+| # | 문제 | 발견 경위 |
+| --- | --- | --- |
+| [4.1](#41-등록-제품-상담-답변이-난잡함) | 등록 제품 상담 답변이 난잡함 | 개발자 지적 |
+| [4.2](#42-냉장고-답변이-대부분-확인-필요로-나옴) | 냉장고 답변이 대부분 "확인 필요"로 나옴 | 개발자 제시 사례 |
+| [4.3](#43-냉각-질문에-냄새-자료가-연결됨) | 냉각 질문에 냄새 자료가 연결됨 | - |
+| [4.4](#44-세탁기-진동-질문에-침수급수-문서가-나옴) | 세탁기 진동 질문에 침수·급수 문서가 나옴 | 개발자 지적(10-14 14:12~14:24) |
+| [4.5](#45-비용-문의에-무관한-보증과-고지가-붙음) | 비용 문의에 무관한 보증과 고지가 붙음 | 실제 상담 평가 |
+| [4.6](#46-고객-화면에-원본-json이-나올-수-있음) | 고객 화면에 원본 JSON이 나올 수 있음 | 개발자 지적(10-14 14:12~14:24) |
+| [4.7](#47-링크가-http참고-자료로-깨짐) | 링크가 `http참고 자료/...`로 깨짐 | - |
+| [4.8](#48-냉장고-2대-계정에서-묻지-않고-첫-번째-냉장고를-고름) | 냉장고 2대 계정에서 묻지 않고 첫 번째 냉장고를 고름 | - |
+| [4.9](#49-제거한-제품-선택-영역이-다시-나타남) | 제거한 제품 선택 영역이 다시 나타남 | 개발자 지적(10-14 12:38) |
+| [4.10](#410-센터-3곳을-전국-조회처럼-사용함) | 센터 3곳을 전국 조회처럼 사용함 | 개발자 제시(10-15 11:12~11:18) |
+
+### 4.1 등록 제품 상담 답변이 난잡함
+
+- 현상
+    - 제품 선택 전에 "검토를 마친 절차가 없어요" 안내가 먼저 나옴
+    - 설명서 내용이 자가검진으로 안내되지 않음
+- 원인: 승인 계획이 없는 제품은 `NOT_VERIFIED` 안내와 여러 카드가 함께 나옴
+- 조치: 등록 제품 증상 상담을 LLM(대규모 언어 모델) 없이 정해진 순서로 진행
+    1. 제품 선택
+    2. 질문
+    3. 자가검진 단계
+    4. 요약 카드
+- 발견 경위: 개발자 지적
+
+### 4.2 냉장고 답변이 대부분 "확인 필요"로 나옴
+
+- 현상: S836MEE022 "냉장고가 시원하지 않아요." 답변이 대부분 "확인 필요"
+- 원인
+    - 설명 필드 전달 누락
+    - 실행 승인이 없다는 이유로 보증·센터·요약 전체를 불러옴
+    - 보증 계산 조건 결합
+    - 주소와 지역 미연결
+- 조치
+    - 관찰 항목 설명
+    - 자동 확장 축소
+    - 구매일 기준 보증
+    - 주소 검색 결과의 지역 저장
+- 발견 경위: 개발자 제시 사례
+- 기록: [제조사 자료 사용 점검][data-audit] 4절·8절
+
+### 4.3 냉각 질문에 냄새 자료가 연결됨
+
+- 원인: [KnowledgeTextMatcher.java][text-matcher]의 `COOLING` 정규식이 "냉장고 안에서"를 부정으로 해석하고 "정지·저하"를 놓침
+- 조치: 정규식 교체
+    - 테스트: [KnowledgeRetrievalTests][retrieval-test] `coolingComplaintsSelectCoolingFactsNotInteriorFacts`
+- 기록: [제조사 자료 사용 점검][data-audit] 3절
+
+### 4.4 세탁기 진동 질문에 침수·급수 문서가 나옴
+
+- 원인: "세탁기"처럼 넓은 단어만 일치한 문서가 상위에 나옴
+- 조치: 모델·품목·제외 필터와 증상 어휘·임베딩 검색으로 보완
+- 발견 경위: 2026-10-14 14:12~14:24 개발자가 실제 출력을 제시하며 지적
+- 기록: [제조사 자료 검색 연결][retrieval] "구현 결과"
+
+### 4.5 비용 문의에 무관한 보증과 고지가 붙음
+
+- 현상: 비용 문의에 무관한 모터별 보증과, 금액이 없는데도 '위 금액' 고지가 붙음
+- 원인: 실제 상담 평가의 답변 대조에서 발견
+- 조치: 비용 근거, 부족 사유, 전체 보증 요지만 제공
+- 발견 경위: 실제 상담 평가
+- 기록: [실제 상담 평가][validation] "발견한 문제와 수정"(표 전체 10건)
+
+### 4.6 고객 화면에 원본 JSON이 나올 수 있음
+
+- 현상: 고객 화면에 원본 JSON·해시·내부 QA 이력·파일 경로가 나올 수 있음
+- 원인: 과거 B30 자료의 `content/text`가 JSON 래퍼였음
+- 조치: 표시 시점에 고객용 필드만 투영하고, 원본은 DEV 영역에서만 표시
+    - 코드: [customerDisplay.js][customer-display]
+    - 테스트: `consultationRendering.test.mjs` "rendered response shows one structured document and keeps file paths, raw JSON and internal evidence out"
+- 발견 경위: 2026-10-14 14:12~14:24 개발자가 실제 출력을 제시하며 지적
+- 기록: [상담 화면의 결과 표시][display]
+
+### 4.7 링크가 `http참고 자료/...`로 깨짐
+
+- 원인: `customerDisplay.js`의 드라이브 문자 정규식이 `https://`의 `s:/`를 경로로 치환
+- 조치
+    - 앞 글자가 영문이면 치환에서 제외
+    - 말풍선의 링크를 앵커로 렌더링
+
+### 4.8 냉장고 2대 계정에서 묻지 않고 첫 번째 냉장고를 고름
+
+- 원인: 닉네임 "냉장고"가 문장에 들어 있다는 이유로 자동 선택
+- 조치: 품목 이름과 같은 닉네임으로는 자동 선택하지 않고 `PRODUCT_CHOICE` 카드로 질문
+    - 코드: `ConsultationService.automaticProduct`
+    - 테스트: `McpIntegrationTests.withTwoRegisteredRefrigeratorsTheCustomerPicksOneBeforeTheQuestionIsAnswered`
+
+### 4.9 제거한 제품 선택 영역이 다시 나타남
+
+- 현상: 제거했던 상담 제품 선택 영역이 화면에 다시 나타남. 같은 지적에서 자가조치·수리비 누락도 제기
+- 조치: 상담 화면에 제품 선택 영역을 다시 넣지 않고 등록 제품의 DB 정보를 쓰기로 결정
+    - 관련 후속 수정: [Chat.jsx][chat-jsx], `AgentChatService`
+- 발견 경위: 2026-10-14 12:38 개발자가 실제 화면을 보고 지적
+
+### 4.10 센터 3곳을 전국 조회처럼 사용함
+
+- 현상
+    - `centers.json`이 대치·분당·북수원 3곳뿐이라 제주 등 다른 지역은 결과가 없음
+    - 등록 주소가 센터 검색용 지역으로 연결되지 않음
+- 조치
+    - `find_service_centers`가 센터 목록 대신 공식 출장 접수·센터 찾기·전화를 반환(`directory_status=NOT_INTEGRATED`)
+    - 주소 검색 결과의 시·도/시·군·구 저장
+    - 전국 센터 자료는 미구현([3.6](#36-전국-센터-자료로-가까운-센터-안내))
+- 발견 경위: 2026-10-15 11:12~11:18 개발자가 실제 냉장고 답변과 함께 제시
+- 기록: [제조사 자료 사용 점검][data-audit] 4.4절·8절, [A/S 연결과 센터 데이터 운영 설계][service-channel]
+
+---
+
+## 5. 관련 문서
+
+- [답변 개편 요구사항][rework-req]
+- [제조사 자료 사용 점검][data-audit]
+- [제조사 자료 검색 연결][retrieval]
+- [상담 화면의 결과 표시][display]
+- [실제 상담 평가와 회귀 검증][validation]
+- [보증 구현][warranty-impl], [구매일 기준 보증 검수][purchase-warranty]
+- [A/S 연결과 센터 데이터 운영 설계][service-channel]
+
+[flow-png]: consultation_flow_target.png
+[rework-req]: answer_rework_requirements.md
+[data-audit]: manufacturer_data_usage_audit.md
+[retrieval]: manufacturer_retrieval.md
+[display]: consultation_display.md
+[validation]: consultation_validation.md
+[warranty-impl]: warranty_implementation.md
+[purchase-warranty]: purchase_date_warranty_verification.md
+[service-channel]: service_channel_operating_plan.md
+[answer-rubric]: consultation_answer_rubric.json
+[consultation-eval]: consultation_evaluation.json
+
+[agent-chat]: ../../backend/src/main/java/com/project/backend/mcp/agent/AgentChatService.java
+[answer-context]: ../../backend/src/main/java/com/project/backend/mcp/agent/AnswerContext.java
+[manual-check-items]: ../../backend/src/main/java/com/project/backend/mcp/agent/ManualCheckItems.java
+[symptom-estimate]: ../../backend/src/main/java/com/project/backend/mcp/tool/SymptomRepairEstimate.java
+[tool-data-catalog]: ../../backend/src/main/java/com/project/backend/mcp/tool/ToolDataCatalog.java
+[find-centers-tool]: ../../backend/src/main/java/com/project/backend/mcp/tool/handler/FindServiceCentersTool.java
+[check-warranty-tool]: ../../backend/src/main/java/com/project/backend/mcp/tool/handler/CheckWarrantyTool.java
+[text-matcher]: ../../backend/src/main/java/com/project/backend/mcp/retrieval/KnowledgeTextMatcher.java
+[warranty-service]: ../../backend/src/main/java/com/project/backend/warranty/WarrantyService.java
+[product-category]: ../../backend/src/main/java/com/project/backend/conversation/ProductCategory.java
+[symptom-parts-json]: ../../backend/src/main/resources/homecare/symptom-parts.json
+[build-symptom-parts]: ../../backend/scripts/build_symptom_parts.py
+[source-registry]: ../../backend/scripts/source_registry.py
+[evaluate-answers]: ../../backend/scripts/evaluate_consultation_answers.py
+[symptom-parts-csv]: ../../수리비_정규화_과정/증상_부품_근거_v1.csv
+[observation-parts-csv]: ../../수리비_정규화_과정/관찰_부품_근거_v1.csv
+[v004-sql]: ../../ops/rds/sql/V004__four_category_scope.sql
+[gitignore]: ../../.gitignore
+[consultation-message]: ../../frontend/src/components/ConsultationMessage.jsx
+[consultation-card]: ../../frontend/src/components/ConsultationCard.jsx
+[warranty-result]: ../../frontend/src/components/WarrantyResult.jsx
+[customer-display]: ../../frontend/src/customerDisplay.js
+[chat-jsx]: ../../frontend/src/Chat.jsx
+
+[mcp-it]: ../../backend/src/test/java/com/project/backend/mcp/McpIntegrationTests.java
+[consultation-eval-test]: ../../backend/src/test/java/com/project/backend/mcp/ConsultationEvaluationTests.java
+[manual-check-items-test]: ../../backend/src/test/java/com/project/backend/mcp/agent/ManualCheckItemsTests.java
+[symptom-estimate-test]: ../../backend/src/test/java/com/project/backend/mcp/tool/SymptomRepairEstimateTests.java
+[tool-backend-test]: ../../backend/src/test/java/com/project/backend/mcp/tool/ToolBackendTests.java
+[retrieval-test]: ../../backend/src/test/java/com/project/backend/mcp/retrieval/KnowledgeRetrievalTests.java
+[warranty-service-test]: ../../backend/src/test/java/com/project/backend/warranty/WarrantyServiceTests.java
+[data-integrity-test]: ../../backend/src/test/java/com/project/backend/data/DataIntegrityTests.java
+[rendering-test]: ../../frontend/src/consultationRendering.test.mjs
