@@ -6,9 +6,10 @@ normalize.py 실행 후 사용. [변수]/[함수] 표시.
 import statistics as st
 import pandas as pd
 from normalize import CODE_NAME, TRIP_NOW
+from normalize import DATA_DIR
 
-OV = pd.read_csv("/home/claude/norm/out_overseas_normalized.csv")
-DM = pd.read_csv("/home/claude/norm/out_domestic_normalized.csv")
+OV = pd.read_csv(DATA_DIR / "out_overseas_normalized.csv")
+DM = pd.read_csv(DATA_DIR / "out_domestic_normalized.csv")
 
 # ───────── [변수] 국내 LG 부품가 관측치 (오늘가치, 부가세 포함 가정) ─────────
 # (부품코드, 사례ID, 금액, 근거)
@@ -130,7 +131,7 @@ if __name__ == "__main__":
     T = pd.DataFrame(rows)
     T["국내 관측치"] = T["국내 관측치"].apply(lambda v: ", ".join(f"{x:,}" for x in v))
     T["보정계수 범위"] = T["보정계수 범위"].apply(lambda t: f"{t[0]}~{t[1]}")
-    T.to_csv("/home/claude/norm/out_estimate_table.csv", index=False, encoding="utf-8-sig")
+    T.to_csv(DATA_DIR / "out_estimate_table.csv", index=False, encoding="utf-8-sig")
     print(T[["부품코드","부품","기준 그룹","기준 해외가(원)","부품비 하한","부품비 중앙","부품비 상한","총액 하한","총액 중앙","총액 상한","신뢰도"]].to_string())
 
     # ───────── 검증: 국내 LG 유상 사례 총액(오늘가치) vs 예측 (LOO) ─────────
@@ -146,6 +147,6 @@ if __name__ == "__main__":
                     "오차율": round((p["총액 중앙"] - a) / a * 100, 1),
                     "범위 안": p["총액 하한"] <= a <= p["총액 상한"], "고객과실": r["고객과실"]})
     VV = pd.DataFrame(out)
-    VV.to_csv("/home/claude/norm/out_validation.csv", index=False, encoding="utf-8-sig")
+    VV.to_csv(DATA_DIR / "out_validation.csv", index=False, encoding="utf-8-sig")
     print(VV.to_string())
     print("n", len(VV), "중앙 절대오차율", st.median(abs(VV["오차율"])), "범위 적중", VV["범위 안"].mean())

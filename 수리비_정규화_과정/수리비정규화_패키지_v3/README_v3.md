@@ -2,6 +2,8 @@
 
 실행 순서: python3 normalize.py → python3 model.py → python3 model_v2.py → python3 model_v3.py
 
+입력·출력 CSV는 환경변수 `COST_DATA_DIR` 폴더에서 읽고 쓴다(지정하지 않으면 스크립트가 있는 폴더). 국내 후기 CSV 2개(`LG_AS_수리비_후기_사례.csv`, `삼성_AS_수리비_후기_사례.csv`)는 저장소에 없으므로 같은 폴더에 따로 둬야 한다.
+
 - normalize.py : 해외 가격 → 한국 원화(부가세 10% 포함), 국내 후기 → 오늘가치(물가·현재 출장비)
 - model.py     : v1. 부품비 보정계수(미국 0.31, 유럽 0.95) + 제품군별 기술료
 - model_v2.py  : 기술료를 작업 난이도 등급(T1 전장·센서 / T2 기계부품 / T3 대분해·냉매)으로 분리

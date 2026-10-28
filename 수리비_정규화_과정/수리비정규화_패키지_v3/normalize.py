@@ -7,6 +7,12 @@ HomeCare AI — 해외·국내 수리비 한국 기준 정규화 & 예상 수리
 """
 import re, csv
 import pandas as pd
+import os
+from pathlib import Path
+
+# ───────────────────────── [변수] 입력·출력 폴더 ─────────────────────────
+# 환경변수 COST_DATA_DIR가 없으면 이 스크립트가 있는 폴더를 쓴다.
+DATA_DIR = Path(os.environ.get("COST_DATA_DIR") or Path(__file__).resolve().parent)
 
 # ───────────────────────── [변수] 기준값 ─────────────────────────
 REF_DATE = "2026-10-08"
@@ -150,10 +156,10 @@ def normalize_domestic(path, brand):
     return pd.DataFrame(out)
 
 if __name__ == "__main__":
-    ov = normalize_overseas("/home/claude/norm/overseas_v1.csv")
-    lg = normalize_domestic("/home/claude/LG_AS_수리비_후기_사례.csv", "LG")
-    ss = normalize_domestic("/home/claude/삼성_AS_수리비_후기_사례.csv", "삼성")
-    ov.to_csv("/home/claude/norm/out_overseas_normalized.csv", index=False, encoding="utf-8-sig")
-    pd.concat([lg, ss]).to_csv("/home/claude/norm/out_domestic_normalized.csv", index=False, encoding="utf-8-sig")
+    ov = normalize_overseas(DATA_DIR / "overseas_v1.csv")
+    lg = normalize_domestic(DATA_DIR / "LG_AS_수리비_후기_사례.csv", "LG")
+    ss = normalize_domestic(DATA_DIR / "삼성_AS_수리비_후기_사례.csv", "삼성")
+    ov.to_csv(DATA_DIR / "out_overseas_normalized.csv", index=False, encoding="utf-8-sig")
+    pd.concat([lg, ss]).to_csv(DATA_DIR / "out_domestic_normalized.csv", index=False, encoding="utf-8-sig")
     print(ov[["국가","부품코드","부품번호","세전 금액(원화)","한국 부가세 10% 포함(원화)","파일 환율(10-07) 기준 원화"]].head(8))
     print(lg[lg["부품코드"].notna()][["ID","부품코드","교체부품","부품비(당시)","부품비(오늘가치)","기술료(오늘가치)","총액(당시)","총액(오늘가치·현재 출장비)"]].to_string())

@@ -71,8 +71,8 @@
 $env:JAVA_HOME='C:\Users\Roneon\.jdks\openjdk-21.0.1'
 $env:PATH="$env:JAVA_HOME\bin;$env:PATH"
 $env:HOMECARE_TEST_PYTHON=(Resolve-Path 'mcp_server/.venv/Scripts/python.exe').Path
-New-Item -ItemType Directory -Path '.git/codex-validation/purchase-warranty' -Force | Out-Null
-$env:HOMECARE_WARRANTY_VERIFICATION_OUTPUT=Join-Path (Get-Location) '.git/codex-validation/purchase-warranty/response.json'
+New-Item -ItemType Directory -Path '.git/validation/purchase-warranty' -Force | Out-Null
+$env:HOMECARE_WARRANTY_VERIFICATION_OUTPUT=Join-Path (Get-Location) '.git/validation/purchase-warranty/response.json'
 Set-Location backend
 .\gradlew.bat test bootJar --offline --no-daemon
 Set-Location ../frontend
