@@ -1,0 +1,137 @@
+[
+ {
+  "started": "2026-10-30T15:59:42+09:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+  "python_for_mcp": "python.exe",
+  "targets": [
+   {
+    "label": "retrieval_9af5760",
+    "commit": "9af57608733ee4617a1f7f53ca2688d3ac010834",
+    "requested": "9af5760",
+    "probe": "retrieval",
+    "exit_code": 1,
+    "seconds": 57.5,
+    "result": false
+   }
+  ],
+  "finished": "2026-10-30T16:00:41+09:00"
+ },
+ {
+  "started": "2026-10-30T16:01:03+09:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+  "python_for_mcp": "python.exe",
+  "targets": [
+   {
+    "label": "retrieval_9af5760",
+    "commit": "9af57608733ee4617a1f7f53ca2688d3ac010834",
+    "requested": "9af5760",
+    "probe": "retrieval",
+    "exit_code": 0,
+    "seconds": 57.5,
+    "result": true
+   }
+  ],
+  "finished": "2026-10-30T16:02:02+09:00"
+ },
+ {
+  "started": "2026-10-30T16:02:51+09:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+  "python_for_mcp": "python.exe",
+  "targets": [
+   {
+    "label": "before_dd95d9a",
+    "commit": "8b42182ee26cd6c436de97d6a0c0aa5974d74b82",
+    "requested": "dd95d9a^",
+    "probe": "self_check_rate_limit",
+    "exit_code": 0,
+    "seconds": 185.8,
+    "result": true
+   },
+   {
+    "label": "before_dd95d9a",
+    "commit": "8b42182ee26cd6c436de97d6a0c0aa5974d74b82",
+    "requested": "dd95d9a^",
+    "probe": "self_check_requests",
+    "exit_code": 0,
+    "seconds": 89.9,
+    "result": true
+   },
+   {
+    "label": "after_dd95d9a",
+    "commit": "dd95d9a9b9b97d10968786baadad93dc070372ed",
+    "requested": "dd95d9a",
+    "probe": "self_check_rate_limit",
+    "exit_code": 0,
+    "seconds": 99.8,
+    "result": true
+   },
+   {
+    "label": "after_dd95d9a",
+    "commit": "dd95d9a9b9b97d10968786baadad93dc070372ed",
+    "requested": "dd95d9a",
+    "probe": "self_check_requests",
+    "exit_code": 0,
+    "seconds": 61.3,
+    "result": true
+   },
+   {
+    "label": "current",
+    "commit": "8fd1ce2611bb36d7d023a8366c22221a3f3de268",
+    "requested": "HEAD",
+    "probe": "self_check_rate_limit",
+    "exit_code": 0,
+    "seconds": 106.1,
+    "result": true
+   },
+   {
+    "label": "current",
+    "commit": "8fd1ce2611bb36d7d023a8366c22221a3f3de268",
+    "requested": "HEAD",
+    "probe": "self_check_requests",
+    "exit_code": 0,
+    "seconds": 76.1,
+    "result": true
+   },
+   {
+    "label": "current",
+    "commit": "8fd1ce2611bb36d7d023a8366c22221a3f3de268",
+    "requested": "HEAD",
+    "probe": "retrieval",
+    "exit_code": 0,
+    "seconds": 32.4,
+    "result": true
+   },
+   {
+    "label": "current",
+    "commit": "8fd1ce2611bb36d7d023a8366c22221a3f3de268",
+    "requested": "HEAD",
+    "probe": "index_cache",
+    "exit_code": 0,
+    "seconds": 52.7,
+    "result": true
+   }
+  ],
+  "finished": "2026-10-30T16:14:39+09:00"
+ },
+ {
+  "started": "2026-10-30T16:16:28+09:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+  "python_for_mcp": "python.exe",
+  "targets": [
+   {
+    "label": "current",
+    "commit": "8fd1ce2611bb36d7d023a8366c22221a3f3de268",
+    "requested": "HEAD",
+    "probe": "index_cache",
+    "exit_code": 0,
+    "seconds": 100.5,
+    "result": true
+   }
+  ],
+  "finished": "2026-10-30T16:18:10+09:00"
+ }
+]
