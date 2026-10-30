@@ -1,0 +1,923 @@
+{
+ "generated": "2026-10-30T16:18:11+09:00",
+ "p95_method": "nearest-rank: ceil(0.95*n)-th smallest",
+ "self_check": {
+  "before_dd95d9a": {
+   "environment": {
+    "java": "21.0.1",
+    "os": "Windows 11 10.0",
+    "processors": 16,
+    "database": "H2 in-memory (MySQL mode)",
+    "model": "scripted local OpenAI endpoint",
+    "mcp": "real FastMCP over local HTTP"
+   },
+   "warmup": 3,
+   "repeat": 20,
+   "checks": {
+    "protocol": "PER_STEP_CHAT",
+    "other_user_chat_status": 404
+   },
+   "scenarios": {
+    "NOT_RESOLVED": {
+     "protocol": [
+      "PER_STEP_CHAT"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 5,
+       "POST /api/chat": 5
+      }
+     ],
+     "step_requests_total": [
+      10
+     ],
+     "rate_limited_path_requests": [
+      5
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      "SUMMARY"
+     ],
+     "final_reply_head": [
+      "안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.\n\n예"
+     ],
+     "closed": [
+      false
+     ],
+     "check_done": [
+      "NOT_RESOLVED"
+     ],
+     "saved_messages": [
+      14
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 183.16,
+      "p95": 258.46,
+      "min": 105.9,
+      "max": 334.85
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 264.43,
+      "p95": 350.94,
+      "min": 148.4,
+      "max": 477.39
+     }
+    },
+    "SOLVED@3": {
+     "protocol": [
+      "PER_STEP_CHAT"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 3,
+       "POST /api/chat": 3
+      }
+     ],
+     "step_requests_total": [
+      6
+     ],
+     "rate_limited_path_requests": [
+      3
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      null
+     ],
+     "final_reply_head": [
+      "해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요."
+     ],
+     "closed": [
+      true
+     ],
+     "check_done": [
+      "SOLVED"
+     ],
+     "saved_messages": [
+      10
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 84.13,
+      "p95": 120.41,
+      "min": 47.42,
+      "max": 178.7
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 122.13,
+      "p95": 169.88,
+      "min": 71.28,
+      "max": 239.5
+     }
+    }
+   },
+   "default_rate_limit": [
+    {
+     "scenario": "NOT_RESOLVED",
+     "protocol": "PER_STEP_CHAT",
+     "http_429": 4,
+     "forced_wait_s": 45,
+     "rate_limited_path_requests": 9,
+     "final_status": 200,
+     "closed": false,
+     "step_phase_wall_s": 46.0
+    },
+    {
+     "scenario": "SOLVED@3",
+     "protocol": "PER_STEP_CHAT",
+     "http_429": 2,
+     "forced_wait_s": 24,
+     "rate_limited_path_requests": 5,
+     "final_status": 200,
+     "closed": true,
+     "step_phase_wall_s": 24.3
+    }
+   ]
+  },
+  "after_dd95d9a": {
+   "environment": {
+    "java": "21.0.1",
+    "os": "Windows 11 10.0",
+    "processors": 16,
+    "database": "H2 in-memory (MySQL mode)",
+    "model": "scripted local OpenAI endpoint",
+    "mcp": "real FastMCP over local HTTP"
+   },
+   "warmup": 3,
+   "repeat": 20,
+   "checks": {
+    "protocol": "OUTCOME_ONLY",
+    "other_user_status": 404,
+    "stale_version_status": 409,
+    "not_resolved_before_last_step_status": 400,
+    "unknown_result_status": 400,
+    "valid_status": 200,
+    "valid_model_calls": 0,
+    "duplicate_status": 409
+   },
+   "scenarios": {
+    "NOT_RESOLVED": {
+     "protocol": [
+      "OUTCOME_ONLY"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 1,
+       "POST /api/conversations/{id}/self-check": 1
+      }
+     ],
+     "step_requests_total": [
+      2
+     ],
+     "rate_limited_path_requests": [
+      0
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      "SUMMARY"
+     ],
+     "final_reply_head": [
+      "안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.\n\n예"
+     ],
+     "closed": [
+      false
+     ],
+     "check_done": [
+      "NOT_RESOLVED"
+     ],
+     "saved_messages": [
+      6
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 32.77,
+      "p95": 49.95,
+      "min": 20.61,
+      "max": 51.24
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 45.67,
+      "p95": 66.27,
+      "min": 31.06,
+      "max": 84.76
+     }
+    },
+    "SOLVED@3": {
+     "protocol": [
+      "OUTCOME_ONLY"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 1,
+       "POST /api/conversations/{id}/self-check": 1
+      }
+     ],
+     "step_requests_total": [
+      2
+     ],
+     "rate_limited_path_requests": [
+      0
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      null
+     ],
+     "final_reply_head": [
+      "해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요."
+     ],
+     "closed": [
+      true
+     ],
+     "check_done": [
+      "SOLVED"
+     ],
+     "saved_messages": [
+      6
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 19.08,
+      "p95": 37.11,
+      "min": 10.5,
+      "max": 46.0
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 32.43,
+      "p95": 50.33,
+      "min": 18.25,
+      "max": 72.08
+     }
+    }
+   },
+   "default_rate_limit": [
+    {
+     "scenario": "NOT_RESOLVED",
+     "protocol": "OUTCOME_ONLY",
+     "http_429": 0,
+     "forced_wait_s": 0,
+     "rate_limited_path_requests": 0,
+     "final_status": 200,
+     "closed": false,
+     "step_phase_wall_s": 0.1
+    },
+    {
+     "scenario": "SOLVED@3",
+     "protocol": "OUTCOME_ONLY",
+     "http_429": 0,
+     "forced_wait_s": 0,
+     "rate_limited_path_requests": 0,
+     "final_status": 200,
+     "closed": true,
+     "step_phase_wall_s": 0.0
+    }
+   ]
+  },
+  "current": {
+   "environment": {
+    "java": "21.0.1",
+    "os": "Windows 11 10.0",
+    "processors": 16,
+    "database": "H2 in-memory (MySQL mode)",
+    "model": "scripted local OpenAI endpoint",
+    "mcp": "real FastMCP over local HTTP"
+   },
+   "warmup": 3,
+   "repeat": 20,
+   "checks": {
+    "protocol": "OUTCOME_ONLY",
+    "other_user_status": 404,
+    "stale_version_status": 409,
+    "not_resolved_before_last_step_status": 400,
+    "unknown_result_status": 400,
+    "valid_status": 200,
+    "valid_model_calls": 0,
+    "duplicate_status": 409
+   },
+   "scenarios": {
+    "NOT_RESOLVED": {
+     "protocol": [
+      "OUTCOME_ONLY"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 1,
+       "POST /api/conversations/{id}/self-check": 1
+      }
+     ],
+     "step_requests_total": [
+      2
+     ],
+     "rate_limited_path_requests": [
+      0
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      "SUMMARY"
+     ],
+     "final_reply_head": [
+      "안내한 항목을 모두 확인했지만 해결되지 않았어요. 점검이 필요해요.\n\n예"
+     ],
+     "closed": [
+      false
+     ],
+     "check_done": [
+      "NOT_RESOLVED"
+     ],
+     "saved_messages": [
+      6
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 30.16,
+      "p95": 53.52,
+      "min": 20.36,
+      "max": 56.79
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 47.76,
+      "p95": 71.66,
+      "min": 30.28,
+      "max": 71.84
+     }
+    },
+    "SOLVED@3": {
+     "protocol": [
+      "OUTCOME_ONLY"
+     ],
+     "steps_shown": [
+      5
+     ],
+     "step_requests": [
+      {
+       "GET /api/conversations": 1,
+       "POST /api/conversations/{id}/self-check": 1
+      }
+     ],
+     "step_requests_total": [
+      2
+     ],
+     "rate_limited_path_requests": [
+      0
+     ],
+     "model_calls": [
+      {
+       "interpreter": 0,
+       "grounded_answer": 0,
+       "risk": 0,
+       "agent": 0
+      }
+     ],
+     "final_card": [
+      null
+     ],
+     "final_reply_head": [
+      "해결되었습니다. 새로운 증상은 새 상담에서 시작해 주세요."
+     ],
+     "closed": [
+      true
+     ],
+     "check_done": [
+      "SOLVED"
+     ],
+     "saved_messages": [
+      6
+     ],
+     "step_phase_post_ms": {
+      "n": 20,
+      "median": 16.41,
+      "p95": 37.73,
+      "min": 12.55,
+      "max": 42.84
+     },
+     "step_phase_wall_ms": {
+      "n": 20,
+      "median": 28.6,
+      "p95": 61.86,
+      "min": 21.81,
+      "max": 70.68
+     }
+    }
+   },
+   "default_rate_limit": [
+    {
+     "scenario": "NOT_RESOLVED",
+     "protocol": "OUTCOME_ONLY",
+     "http_429": 0,
+     "forced_wait_s": 0,
+     "rate_limited_path_requests": 0,
+     "final_status": 200,
+     "closed": false,
+     "step_phase_wall_s": 0.2
+    },
+    {
+     "scenario": "SOLVED@3",
+     "protocol": "OUTCOME_ONLY",
+     "http_429": 0,
+     "forced_wait_s": 0,
+     "rate_limited_path_requests": 0,
+     "final_status": 200,
+     "closed": true,
+     "step_phase_wall_s": 0.0
+    }
+   ]
+  }
+ },
+ "retrieval_records": {
+  "initial": {
+   "passed": 22,
+   "total": 25,
+   "index": {
+    "cache_hit": false,
+    "fingerprint": "0ef8073ac47d48f7c0f4e153d706c72ddc02ec4d8f0134b91169123595d21e44",
+    "initialization_ms": 17574,
+    "cache_persisted": true,
+    "corpus": "MANUFACTURER_ONLY",
+    "model": "text-embedding-3-small",
+    "unit_count": 1542,
+    "embedding_tokens": 366669,
+    "dimensions": 1536,
+    "status": "READY"
+   }
+  },
+  "final": {
+   "passed": 33,
+   "total": 33,
+   "index": {
+    "corpus": "MANUFACTURER_ONLY",
+    "cache_hit": true,
+    "payload_sha256": "c6423d7007ba471b0c9c9439a16d79ba0b30124d050b5986d2d6310278b91e88",
+    "fingerprint": "04c51cd4808683938c2211c2bba068828a57b5bce682aac018aa802b60b4a7ab",
+    "initialization_ms": 764,
+    "build_initialization_ms": 11048,
+    "model": "text-embedding-3-small",
+    "unit_count": 1542,
+    "embedding_tokens": 155721,
+    "dimensions": 1536,
+    "status": "READY",
+    "query_embedding_tokens": 572,
+    "query_embedding_requests": 28
+   }
+  },
+  "same_query_and_model_for_initial_cases": 25,
+  "pass_changes": [
+   {
+    "id": "vibration-paraphrase",
+    "split": "development",
+    "initial": false,
+    "final": true
+   },
+   {
+    "id": "vibration-heldout-position",
+    "split": "heldout",
+    "initial": false,
+    "final": true
+   },
+   {
+    "id": "heldout-no-data",
+    "split": "heldout",
+    "initial": false,
+    "final": true
+   }
+  ],
+  "final_on_initial_25": 25,
+  "first_query_ms_initial": {
+   "n": 21,
+   "median": 175.0,
+   "p95": 200.0,
+   "min": 144.0,
+   "max": 213.0
+  },
+  "first_query_ms_final_same_cases": {
+   "n": 20,
+   "median": 429.0,
+   "p95": 1774.0,
+   "min": 167.0,
+   "max": 2028.0
+  },
+  "final_modes": {
+   "LEXICAL_FALLBACK": 1,
+   "HYBRID": 25,
+   "LEXICAL_ONLY": 7
+  }
+ },
+ "retrieval_probe": {
+  "retrieval_9af5760": {
+   "data_version": "B30-COST-V3-20261014-R4",
+   "evaluation_version": "manufacturer-retrieval-eval-v1",
+   "rejudged_stored_runs": {
+    "manufacturer_retrieval_initial_20261014": {
+     "total": 25,
+     "rejudged_passed": 21,
+     "agrees_with_record": 24
+    },
+    "manufacturer_retrieval_20261014": {
+     "total": 33,
+     "rejudged_passed": 33,
+     "agrees_with_record": 33
+    }
+   },
+   "lexical_only_passed": 33,
+   "total": 33,
+   "lexical_failed_but_recorded_hybrid_passed": [],
+   "lexical_passed_ids": [
+    "vibration-reproduction",
+    "vibration-synonym",
+    "vibration-moving",
+    "vibration-paraphrase",
+    "other-washer-model",
+    "legacy-washer-vibration",
+    "flood-matching-model",
+    "flood-other-model",
+    "exact-oe",
+    "spaced-oe",
+    "display-label",
+    "natural-drain",
+    "broad-only",
+    "unknown-subject",
+    "unknown-model",
+    "missing-model",
+    "wrong-category",
+    "excluded-optional",
+    "vibration-heldout-position",
+    "vibration-heldout-shaking",
+    "vibration-heldout-representative",
+    "negative-no-vibration",
+    "heldout-de-code",
+    "heldout-no-model-code",
+    "heldout-no-data",
+    "validation-vibration-drift",
+    "validation-vibration-alias",
+    "validation-wrong-model",
+    "validation-flood",
+    "validation-exact-ie",
+    "validation-no-data",
+    "validation-no-model",
+    "frost-paraphrase"
+   ],
+   "lexical_local_time_ms": {
+    "n": 660,
+    "median": 4.27,
+    "p95": 10.89,
+    "min": 0.31,
+    "max": 56.12
+   },
+   "environment": {
+    "java": "21.0.1",
+    "os": "Windows 11 10.0",
+    "processors": 16
+   }
+  },
+  "current": {
+   "data_version": "B30-COST-V3-20261014-R5",
+   "evaluation_version": "manufacturer-retrieval-eval-v1",
+   "rejudged_stored_runs": {
+    "manufacturer_retrieval_initial_20261014": {
+     "skipped": "data version B30-COST-V3-20261014-R4 != B30-COST-V3-20261014-R5"
+    },
+    "manufacturer_retrieval_20261014": {
+     "skipped": "data version B30-COST-V3-20261014-R4 != B30-COST-V3-20261014-R5"
+    }
+   },
+   "lexical_only_passed": 33,
+   "total": 33,
+   "lexical_failed_but_recorded_hybrid_passed": [],
+   "lexical_passed_ids": [
+    "vibration-reproduction",
+    "vibration-synonym",
+    "vibration-moving",
+    "vibration-paraphrase",
+    "other-washer-model",
+    "legacy-washer-vibration",
+    "flood-matching-model",
+    "flood-other-model",
+    "exact-oe",
+    "spaced-oe",
+    "display-label",
+    "natural-drain",
+    "broad-only",
+    "unknown-subject",
+    "unknown-model",
+    "missing-model",
+    "wrong-category",
+    "excluded-optional",
+    "vibration-heldout-position",
+    "vibration-heldout-shaking",
+    "vibration-heldout-representative",
+    "negative-no-vibration",
+    "heldout-de-code",
+    "heldout-no-model-code",
+    "heldout-no-data",
+    "validation-vibration-drift",
+    "validation-vibration-alias",
+    "validation-wrong-model",
+    "validation-flood",
+    "validation-exact-ie",
+    "validation-no-data",
+    "validation-no-model",
+    "frost-paraphrase"
+   ],
+   "lexical_local_time_ms": {
+    "n": 660,
+    "median": 4.47,
+    "p95": 11.91,
+    "min": 0.33,
+    "max": 27.18
+   },
+   "environment": {
+    "java": "21.0.1",
+    "os": "Windows 11 10.0",
+    "processors": 16
+   }
+  }
+ },
+ "recorded_index_metrics": {
+  "runs": [
+   {
+    "file": "consultation_agent_20261015_baseline.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 1214,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 16
+   },
+   {
+    "file": "consultation_agent_20261015_final.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 882,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 18
+   },
+   {
+    "file": "consultation_agent_20261015_final_v2.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 870,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 14
+   },
+   {
+    "file": "consultation_agent_20261015_final_v3.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 898,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 17
+   },
+   {
+    "file": "consultation_agent_20261015_holdout.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 899,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 5
+   },
+   {
+    "file": "consultation_agent_20261015_holdout_clarity_final.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 920,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 3
+   },
+   {
+    "file": "consultation_agent_20261015_holdout_final.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 871,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 4
+   },
+   {
+    "file": "consultation_agent_20261015_holdout_power_fix.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 878,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 2
+   },
+   {
+    "file": "consultation_agent_20261015_initial.json",
+    "fingerprint": "7f3d9e30617e",
+    "cache_hit": true,
+    "initialization_ms": 922,
+    "build_initialization_ms": 27291,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 14
+   },
+   {
+    "file": "manufacturer_retrieval_20261014.json",
+    "fingerprint": "04c51cd48086",
+    "cache_hit": true,
+    "initialization_ms": 764,
+    "build_initialization_ms": 11048,
+    "embedding_tokens": 155721,
+    "unit_count": 1542,
+    "query_embedding_requests": 28
+   },
+   {
+    "file": "manufacturer_retrieval_initial_20261014.json",
+    "fingerprint": "0ef8073ac47d",
+    "cache_hit": false,
+    "initialization_ms": 17574,
+    "build_initialization_ms": null,
+    "embedding_tokens": 366669,
+    "unit_count": 1542,
+    "query_embedding_requests": null
+   }
+  ],
+  "by_fingerprint": {
+   "7f3d9e30617e": {
+    "builds_ms": [
+     27291
+    ],
+    "hits_ms": [
+     1214,
+     882,
+     870,
+     898,
+     899,
+     920,
+     871,
+     878,
+     922
+    ],
+    "misses_ms": [],
+    "tokens": 155721,
+    "hit_stats": {
+     "n": 9,
+     "median": 898.0,
+     "p95": 1214.0,
+     "min": 870.0,
+     "max": 1214.0
+    },
+    "reduction_vs_hit_median": 0.9671
+   },
+   "04c51cd48086": {
+    "builds_ms": [
+     11048
+    ],
+    "hits_ms": [
+     764
+    ],
+    "misses_ms": [],
+    "tokens": 155721,
+    "hit_stats": {
+     "n": 1,
+     "median": 764.0,
+     "p95": 764.0,
+     "min": 764.0,
+     "max": 764.0
+    },
+    "reduction_vs_hit_median": 0.9308
+   },
+   "0ef8073ac47d": {
+    "builds_ms": [
+     17574
+    ],
+    "hits_ms": [],
+    "misses_ms": [
+     17574
+    ],
+    "tokens": 366669,
+    "hit_stats": null
+   }
+  }
+ },
+ "index_cache_probe": {
+  "data_version": "B30-COST-V3-20261014-R5",
+  "knowledge_units": 1542,
+  "dimensions": 1536,
+  "cold_build_local_ms": {
+   "n": 5,
+   "median": 1127.6,
+   "p95": 1157.35,
+   "min": 795.62,
+   "max": 1157.35
+  },
+  "cold_build_embedding_requests": [
+   26
+  ],
+  "cold_build_embedded_texts": [
+   1543
+  ],
+  "cache_bytes": [
+   34076830
+  ],
+  "cache_load_ms": {
+   "n": 20,
+   "median": 1331.09,
+   "p95": 1652.98,
+   "min": 572.25,
+   "max": 1799.07
+  },
+  "cache_load_constructor_ms": {
+   "n": 20,
+   "median": 20.1,
+   "p95": 65.26,
+   "min": 4.86,
+   "max": 88.36
+  },
+  "cache_load_hits": [
+   true
+  ],
+  "cache_load_embedding_requests": [
+   0
+  ],
+  "questions": {
+   "distinct_questions": 33,
+   "document_embedding_requests": 26,
+   "requests_for_distinct_questions": 26,
+   "requests_for_same_questions_again": 0,
+   "questions_with_semantic_match": 2
+  },
+  "loaded_results_equal_built_results": true,
+  "tampered_payload": {
+   "cache_hit": false,
+   "embedding_requests": 26
+  },
+  "changed_model_name": {
+   "cache_hit": false,
+   "embedding_requests": 26,
+   "same_cache_file": false
+  },
+  "environment": {
+   "java": "21.0.1",
+   "os": "Windows 11 10.0",
+   "processors": 16,
+   "max_heap_mb": 512
+  }
+ }
+}
